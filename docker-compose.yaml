@@ -13,7 +13,7 @@ services:
       - 13306:3306
   redis:
     image: redis:latest
-    restart: always
+    # restart: always
     environment:
       REDIS_PASSWORD: ""
     ports:

@@ -118,7 +118,8 @@ func (h *UserHandler) LoginJWT(ctx *gin.Context) {
 	// TODO: 生成 token
 
 	claims := UserClaims{
-		UserId: user.Id,
+		UserId:    user.Id,
+		UserAgent: ctx.Request.UserAgent(),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)),
 		},
@@ -197,6 +198,7 @@ func (h *UserHandler) ProfileJWT(ctx *gin.Context) {
 }
 
 type UserClaims struct {
-	UserId int64 `json:"userId"`
+	UserId    int64  `json:"userId"`
+	UserAgent string `json:"userAgent"`
 	jwt.RegisteredClaims
 }
