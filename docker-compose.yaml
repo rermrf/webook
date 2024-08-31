@@ -1,0 +1,21 @@
+services:
+  mysql8: 
+    image: mysql:8.4.2
+    restart: always
+    # command: --default-authentication-plugin=mysql_native_passwords
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      # 设置初始化脚本
+      - ./script/mysql/:/docker-entrypoint-initdb.d/
+    ports:
+      # 设置端口映射
+      - 13306:3306
+  redis:
+    image: redis:latest
+    restart: always
+    environment:
+      REDIS_PASSWORD: ""
+    ports:
+      # 设置端口映射
+      - 6379:6379
