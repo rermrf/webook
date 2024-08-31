@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"webook/internal/domain"
 	"webook/internal/service"
@@ -9,6 +10,7 @@ import (
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	jwt "github.com/golang-jwt/jwt/v5"
 )
 
 type UserHandler struct {
@@ -32,7 +34,7 @@ func NewUserHandler(svc *service.UserService) *UserHandler {
 func (u *UserHandler) RegisterRoutes(server *gin.Engine) {
 	ug := server.Group("/users")
 	ug.POST("/signup", u.SignUp)
-	ug.POST("/login", u.Login)
+	ug.POST("/login", u.LoginJWT)
 	ug.POST("/edit", u.Edit)
 	ug.GET("/profile", u.Profile)
 }
@@ -95,6 +97,34 @@ func (h *UserHandler) SignUp(ctx *gin.Context) {
 type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+func (h *UserHandler) LoginJWT(ctx *gin.Context) {
+	var req LoginRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		return
+	}
+	user, err := h.svc.Login(ctx, req.Email, req.Password)
+	if err == service.ErrInvalidUserOrPassword {
+		ctx.String(http.StatusOK, "用户名或密码错误")
+		return
+	}
+	if err != nil {
+		ctx.String(http.StatusOK, "系统错误")
+		return
+	}
+	log.Println(user)
+
+	// TODO: 生成 token
+	token := jwt.New(jwt.SigningMethodHS256)
+	tokenStr, err := token.SignedString([]byte("pBMH@cKP65sknQI%ijB2DzhFnvsfiyt*"))
+	if err != nil {
+		ctx.String(http.StatusInternalServerError, "系统错误")
+		return
+	}
+	log.Println(tokenStr)
+	ctx.Header("x-jwt-token", tokenStr)
+	ctx.String(http.StatusOK, "登录成功")
 }
 
 func (h *UserHandler) Login(ctx *gin.Context) {

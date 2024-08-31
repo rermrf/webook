@@ -8,6 +8,7 @@ require (
 	github.com/gin-contrib/sessions v1.0.1
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-sql-driver/mysql v1.8.1
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/stretchr/testify v1.9.0
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/gorm v1.25.11
@@ -15,9 +16,7 @@ require (
 
 require (
 	github.com/boj/redistore v0.0.0-20180917114910-cd5dcc76aeff // indirect
-	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
 	github.com/gomodule/redigo v2.0.0+incompatible // indirect
-	github.com/quasoft/memstore v0.0.0-20191010062613-2bce066d2b0b // indirect
 )
 
 require (

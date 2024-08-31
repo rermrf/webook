@@ -59,6 +59,7 @@ func initWebServer() *gin.Engine {
 		// AllowOrigins: []string{"http://localhost:3000"},
 		AllowMethods: cors.DefaultConfig().AllowMethods,
 		AllowHeaders: []string{"Content-Type", "Authorization"},
+		// 不加这个，前端拿不到
 		// ExposeHeaders:    []string{"x-jwt-token"},
 		AllowCredentials: true, // 是否允许发送Cookie，默认false
 		AllowOriginFunc: func(origin string) bool {
