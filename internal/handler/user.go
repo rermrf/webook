@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 	"webook/internal/domain"
 	"webook/internal/service"
 
@@ -36,7 +37,7 @@ func (u *UserHandler) RegisterRoutes(server *gin.Engine) {
 	ug.POST("/signup", u.SignUp)
 	ug.POST("/login", u.LoginJWT)
 	ug.POST("/edit", u.Edit)
-	ug.GET("/profile", u.Profile)
+	ug.GET("/profile", u.ProfileJWT)
 }
 
 type SignUpRequest struct {
@@ -113,10 +114,16 @@ func (h *UserHandler) LoginJWT(ctx *gin.Context) {
 		ctx.String(http.StatusOK, "系统错误")
 		return
 	}
-	log.Println(user)
 
 	// TODO: 生成 token
-	token := jwt.New(jwt.SigningMethodHS256)
+
+	claims := UserClaims{
+		UserId: user.Id,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenStr, err := token.SignedString([]byte("pBMH@cKP65sknQI%ijB2DzhFnvsfiyt*"))
 	if err != nil {
 		ctx.String(http.StatusInternalServerError, "系统错误")
@@ -172,4 +179,24 @@ func (h *UserHandler) Edit(ctx *gin.Context) {
 
 func (h *UserHandler) Profile(ctx *gin.Context) {
 
+}
+
+func (h *UserHandler) ProfileJWT(ctx *gin.Context) {
+	c, ok := ctx.Get("claims")
+	if !ok {
+		ctx.String(http.StatusOK, "系统错误")
+		return
+	}
+	claims, ok := c.(*UserClaims)
+	if !ok {
+		ctx.String(http.StatusOK, "系统错误")
+		return
+	}
+	log.Println(claims.UserId)
+	ctx.String(http.StatusOK, "profile: "+string(claims.UserId))
+}
+
+type UserClaims struct {
+	UserId int64 `json:"userId"`
+	jwt.RegisteredClaims
 }

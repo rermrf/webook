@@ -2,13 +2,17 @@ package middleware
 
 import (
 	"encoding/gob"
+	"log"
 	"net/http"
+	"strings"
 	"time"
+	"webook/internal/handler"
 
-	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 )
 
+// JWT 登录校验
 type LoginJWTMiddlewareBuilder struct {
 	paths []string
 }
@@ -33,40 +37,49 @@ func (l *LoginJWTMiddlewareBuilder) Build() gin.HandlerFunc {
 				return
 			}
 		}
-		// 不需要登录校验
-		// if ctx.Request.URL.Path == "/users/login" || ctx.Request.URL.Path == "/users/signup" {
-		// 	return
-		// }
-		sess := sessions.Default(ctx)
-		id := sess.Get("userId")
-		if id == nil {
-			// 没有登录
+		// 使用 JWT 进行登录校验
+		tokenHeader := ctx.GetHeader("Authorization")
+		if tokenHeader == "" {
+			// 没登录
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
-		updateTime := sess.Get("update_time")
-		sess.Set("userId", id)
-		sess.Options(sessions.Options{
-			MaxAge: 60,
+		segs := strings.Split(tokenHeader, " ")
+		if len(segs) != 2 {
+			// 没登录
+			ctx.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+		tokenStr := segs[1]
+		claims := &handler.UserClaims{}
+		token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+			return []byte("pBMH@cKP65sknQI%ijB2DzhFnvsfiyt*"), nil
 		})
-		// sess.Save() // 不需要这个save的原因，是我要距离上次update_time超过10秒才更新
+		if err != nil {
+			ctx.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		// claims.ExpiresAt.Time.Before(time.Now())
+		// err 为 nil,token 不为 nil
+		if token == nil || !token.Valid || claims.UserId == 0 {
+			ctx.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+		// 每十秒钟刷新一次
 		now := time.Now()
-		// 说明刚登录，还没刷新过
-		if updateTime == nil {
-			sess.Set("update_time", now)
-			sess.Save()
-			return
+		if claims.ExpiresAt.Sub(now) < 50*time.Second {
+			claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Minute))
+			tokenStr, err = token.SignedString([]byte("pBMH@cKP65sknQI%ijB2DzhFnvsfiyt*"))
+			if err != nil {
+				// 记录日志
+				log.Println("jwt 续约失败", err)
+			}
+			ctx.Header("x-jwt-token", tokenStr)
 		}
-		// update_time 是有的
-		updateTimeVal, ok := updateTime.(time.Time)
-		if !ok {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-		if now.Sub(updateTimeVal) > time.Second*10 {
-			sess.Set("update_time", now)
-			sess.Save()
-		}
+
+		ctx.Set("claims", claims)
+		// ctx.Set("userId", claims.UserId)
 	}
 }
