@@ -22,6 +22,12 @@ func NewUserDao(db *gorm.DB) *UserDao {
 	return &UserDao{db: db}
 }
 
+func (dao *UserDao) FindById(ctx context.Context, id int64) (User, error) {
+	var u User
+	err := dao.db.WithContext(ctx).Where("id = ?", id).First(&u).Error
+	return u, err
+}
+
 func (dao *UserDao) FindByEmail(ctx context.Context, email string) (User, error) {
 	var u User
 	err := dao.db.WithContext(ctx).Where("email = ?", email).First(&u).Error

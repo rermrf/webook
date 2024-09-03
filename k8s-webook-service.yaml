@@ -1,0 +1,18 @@
+# kubectl apply -f k8s-webook-service.yaml 
+# kubectl get k8s-webook-service.yaml 
+# kubectl get services 
+apiVersion: v1
+kind: Service
+metadata:
+  # 代表这是我们的 webook 本体
+  name: webook
+# 规格说明，也即是详细说明这个服务是一个怎样的服务
+spec:
+  type: LoadBalancer
+  selector:
+    app: webook
+  ports:
+    - protocol: TCP
+      name: http
+      port: 8080
+      targetPort: 8080

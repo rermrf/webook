@@ -1,0 +1,17 @@
+apiVersion: v1
+# 这个指的是 k8s 有哪些 volume
+kind: PersistentVolume
+metadata:
+  name: my-local-pv
+spec:
+  storageClassName: manual
+  #  各种容量
+  capacity:
+    #    存储容量
+    storage: 1Gi
+  #    本 PV 支持的访问方式
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    #    指定本地路径
+    path: "/mnt/webook"

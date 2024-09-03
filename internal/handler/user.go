@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -37,7 +36,7 @@ func (u *UserHandler) RegisterRoutes(server *gin.Engine) {
 	ug.POST("/signup", u.SignUp)
 	ug.POST("/login", u.LoginJWT)
 	ug.POST("/edit", u.Edit)
-	ug.GET("/profile", u.ProfileJWT)
+	ug.GET("/profile", u.Profile)
 }
 
 type SignUpRequest struct {
@@ -54,16 +53,19 @@ func (h *UserHandler) SignUp(ctx *gin.Context) {
 
 	ok, err := h.emailExp.MatchString(req.Email)
 	if err != nil {
+		log.Println("邮箱匹配错误")
 		ctx.String(http.StatusOK, "系统错误")
 		return
 	}
 
 	if !ok {
+		log.Println("邮箱格式不正确")
 		ctx.String(http.StatusOK, "邮箱格式不正确")
 		return
 	}
 
 	if req.Password != req.ConfirmPassword {
+		log.Println("两次密码不一致")
 		ctx.String(http.StatusOK, "两次密码不一致")
 		return
 	}
@@ -71,12 +73,13 @@ func (h *UserHandler) SignUp(ctx *gin.Context) {
 	ok, err = h.passwordExp.MatchString(req.Password)
 	if err != nil {
 		// TODO: 记录日志
-		fmt.Println(err)
+		log.Println("密码匹配错误")
 		ctx.String(http.StatusOK, "系统错误")
 		return
 	}
 
 	if !ok {
+		log.Println("密码格式不正确")
 		ctx.String(http.StatusOK, "密码格式不正确")
 		return
 	}
@@ -84,10 +87,12 @@ func (h *UserHandler) SignUp(ctx *gin.Context) {
 	// 调用一下 svc 的方法
 	err = h.svc.SignUp(ctx, domain.User{Email: req.Email, Password: req.Password})
 	if err == service.ErrUserDuplicateEmail {
+		log.Println("邮箱已注册")
 		ctx.String(http.StatusOK, "邮箱已注册")
 		return
 	}
 	if err != nil {
+		log.Println("插入数据错误")
 		ctx.String(http.StatusOK, "系统错误")
 		return
 	}
@@ -121,7 +126,7 @@ func (h *UserHandler) LoginJWT(ctx *gin.Context) {
 		UserId:    user.Id,
 		UserAgent: ctx.Request.UserAgent(),
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)),
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -179,7 +184,19 @@ func (h *UserHandler) Edit(ctx *gin.Context) {
 }
 
 func (h *UserHandler) Profile(ctx *gin.Context) {
-
+	uid, ok := ctx.Get("userId")
+	if !ok {
+		ctx.String(http.StatusOK, "系统错误")
+		return
+	}
+	user, err := h.svc.Profile(ctx, uid.(int64))
+	if err == service.ErrUserNotFound {
+		ctx.String(http.StatusOK, "用户不存在")
+	}
+	if err != nil {
+		ctx.String(http.StatusOK, "系统错误")
+	}
+	ctx.JSON(http.StatusOK, user)
 }
 
 func (h *UserHandler) ProfileJWT(ctx *gin.Context) {

@@ -4,18 +4,15 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"webook/config"
 	handler "webook/internal/handler"
 	"webook/internal/handler/middleware"
-	"webook/internal/pkg/gin-pulgin/middlewares/ratelimit"
 	"webook/internal/repository"
 	"webook/internal/repository/dao"
 	"webook/internal/service"
 
 	"github.com/gin-contrib/cors"
-	"github.com/gin-contrib/sessions"
-	sessRedis "github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
-	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -25,11 +22,13 @@ func main() {
 	server := initWebServer()
 	u := initUser(db)
 	u.RegisterRoutes(server)
-	server.Run(":8080")
+
+	server.Run(config.Config.Server.HTTPPort)
 }
 
 func initDB() *gorm.DB {
-	db, err := gorm.Open(mysql.Open("root:root@tcp(127.0.0.1:13306)/webook?charset=utf8mb4&parseTime=True&loc=Local"))
+	// 使用 k8s 部署的 mysql
+	db, err := gorm.Open(mysql.Open(config.Config.DB.DSN))
 	if err != nil {
 		panic("failed to connect database")
 	}
@@ -57,10 +56,11 @@ func initWebServer() *gin.Engine {
 		ctx.Next()
 	})
 
-	redisClient := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
-	})
-	server.Use(ratelimit.NewBuilder(redisClient, time.Minute, 1000).Build())
+	//redisClient := redis.NewClient(&redis.Options{
+	//	// 使用 k8s 部署的redis
+	//	Addr: "webook-redis:6379",
+	//})
+	//server.Use(ratelimit.NewBuilder(redisClient, time.Minute, 1000).Build())
 
 	server.Use(cors.New(cors.Config{
 		// AllowOrigins: []string{"http://localhost:3000"},
@@ -89,12 +89,13 @@ func initWebServer() *gin.Engine {
 	// 第三个、四个 就是连接信息和密码
 	// 第五个是 authentication key，指的是身份认证
 	// 第六个是 encryption key，指的是数据加密，这两者加上权限控制，就是信息安全的三个核心概念
-	store, err := sessRedis.NewStore(16, "tcp", "localhost:6379", "", []byte("Oh8wjuMwrYa#$&LN0c!6dmI5K6osZzvG"), []byte("oBSFwd5HKOSu86f7Q@AlmdRkkp@PCM*^"))
 
-	if err != nil {
-		panic(err)
-	}
-	server.Use(sessions.Sessions("mysession", store))
+	//store, err := sessRedis.NewStore(16, "tcp", config.Config.Redis.Addr, "", []byte("Oh8wjuMwrYa#$&LN0c!6dmI5K6osZzvG"), []byte("oBSFwd5HKOSu86f7Q@AlmdRkkp@PCM*^"))
+	//
+	//if err != nil {
+	//	panic(err)
+	//}
+	//server.Use(sessions.Sessions("mysession", store))
 
 	// server.Use(middleware.NewLoginMiddlewareBuilder().
 	// 	IgnorePaths("/users/login").

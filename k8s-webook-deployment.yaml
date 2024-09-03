@@ -1,0 +1,25 @@
+# kubectl apply -f k8s-webook-deloyment.yaml 
+# kubectl get deployments   
+# kubectl get pods 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webook
+spec: # Deployment 的规格说明
+  # 副本数
+  replicas: 3
+  selector: # 筛选器，就是在 k8s 的一大堆 POD 里面，我怎么知道哪些是我管理的那三个
+    matchLabels:
+      app: webook
+    # template 描述的是 POD 是什么样的
+  template: # Pod 的模板
+    metadata:
+      labels:
+        app: webook
+    # POD 的具体信息
+    spec:
+      containers:
+        - name: webook
+          image: rermrf/webook:v0.0.1
+          ports:
+            - containerPort: 8080
