@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	sms "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sms/v20210111"
+	mysms "webook/internal/service/sms"
 )
 
 type Service struct {
@@ -27,6 +28,31 @@ func (s *Service) Send(ctx context.Context, tpl string, args []string, numbers .
 	req.TemplateId = &tpl
 	req.PhoneNumberSet = toStringPtrSlice(numbers)
 	req.TemplateParamSet = toStringPtrSlice(args)
+	resp, err := s.client.SendSms(req)
+	if err != nil {
+		return err
+	}
+	for _, status := range resp.Response.SendStatusSet {
+		if status.Code == nil || *(status.Code) != "Ok" {
+			return fmt.Errorf("发送短信失败 %s, %s", *(status.Code), *(status.Message))
+		}
+	}
+	return nil
+}
+
+func (s *Service) SendV1(ctx context.Context, tpl string, args []mysms.NameArg, numbers ...string) error {
+	req := sms.NewSendSmsRequest()
+	req.SmsSdkAppId = s.appId
+	req.SignName = s.signName
+	req.TemplateId = &tpl
+	req.PhoneNumberSet = toStringPtrSlice(numbers)
+
+	// 解决阿里云和腾讯云参数类型不一致问题
+	argPtrStringSlice := make([]*string, len(args))
+	for i, arg := range args {
+		argPtrStringSlice[i] = &arg.Val
+	}
+	req.TemplateParamSet = argPtrStringSlice
 	resp, err := s.client.SendSms(req)
 	if err != nil {
 		return err
