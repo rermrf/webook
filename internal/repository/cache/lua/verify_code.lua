@@ -1,10 +1,10 @@
-local key = keys[1]
+local key = KEYS[1]
 -- 用户输入的 code
 local expectedCode = ARGV[1]
 local code = redis.call("get", key)
 local cntKey = key..":cnt"
 local cnt = tonumber(redis.call("get", cntKey))
-if cnt <= 0 then
+if cnt == nil or cnt <= 0 then
     -- 输错次数过多，直接pass
     return -1
 elseif expectedCode == code then

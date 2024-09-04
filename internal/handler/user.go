@@ -15,23 +15,28 @@ import (
 	jwt "github.com/golang-jwt/jwt/v5"
 )
 
+const biz = "login"
+
 type UserHandler struct {
 	svc         *service.UserService
 	codeSvc     *service.CodeService
 	emailExp    *regexp.Regexp
 	passwordExp *regexp.Regexp
+	phoneExp    *regexp.Regexp
 }
 
 func NewUserHandler(svc *service.UserService, codeSvc *service.CodeService) *UserHandler {
 	const (
 		emailRegexPattern    = `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
 		passwordRegexPattern = `^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&.])[A-Za-z\d@$!%*?&.]{8,72}$`
+		phoneRegexPattern    = `^1[3-9]\d{9}$`
 	)
 	return &UserHandler{
 		svc:         svc,
 		codeSvc:     codeSvc,
 		emailExp:    regexp.MustCompile(emailRegexPattern, regexp.None),
 		passwordExp: regexp.MustCompile(passwordRegexPattern, regexp.None),
+		phoneExp:    regexp.MustCompile(phoneRegexPattern, regexp.None),
 	}
 }
 
@@ -42,7 +47,7 @@ func (h *UserHandler) RegisterRoutes(server *gin.Engine) {
 	ug.POST("/edit", h.Edit)
 	ug.GET("/profile", h.Profile)
 	ug.POST("/login_sms/code/send", h.SendLoginSMSCode)
-	ug.POST("/login_sms/code/verify", h.VerifyLoginSMSCode)
+	ug.POST("/login_sms", h.LoginSMS)
 	ug.POST("/logout", h.Logout)
 }
 
@@ -52,15 +57,46 @@ type SignUpRequest struct {
 	ConfirmPassword string `json:"confirmPassword"`
 }
 
-func (h *UserHandler) VerifyLoginSMSCode(ctx *gin.Context) {
-	ctx.String(http.StatusOK, "发送成功")
+func (h *UserHandler) LoginSMS(ctx *gin.Context) {
+	type Req struct {
+		Phone string `json:"phone"`
+		Code  string `json:"code"`
+	}
+	var req Req
+	if err := ctx.ShouldBind(&req); err != nil {
+		return
+	}
+	// 验证手机号
+	ok, err := h.phoneExp.MatchString(req.Phone)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
+		return
+	}
+	if !ok {
+		ctx.JSON(http.StatusOK, Result{Code: 4, Msg: "手机号格式不正确"})
+		return
+	}
+
+	ok, err = h.codeSvc.Verify(ctx, biz, req.Code, req.Phone)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
+		return
+	}
+	if !ok {
+		ctx.JSON(http.StatusOK, Result{Code: 4, Msg: "验证码错误"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, Result{
+		Code: 2,
+		Msg:  "验证码校验通过",
+	})
 }
 
 func (h *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
 	type Req struct {
 		Phone string `json:"phone"`
 	}
-	const biz = "login"
 	var req Req
 	if err := ctx.ShouldBind(&req); err != nil {
 		return

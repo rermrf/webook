@@ -48,5 +48,5 @@ func (svc *CodeService) generateCode() string {
 }
 
 func (svc *CodeService) Verify(ctx context.Context, biz string, inputCode string, phone string) (bool, error) {
-	return svc.repo.Verify(ctx, biz, inputCode, phone)
+	return svc.repo.Verify(ctx, biz, phone, inputCode)
 }

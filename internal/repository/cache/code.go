@@ -12,7 +12,7 @@ import (
 var (
 	ErrCodeSendTooMany        = errors.New("发送验证码太频繁")
 	ErrCodeVerifyTooManyTimes = errors.New("验证次数过多")
-	ErrUnknowCode             = errors.New("unknow code")
+	ErrUnknownCode            = errors.New("unknown code")
 )
 
 // 编译器会在编译的时候，把 set_code 的代码放进来这个 luaSetCode 变量里
@@ -53,6 +53,7 @@ func (c *CodeCache) Set(ctx context.Context, biz, phone, code string) error {
 }
 
 func (c *CodeCache) Verify(ctx context.Context, biz, phone, inputCode string) (bool, error) {
+	log.Println(c.key(biz, phone))
 	res, err := c.client.Eval(ctx, luaVerifyCode, []string{c.key(biz, phone)}, inputCode).Int()
 	if err != nil {
 		return false, err
@@ -66,7 +67,7 @@ func (c *CodeCache) Verify(ctx context.Context, biz, phone, inputCode string) (b
 	case -2:
 		return false, nil
 	default:
-		return false, ErrUnknowCode
+		return false, ErrUnknownCode
 	}
 }
 
