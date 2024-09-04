@@ -1,5 +1,21 @@
-wrk.method="GET"
+token = nil
+
+path = "/users/login"
+method = "POST"
+
 wrk.headers["Content-Type"] = "application/json"
-wrk.headers["User-Agent"] = "PostmanRuntime/7.32.3"
--- 记得修改这个，你在登录页面登录一下，然后复制一个过来这里
-wrk.headers["Authorization"]="Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInVzZXJBZ2VudCI6IiIsImV4cCI6MTcyNTM0NjU0MX0.A5zdj2YPU6C04hpYWI1ggrmYR4Fbm2-yEM6vakQ9aQg"
+wrk.headers["User-Agent"] = ""
+
+request = function()
+    body = '{"email": "123@qq.com", "password": "Hello@#world123"}'
+    return wrk.format(method, path, wrk.headers, body)
+end
+
+response = function(status, headers, body)
+    if not token and status == 200 then
+        token = headers["X-Jwt-Token"]
+        path = "/users/profile"
+        method = "GET"
+        wrk.headers["Authorization"]= string.format("Bear %s", token)
+    end
+end

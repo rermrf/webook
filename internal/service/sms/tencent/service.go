@@ -21,26 +21,7 @@ func NewService(client *sms.Client, appId string, signName string) *Service {
 	}
 }
 
-func (s *Service) Send(ctx context.Context, tpl string, args []string, numbers ...string) error {
-	req := sms.NewSendSmsRequest()
-	req.SmsSdkAppId = s.appId
-	req.SignName = s.signName
-	req.TemplateId = &tpl
-	req.PhoneNumberSet = toStringPtrSlice(numbers)
-	req.TemplateParamSet = toStringPtrSlice(args)
-	resp, err := s.client.SendSms(req)
-	if err != nil {
-		return err
-	}
-	for _, status := range resp.Response.SendStatusSet {
-		if status.Code == nil || *(status.Code) != "Ok" {
-			return fmt.Errorf("发送短信失败 %s, %s", *(status.Code), *(status.Message))
-		}
-	}
-	return nil
-}
-
-func (s *Service) SendV1(ctx context.Context, tpl string, args []mysms.NameArg, numbers ...string) error {
+func (s *Service) Send(ctx context.Context, tpl string, args []mysms.NameArg, numbers ...string) error {
 	req := sms.NewSendSmsRequest()
 	req.SmsSdkAppId = s.appId
 	req.SignName = s.signName

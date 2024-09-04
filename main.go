@@ -2,14 +2,17 @@ package main
 
 import (
 	"fmt"
+	"github.com/redis/go-redis/v9"
 	"strings"
 	"time"
 	"webook/config"
 	handler "webook/internal/handler"
 	"webook/internal/handler/middleware"
 	"webook/internal/repository"
+	"webook/internal/repository/cache"
 	"webook/internal/repository/dao"
 	"webook/internal/service"
+	"webook/internal/service/sms/memory"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -19,11 +22,19 @@ import (
 
 func main() {
 	db := initDB()
+	rdb := initRDB()
 	server := initWebServer()
-	u := initUser(db)
+	u := initUser(db, rdb)
 	u.RegisterRoutes(server)
 
-	server.Run(config.Config.Server.HTTPPort)
+	err := server.Run(config.Config.Server.HTTPPort)
+	if err != nil {
+		return
+	}
+}
+
+func initRDB() *redis.Client {
+	return redis.NewClient(&redis.Options{Addr: config.Config.Redis.Addr})
 }
 
 func initDB() *gorm.DB {
@@ -40,11 +51,16 @@ func initDB() *gorm.DB {
 	return db
 }
 
-func initUser(db *gorm.DB) *handler.UserHandler {
+func initUser(db *gorm.DB, rdb redis.Cmdable) *handler.UserHandler {
 	udao := dao.NewUserDao(db)
-	repo := repository.NewUserRepository(udao)
+	uc := cache.NewUserCache(rdb)
+	repo := repository.NewUserRepository(udao, uc)
+	cc := cache.NewCodeCache(rdb)
+	codeRepo := repository.NewCodeRepository(cc)
+	smsSvc := memory.NewService()
+	codeSvc := service.NewCodeService(codeRepo, smsSvc)
 	svc := service.NewUserService(repo)
-	u := handler.NewUserHandler(svc)
+	u := handler.NewUserHandler(svc, codeSvc)
 	return u
 }
 
@@ -67,7 +83,7 @@ func initWebServer() *gin.Engine {
 		AllowMethods: cors.DefaultConfig().AllowMethods,
 		AllowHeaders: []string{"Content-Type", "Authorization"},
 		// 不加这个，前端拿不到
-		// ExposeHeaders:    []string{"x-jwt-token"},
+		ExposeHeaders:    []string{"x-jwt-token"},
 		AllowCredentials: true, // 是否允许发送Cookie，默认false
 		AllowOriginFunc: func(origin string) bool {
 			if strings.HasPrefix(origin, "http://localhost") {
@@ -105,6 +121,8 @@ func initWebServer() *gin.Engine {
 	server.Use(middleware.NewLoginJWTMiddlewareBuilder().
 		IgnorePaths("/users/login").
 		IgnorePaths("/users/signup").
+		IgnorePaths("/users/login_sms/code/send").
+		IgnorePaths("/users/login_sms/code/verify").
 		Build())
 
 	return server

@@ -10,15 +10,21 @@ import (
 
 const codeTplId = "tplId"
 
+var (
+	ErrCodeSendTooMany        = repository.ErrCodeSendTooMany
+	ErrCodeVerifyTooManyTimes = repository.ErrCodeVerifyTooManyTimes
+)
+
 type CodeService struct {
-	repo   repository.CodeRepository
+	repo   *repository.CodeRepository
 	smsSvc sms.Service
 	//tplId  string
 }
 
-func NewCodeService(repo repository.CodeRepository) *CodeService {
+func NewCodeService(repo *repository.CodeRepository, smsSvc sms.Service) *CodeService {
 	return &CodeService{
-		repo: repo,
+		repo:   repo,
+		smsSvc: smsSvc,
 	}
 }
 
@@ -26,7 +32,7 @@ func (svc *CodeService) Send(ctx context.Context, biz string, phone string) erro
 	// TODO: 生成一个验证码
 	code := svc.generateCode()
 	// 塞到 Redis
-	err := svc.repo.Store(ctx, code, biz, phone)
+	err := svc.repo.Store(ctx, biz, phone, code)
 	if err != nil {
 		return err
 	}

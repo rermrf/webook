@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"errors"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 	"webook/internal/domain"
 	"webook/internal/service"
@@ -15,34 +17,74 @@ import (
 
 type UserHandler struct {
 	svc         *service.UserService
+	codeSvc     *service.CodeService
 	emailExp    *regexp.Regexp
 	passwordExp *regexp.Regexp
 }
 
-func NewUserHandler(svc *service.UserService) *UserHandler {
+func NewUserHandler(svc *service.UserService, codeSvc *service.CodeService) *UserHandler {
 	const (
 		emailRegexPattern    = `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
 		passwordRegexPattern = `^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&.])[A-Za-z\d@$!%*?&.]{8,72}$`
 	)
 	return &UserHandler{
 		svc:         svc,
+		codeSvc:     codeSvc,
 		emailExp:    regexp.MustCompile(emailRegexPattern, regexp.None),
 		passwordExp: regexp.MustCompile(passwordRegexPattern, regexp.None),
 	}
 }
 
-func (u *UserHandler) RegisterRoutes(server *gin.Engine) {
+func (h *UserHandler) RegisterRoutes(server *gin.Engine) {
 	ug := server.Group("/users")
-	ug.POST("/signup", u.SignUp)
-	ug.POST("/login", u.LoginJWT)
-	ug.POST("/edit", u.Edit)
-	ug.GET("/profile", u.Profile)
+	ug.POST("/signup", h.SignUp)
+	ug.POST("/login", h.LoginJWT)
+	ug.POST("/edit", h.Edit)
+	ug.GET("/profile", h.Profile)
+	ug.POST("/login_sms/code/send", h.SendLoginSMSCode)
+	ug.POST("/login_sms/code/verify", h.VerifyLoginSMSCode)
+	ug.POST("/logout", h.Logout)
 }
 
 type SignUpRequest struct {
 	Email           string `json:"email"`
 	Password        string `json:"password"`
 	ConfirmPassword string `json:"confirmPassword"`
+}
+
+func (h *UserHandler) VerifyLoginSMSCode(ctx *gin.Context) {
+	ctx.String(http.StatusOK, "发送成功")
+}
+
+func (h *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
+	type Req struct {
+		Phone string `json:"phone"`
+	}
+	const biz = "login"
+	var req Req
+	if err := ctx.ShouldBind(&req); err != nil {
+		return
+	}
+	err := h.codeSvc.Send(ctx, biz, req.Phone)
+	if errors.Is(err, service.ErrCodeSendTooMany) {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  err.Error(),
+			data: nil,
+		})
+		return
+	}
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+			data: nil,
+		})
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{
+		Msg: "发送成功",
+	})
 }
 
 func (h *UserHandler) SignUp(ctx *gin.Context) {
@@ -86,7 +128,7 @@ func (h *UserHandler) SignUp(ctx *gin.Context) {
 
 	// 调用一下 svc 的方法
 	err = h.svc.SignUp(ctx, domain.User{Email: req.Email, Password: req.Password})
-	if err == service.ErrUserDuplicateEmail {
+	if errors.Is(err, service.ErrUserDuplicateEmail) {
 		log.Println("邮箱已注册")
 		ctx.String(http.StatusOK, "邮箱已注册")
 		return
@@ -111,7 +153,7 @@ func (h *UserHandler) LoginJWT(ctx *gin.Context) {
 		return
 	}
 	user, err := h.svc.Login(ctx, req.Email, req.Password)
-	if err == service.ErrInvalidUserOrPassword {
+	if errors.Is(err, service.ErrInvalidUserOrPassword) {
 		ctx.String(http.StatusOK, "用户名或密码错误")
 		return
 	}
@@ -146,7 +188,7 @@ func (h *UserHandler) Login(ctx *gin.Context) {
 		return
 	}
 	user, err := h.svc.Login(ctx, req.Email, req.Password)
-	if err == service.ErrInvalidUserOrPassword {
+	if errors.Is(err, service.ErrInvalidUserOrPassword) {
 		ctx.String(http.StatusOK, "用户名或密码错误")
 		return
 	}
@@ -164,7 +206,10 @@ func (h *UserHandler) Login(ctx *gin.Context) {
 		// HttpOnly: true,
 		MaxAge: 30,
 	})
-	sess.Save()
+	err = sess.Save()
+	if err != nil {
+		return
+	}
 	ctx.String(http.StatusOK, "登录成功")
 }
 
@@ -175,7 +220,10 @@ func (h *UserHandler) Logout(ctx *gin.Context) {
 		// HttpOnly: true,
 		MaxAge: -1,
 	})
-	sess.Save()
+	err := sess.Save()
+	if err != nil {
+		return
+	}
 	ctx.String(http.StatusOK, "登出成功")
 }
 
@@ -190,7 +238,7 @@ func (h *UserHandler) Profile(ctx *gin.Context) {
 		return
 	}
 	user, err := h.svc.Profile(ctx, uid.(int64))
-	if err == service.ErrUserNotFound {
+	if errors.Is(err, service.ErrUserNotFound) {
 		ctx.String(http.StatusOK, "用户不存在")
 	}
 	if err != nil {
@@ -211,7 +259,7 @@ func (h *UserHandler) ProfileJWT(ctx *gin.Context) {
 		return
 	}
 	log.Println(claims.UserId)
-	ctx.String(http.StatusOK, "profile: "+string(claims.UserId))
+	ctx.String(http.StatusOK, "profile: "+strconv.FormatInt(claims.UserId, 10))
 }
 
 type UserClaims struct {

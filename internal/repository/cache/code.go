@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/redis/go-redis/v9"
+	"log"
 )
 
 var (
@@ -33,6 +34,7 @@ func NewCodeCache(client redis.Cmdable) *CodeCache {
 }
 
 func (c *CodeCache) Set(ctx context.Context, biz, phone, code string) error {
+	log.Println(c.key(biz, phone))
 	res, err := c.client.Eval(ctx, luaSetCode, []string{c.key(biz, phone)}, code).Int()
 	if err != nil {
 		return err

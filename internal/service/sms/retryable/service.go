@@ -14,7 +14,3 @@ package retryable
 //	}
 //}
 //
-//func (s Service) SendV1(ctx context.Context, tpl string, args []sms.NameArg, numbers ...string) error {
-//	//TODO implement me
-//	panic("implement me")
-//}
