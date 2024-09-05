@@ -2,66 +2,27 @@ package main
 
 import (
 	"fmt"
-	"github.com/redis/go-redis/v9"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 	"strings"
 	"time"
 	"webook/config"
-	handler "webook/internal/handler"
 	"webook/internal/handler/middleware"
-	"webook/internal/repository"
-	"webook/internal/repository/cache"
-	"webook/internal/repository/dao"
-	"webook/internal/service"
-	"webook/internal/service/sms/memory"
-
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
 )
 
 func main() {
-	db := initDB()
-	rdb := initRDB()
-	server := initWebServer()
-	u := initUser(db, rdb)
-	u.RegisterRoutes(server)
+	//db := initDB()
+	//rdb := initRDB()
+	//server := initWebServer()
+	//u := initUser(db, rdb)
+	//u.RegisterRoutes(server)
+
+	server := InitWebServer()
 
 	err := server.Run(config.Config.Server.HTTPPort)
 	if err != nil {
 		return
 	}
-}
-
-func initRDB() *redis.Client {
-	return redis.NewClient(&redis.Options{Addr: config.Config.Redis.Addr})
-}
-
-func initDB() *gorm.DB {
-	// 使用 k8s 部署的 mysql
-	db, err := gorm.Open(mysql.Open(config.Config.DB.DSN))
-	if err != nil {
-		panic("failed to connect database")
-	}
-
-	err = dao.InitTable(db)
-	if err != nil {
-		panic(err)
-	}
-	return db
-}
-
-func initUser(db *gorm.DB, rdb redis.Cmdable) *handler.UserHandler {
-	udao := dao.NewUserDao(db)
-	uc := cache.NewUserCache(rdb)
-	repo := repository.NewUserRepository(udao, uc)
-	cc := cache.NewCodeCache(rdb)
-	codeRepo := repository.NewCodeRepository(cc)
-	smsSvc := memory.NewService()
-	codeSvc := service.NewCodeService(codeRepo, smsSvc)
-	svc := service.NewUserService(repo)
-	u := handler.NewUserHandler(svc, codeSvc)
-	return u
 }
 
 func initWebServer() *gin.Engine {
