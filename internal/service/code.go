@@ -44,7 +44,7 @@ func (svc *CodeService) generateCode() string {
 	// 生成 num 在 0， 999999 之间，包含 0 和 999999
 	num := rand.Intn(1000000)
 	// 不够六位的补前导0
-	return fmt.Sprintf("%6d", num)
+	return fmt.Sprintf("%06d", num)
 }
 
 func (svc *CodeService) Verify(ctx context.Context, biz string, inputCode string, phone string) (bool, error) {

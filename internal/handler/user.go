@@ -12,7 +12,7 @@ import (
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	jwt "github.com/golang-jwt/jwt/v5"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 const biz = "login"
@@ -78,12 +78,28 @@ func (h *UserHandler) LoginSMS(ctx *gin.Context) {
 	}
 
 	ok, err = h.codeSvc.Verify(ctx, biz, req.Code, req.Phone)
+	if errors.Is(err, service.ErrCodeVerifyTooManyTimes) {
+		ctx.JSON(http.StatusOK, Result{Code: 4, Msg: "重试次数过多，请重新发送"})
+		return
+	}
 	if err != nil {
 		ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
 		return
 	}
 	if !ok {
 		ctx.JSON(http.StatusOK, Result{Code: 4, Msg: "验证码错误"})
+		return
+	}
+
+	user, err := h.svc.FindOrCreate(ctx, req.Phone)
+	if err != nil {
+		return
+	}
+
+	if err = h.setJWTToken(ctx, user.Id); err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5, Msg: "系统错误",
+		})
 		return
 	}
 
@@ -101,16 +117,30 @@ func (h *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
 	if err := ctx.ShouldBind(&req); err != nil {
 		return
 	}
-	err := h.codeSvc.Send(ctx, biz, req.Phone)
-	if errors.Is(err, service.ErrCodeSendTooMany) {
+	// 验证手机号
+	ok, err := h.phoneExp.MatchString(req.Phone)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
+		return
+	}
+	if !ok {
+		ctx.JSON(http.StatusOK, Result{Code: 4, Msg: "手机号格式不正确"})
+		return
+	}
+	err = h.codeSvc.Send(ctx, biz, req.Phone)
+	switch {
+	case err == nil:
+		ctx.JSON(http.StatusOK, Result{
+			Msg: "发送成功",
+		})
+	case errors.Is(err, service.ErrCodeSendTooMany):
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
 			Msg:  err.Error(),
 			data: nil,
 		})
 		return
-	}
-	if err != nil {
+	default:
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
 			Msg:  "系统错误",
@@ -118,9 +148,6 @@ func (h *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
 		})
 		return
 	}
-	ctx.JSON(http.StatusOK, Result{
-		Msg: "发送成功",
-	})
 }
 
 func (h *UserHandler) SignUp(ctx *gin.Context) {
@@ -164,7 +191,7 @@ func (h *UserHandler) SignUp(ctx *gin.Context) {
 
 	// 调用一下 svc 的方法
 	err = h.svc.SignUp(ctx, domain.User{Email: req.Email, Password: req.Password})
-	if errors.Is(err, service.ErrUserDuplicateEmail) {
+	if errors.Is(err, service.ErrUserDuplicate) {
 		log.Println("邮箱已注册")
 		ctx.String(http.StatusOK, "邮箱已注册")
 		return
@@ -200,8 +227,16 @@ func (h *UserHandler) LoginJWT(ctx *gin.Context) {
 
 	// TODO: 生成 token
 
+	if err = h.setJWTToken(ctx, user.Id); err != nil {
+		ctx.String(http.StatusOK, "系统错误")
+		return
+	}
+	ctx.String(http.StatusOK, "登录成功")
+}
+
+func (h *UserHandler) setJWTToken(ctx *gin.Context, userId int64) error {
 	claims := UserClaims{
-		UserId:    user.Id,
+		UserId:    userId,
 		UserAgent: ctx.Request.UserAgent(),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)),
@@ -210,12 +245,11 @@ func (h *UserHandler) LoginJWT(ctx *gin.Context) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenStr, err := token.SignedString([]byte("pBMH@cKP65sknQI%ijB2DzhFnvsfiyt*"))
 	if err != nil {
-		ctx.String(http.StatusInternalServerError, "系统错误")
-		return
+		return err
 	}
 	log.Println(tokenStr)
 	ctx.Header("x-jwt-token", tokenStr)
-	ctx.String(http.StatusOK, "登录成功")
+	return nil
 }
 
 func (h *UserHandler) Login(ctx *gin.Context) {

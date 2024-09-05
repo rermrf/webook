@@ -9,7 +9,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var ErrUserDuplicateEmail = repository.ErrUserDuplicateEmail
+var ErrUserDuplicate = repository.ErrUserDuplicate
 var ErrInvalidUserOrPassword = errors.New("账号/邮箱或密码不对")
 var ErrUserNotFound = repository.ErrUserNotFound
 
@@ -37,7 +37,7 @@ func (svc *UserService) SignUp(ctx context.Context, u domain.User) error {
 func (svc *UserService) Login(ctx context.Context, email string, password string) (domain.User, error) {
 	// 先找用户
 	u, err := svc.repo.FindByEmail(ctx, email)
-	if err == repository.ErrUserNotFound {
+	if errors.Is(err, repository.ErrUserNotFound) {
 		return domain.User{}, ErrInvalidUserOrPassword
 	}
 	if err != nil {
@@ -55,4 +55,31 @@ func (svc *UserService) Login(ctx context.Context, email string, password string
 func (svc *UserService) Profile(ctx context.Context, id int64) (domain.User, error) {
 	u, err := svc.repo.FindById(ctx, id)
 	return u, err
+}
+
+func (svc *UserService) FindOrCreate(ctx context.Context, phone string) (domain.User, error) {
+	user, err := svc.repo.FindByPhone(ctx, phone)
+	// 判断有没有这个用户
+	// 快路径
+	if !errors.Is(err, repository.ErrUserNotFound) {
+		// 绝大部分请求会进来这里
+		// nil 会进入
+		// 不为 ErrUserNotFound 也会进入
+		return user, err
+	}
+
+	// 在系统资源不足，触发降级之后，不执行慢路径了，优先服务已经注册的用户，防止系统崩溃
+	//if ctx.Value("降级") == true {
+	//	return domain.User{}, errors.New("系统降级了")
+	//}
+	// 慢路径
+	// 用户不存在注册
+	err = svc.repo.Create(ctx, domain.User{
+		Phone: phone,
+	})
+	if err != nil && !errors.Is(err, repository.ErrUserDuplicate) {
+		return domain.User{Phone: phone}, err
+	}
+	// 主从延迟问题
+	return svc.repo.FindByPhone(ctx, phone)
 }
