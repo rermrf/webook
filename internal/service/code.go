@@ -15,20 +15,25 @@ var (
 	ErrCodeVerifyTooManyTimes = repository.ErrCodeVerifyTooManyTimes
 )
 
-type CodeService struct {
-	repo   *repository.CodeRepository
+type CodeService interface {
+	Send(ctx context.Context, biz string, phone string) error
+	Verify(ctx context.Context, biz string, inputCode string, phone string) (bool, error)
+}
+
+type CodeServiceImpl struct {
+	repo   repository.CodeRepository
 	smsSvc sms.Service
 	//tplId  string
 }
 
-func NewCodeService(repo *repository.CodeRepository, smsSvc sms.Service) *CodeService {
-	return &CodeService{
+func NewCodeService(repo repository.CodeRepository, smsSvc sms.Service) CodeService {
+	return &CodeServiceImpl{
 		repo:   repo,
 		smsSvc: smsSvc,
 	}
 }
 
-func (svc *CodeService) Send(ctx context.Context, biz string, phone string) error {
+func (svc *CodeServiceImpl) Send(ctx context.Context, biz string, phone string) error {
 	// TODO: 生成一个验证码
 	code := svc.generateCode()
 	// 塞到 Redis
@@ -40,13 +45,13 @@ func (svc *CodeService) Send(ctx context.Context, biz string, phone string) erro
 	return svc.smsSvc.Send(ctx, codeTplId, []string{code}, phone)
 }
 
-func (svc *CodeService) generateCode() string {
+func (svc *CodeServiceImpl) generateCode() string {
 	// 生成 num 在 0， 999999 之间，包含 0 和 999999
 	num := rand.Intn(1000000)
 	// 不够六位的补前导0
 	return fmt.Sprintf("%06d", num)
 }
 
-func (svc *CodeService) Verify(ctx context.Context, biz string, inputCode string, phone string) (bool, error) {
+func (svc *CodeServiceImpl) Verify(ctx context.Context, biz string, inputCode string, phone string) (bool, error) {
 	return svc.repo.Verify(ctx, biz, phone, inputCode)
 }
