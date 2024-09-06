@@ -6,7 +6,10 @@ import "time"
 type User struct {
 	Id       int64
 	Email    string
+	Nickname string
 	Phone    string
 	Password string
+	AboutMe  string
 	Ctime    time.Time
+	Birthday time.Time
 }

@@ -20,6 +20,7 @@ type UserDao interface {
 	FindByEmail(ctx context.Context, email string) (User, error)
 	FindByPhone(ctx context.Context, phone string) (User, error)
 	Insert(ctx context.Context, u User) error
+	UpdateNonZeroFields(ctx context.Context, u User) error
 }
 
 type GormUserDao struct {
@@ -65,13 +66,19 @@ func (dao *GormUserDao) Insert(ctx context.Context, u User) error {
 	return err
 }
 
+func (dao *GormUserDao) UpdateNonZeroFields(ctx context.Context, u User) error {
+	return dao.db.WithContext(ctx).Updates(&u).Error
+}
+
 // User 直接对应数据库表结构
 type User struct {
 	Id       int64          `gorm:"primaryKey;autoIncrement"`
 	Email    sql.NullString `gorm:"unique"`
 	Phone    sql.NullString `gorm:"unique"`
 	Password string
-
-	Ctime int64
-	Utime int64
+	Nickname string
+	AboutMe  string
+	Birthday int64
+	Ctime    int64
+	Utime    int64
 }

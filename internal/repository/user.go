@@ -19,6 +19,7 @@ type UserRepository interface {
 	FindByEmail(ctx context.Context, email string) (domain.User, error)
 	FindByPhone(ctx context.Context, phone string) (domain.User, error)
 	Create(ctx context.Context, u domain.User) error
+	UpdateNoSensitiveById(ctx context.Context, u domain.User) error
 }
 
 type CachedUserRepository struct {
@@ -106,6 +107,16 @@ func (repo *CachedUserRepository) FindByPhone(ctx context.Context, phone string)
 	return user, nil
 }
 
+func (repo *CachedUserRepository) UpdateNoSensitiveById(ctx context.Context, u domain.User) error {
+	// 修改数据
+	err := repo.dao.UpdateNonZeroFields(ctx, repo.domainToEntity(u))
+	if err != nil {
+		return err
+	}
+	// 删除缓存
+	return repo.cache.Delete(ctx, u.Id)
+}
+
 func (repo *CachedUserRepository) Create(ctx context.Context, u domain.User) error {
 	return repo.dao.Insert(ctx, repo.domainToEntity(u))
 	// 在这里操作缓存
@@ -123,6 +134,9 @@ func (repo *CachedUserRepository) domainToEntity(u domain.User) dao.User {
 			Valid:  u.Phone != "",
 		},
 		Password: u.Password,
+		Nickname: u.Nickname,
+		AboutMe:  u.AboutMe,
+		Birthday: u.Birthday.UnixMilli(),
 	}
 }
 
@@ -132,6 +146,9 @@ func (repo *CachedUserRepository) entityToDomain(u dao.User) domain.User {
 		Email:    u.Email.String,
 		Phone:    u.Phone.String,
 		Password: u.Password,
+		Nickname: u.Nickname,
+		AboutMe:  u.AboutMe,
+		Birthday: time.UnixMilli(u.Birthday),
 		Ctime:    time.UnixMilli(u.Ctime),
 	}
 }

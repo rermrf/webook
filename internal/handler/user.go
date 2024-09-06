@@ -51,12 +51,6 @@ func (h *UserHandler) RegisterRoutes(server *gin.Engine) {
 	ug.POST("/logout", h.Logout)
 }
 
-type SignUpRequest struct {
-	Email           string `json:"email"`
-	Password        string `json:"password"`
-	ConfirmPassword string `json:"confirmPassword"`
-}
-
 func (h *UserHandler) LoginSMS(ctx *gin.Context) {
 	type Req struct {
 		Phone string `json:"phone"`
@@ -151,6 +145,11 @@ func (h *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
 }
 
 func (h *UserHandler) SignUp(ctx *gin.Context) {
+	type SignUpRequest struct {
+		Email           string `json:"email"`
+		Password        string `json:"password"`
+		ConfirmPassword string `json:"confirmPassword"`
+	}
 	var req SignUpRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		return
@@ -298,10 +297,68 @@ func (h *UserHandler) Logout(ctx *gin.Context) {
 }
 
 func (h *UserHandler) Edit(ctx *gin.Context) {
-
+	type EditRequest struct {
+		Nickname string `json:"nickname"`
+		AboutMe  string `json:"about_me"`
+		Birthday string `json:"birthday"`
+	}
+	var req EditRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		return
+	}
+	// 校验参数
+	if req.Nickname == "" {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 4,
+			Msg:  "昵称不能为空",
+		})
+		return
+	}
+	if len(req.AboutMe) > 1024 {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 4,
+			Msg:  "关于我过长",
+		})
+		return
+	}
+	birthday, err := time.Parse(time.DateOnly, req.Birthday)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 4,
+			Msg:  "时间格式不对",
+		})
+		return
+	}
+	uid, ok := ctx.Get("userId")
+	if !ok {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+	}
+	err = h.svc.EditNoSensitive(ctx, domain.User{
+		Id:       uid.(int64),
+		Nickname: req.Nickname,
+		AboutMe:  req.AboutMe,
+		Birthday: birthday,
+	})
+	if err != nil {
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{
+		Msg: "修改成功",
+	})
 }
 
 func (h *UserHandler) Profile(ctx *gin.Context) {
+	type Profile struct {
+		Email    string
+		Phone    string
+		Nickname string
+		AboutMe  string
+		Birthday string
+		Ctime    string
+	}
 	uid, ok := ctx.Get("userId")
 	if !ok {
 		ctx.String(http.StatusOK, "系统错误")
@@ -314,7 +371,14 @@ func (h *UserHandler) Profile(ctx *gin.Context) {
 	if err != nil {
 		ctx.String(http.StatusOK, "系统错误")
 	}
-	ctx.JSON(http.StatusOK, user)
+	ctx.JSON(http.StatusOK, Profile{
+		Email:    user.Email,
+		Phone:    user.Phone,
+		Nickname: user.Nickname,
+		AboutMe:  user.AboutMe,
+		Birthday: user.Birthday.Format(time.DateOnly),
+		Ctime:    user.Ctime.Format(time.DateOnly),
+	})
 }
 
 func (h *UserHandler) ProfileJWT(ctx *gin.Context) {

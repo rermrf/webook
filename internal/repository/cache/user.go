@@ -14,6 +14,7 @@ var ErrKeyNotExist = redis.Nil
 type UserCache interface {
 	Get(ctx context.Context, id int64) (domain.User, error)
 	Set(ctx context.Context, user domain.User) error
+	Delete(ctx context.Context, id int64) error
 }
 
 type RedisUserCache struct {
@@ -31,6 +32,11 @@ func NewUserCache(client redis.Cmdable) UserCache {
 		client:     client,
 		expiration: 15 * time.Minute,
 	}
+}
+
+func (cache *RedisUserCache) Delete(ctx context.Context, id int64) error {
+	key := cache.key(id)
+	return cache.client.Del(ctx, key).Err()
 }
 
 // Get 只要 error 为 nil，就认为缓存里有数据

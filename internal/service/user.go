@@ -17,6 +17,7 @@ type UserService interface {
 	SignUp(ctx context.Context, u domain.User) error
 	Login(ctx context.Context, email string, password string) (domain.User, error)
 	Profile(ctx context.Context, id int64) (domain.User, error)
+	EditNoSensitive(ctx context.Context, user domain.User) error
 	FindOrCreate(ctx context.Context, phone string) (domain.User, error)
 }
 
@@ -62,6 +63,10 @@ func (svc *UserServiceImpl) Login(ctx context.Context, email string, password st
 func (svc *UserServiceImpl) Profile(ctx context.Context, id int64) (domain.User, error) {
 	u, err := svc.repo.FindById(ctx, id)
 	return u, err
+}
+
+func (svc *UserServiceImpl) EditNoSensitive(ctx context.Context, user domain.User) error {
+	return svc.repo.UpdateNoSensitiveById(ctx, user)
 }
 
 func (svc *UserServiceImpl) FindOrCreate(ctx context.Context, phone string) (domain.User, error) {
