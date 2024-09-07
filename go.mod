@@ -5,27 +5,25 @@ go 1.23
 toolchain go1.23.0
 
 require (
+	github.com/aliyun/alibaba-cloud-sdk-go v1.63.11
 	github.com/gin-contrib/sessions v1.0.1
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/google/wire v0.6.0
 	github.com/stretchr/testify v1.9.0
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.994
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sms v1.0.994
+	go.uber.org/mock v0.4.0
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/gorm v1.25.11
 )
 
 require (
-	github.com/alibabacloud-go/dysmsapi-20170525/v4 v4.0.0 // indirect
-	github.com/aliyun/alibaba-cloud-sdk-go v1.63.11 // indirect
-	github.com/boj/redistore v0.0.0-20180917114910-cd5dcc76aeff // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	github.com/gomodule/redigo v2.0.0+incompatible // indirect
-	github.com/google/wire v0.6.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.1-0.20220228012449-10b1cf09e00b // indirect
-	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.994 // indirect
-	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sms v1.0.994 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 )
 
@@ -37,7 +35,6 @@ require (
 	github.com/gorilla/sessions v1.4.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
-	github.com/kr/text v0.2.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect; indirect// indirect
 )
 

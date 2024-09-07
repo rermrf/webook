@@ -10,3 +10,11 @@ docker:
 	# docker build
 	@docker rmi -f rermrf/webook:v0.0.1
 	@docker build -t rermrf/webook:v0.0.1 .
+
+.PHONY: mock
+mock:
+	# 生成 mock 文件
+	@mockgen -source=internal/service/user.go -package=svcmocks -destination=internal/service/mocks/user_mock.go
+	@mockgen -source=internal/service/code.go -package=svcmocks -destination=internal/service/mocks/code_mock.go
+	# 同步依赖
+	@go mod tidy

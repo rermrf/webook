@@ -58,6 +58,7 @@ func (h *UserHandler) LoginSMS(ctx *gin.Context) {
 	}
 	var req Req
 	if err := ctx.ShouldBind(&req); err != nil {
+		ctx.String(http.StatusBadRequest, "请求参数错误")
 		return
 	}
 	// 验证手机号
@@ -152,24 +153,25 @@ func (h *UserHandler) SignUp(ctx *gin.Context) {
 	}
 	var req SignUpRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.String(http.StatusBadRequest, "参数格式错误")
 		return
 	}
 
 	ok, err := h.emailExp.MatchString(req.Email)
 	if err != nil {
-		log.Println("邮箱匹配错误")
+		// 邮箱匹配错误
 		ctx.String(http.StatusOK, "系统错误")
 		return
 	}
 
 	if !ok {
-		log.Println("邮箱格式不正确")
+		// 邮箱格式不正确
 		ctx.String(http.StatusOK, "邮箱格式不正确")
 		return
 	}
 
 	if req.Password != req.ConfirmPassword {
-		log.Println("两次密码不一致")
+		// 两次密码不一致
 		ctx.String(http.StatusOK, "两次密码不一致")
 		return
 	}
@@ -177,13 +179,13 @@ func (h *UserHandler) SignUp(ctx *gin.Context) {
 	ok, err = h.passwordExp.MatchString(req.Password)
 	if err != nil {
 		// TODO: 记录日志
-		log.Println("密码匹配错误")
+		// 密码匹配错误
 		ctx.String(http.StatusOK, "系统错误")
 		return
 	}
 
 	if !ok {
-		log.Println("密码格式不正确")
+		// 密码格式不正确
 		ctx.String(http.StatusOK, "密码格式不正确")
 		return
 	}
@@ -212,6 +214,7 @@ type LoginRequest struct {
 func (h *UserHandler) LoginJWT(ctx *gin.Context) {
 	var req LoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.String(http.StatusBadRequest, "参数格式错误")
 		return
 	}
 	user, err := h.svc.Login(ctx, req.Email, req.Password)
