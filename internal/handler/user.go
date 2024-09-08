@@ -4,13 +4,11 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 	"webook/internal/domain"
 	"webook/internal/service"
 
 	regexp "github.com/dlclark/regexp2"
-	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -48,7 +46,7 @@ func (h *UserHandler) RegisterRoutes(server *gin.Engine) {
 	ug.GET("/profile", h.Profile)
 	ug.POST("/login_sms/code/send", h.SendLoginSMSCode)
 	ug.POST("/login_sms", h.LoginSMS)
-	ug.POST("/logout", h.Logout)
+	//ug.POST("/logout", h.Logout)
 }
 
 func (h *UserHandler) LoginSMS(ctx *gin.Context) {
@@ -88,6 +86,9 @@ func (h *UserHandler) LoginSMS(ctx *gin.Context) {
 
 	user, err := h.svc.FindOrCreate(ctx, req.Phone)
 	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5, Msg: "系统错误",
+		})
 		return
 	}
 
@@ -130,9 +131,8 @@ func (h *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
 		})
 	case errors.Is(err, service.ErrCodeSendTooMany):
 		ctx.JSON(http.StatusOK, Result{
-			Code: 5,
-			Msg:  err.Error(),
-			data: nil,
+			Code: 4,
+			Msg:  "发送次数过多",
 		})
 		return
 	default:
@@ -254,50 +254,51 @@ func (h *UserHandler) setJWTToken(ctx *gin.Context, userId int64) error {
 	return nil
 }
 
-func (h *UserHandler) Login(ctx *gin.Context) {
-	var req LoginRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		return
-	}
-	user, err := h.svc.Login(ctx, req.Email, req.Password)
-	if errors.Is(err, service.ErrInvalidUserOrPassword) {
-		ctx.String(http.StatusOK, "用户名或密码错误")
-		return
-	}
-	if err != nil {
-		ctx.String(http.StatusOK, "系统错误")
-		return
-	}
-
-	// TODO: 生成 token
-	// 设置 session
-	sess := sessions.Default(ctx)
-	sess.Set("userId", user.Id)
-	sess.Options(sessions.Options{
-		// Secure: true,
-		// HttpOnly: true,
-		MaxAge: 30,
-	})
-	err = sess.Save()
-	if err != nil {
-		return
-	}
-	ctx.String(http.StatusOK, "登录成功")
-}
-
-func (h *UserHandler) Logout(ctx *gin.Context) {
-	sess := sessions.Default(ctx)
-	sess.Options(sessions.Options{
-		// Secure: true,
-		// HttpOnly: true,
-		MaxAge: -1,
-	})
-	err := sess.Save()
-	if err != nil {
-		return
-	}
-	ctx.String(http.StatusOK, "登出成功")
-}
+//
+//func (h *UserHandler) Login(ctx *gin.Context) {
+//	var req LoginRequest
+//	if err := ctx.ShouldBindJSON(&req); err != nil {
+//		return
+//	}
+//	user, err := h.svc.Login(ctx, req.Email, req.Password)
+//	if errors.Is(err, service.ErrInvalidUserOrPassword) {
+//		ctx.String(http.StatusOK, "用户名或密码错误")
+//		return
+//	}
+//	if err != nil {
+//		ctx.String(http.StatusOK, "系统错误")
+//		return
+//	}
+//
+//	// TODO: 生成 token
+//	// 设置 session
+//	sess := sessions.Default(ctx)
+//	sess.Set("userId", user.Id)
+//	sess.Options(sessions.Options{
+//		// Secure: true,
+//		// HttpOnly: true,
+//		MaxAge: 30,
+//	})
+//	err = sess.Save()
+//	if err != nil {
+//		return
+//	}
+//	ctx.String(http.StatusOK, "登录成功")
+//}
+//
+//func (h *UserHandler) Logout(ctx *gin.Context) {
+//	sess := sessions.Default(ctx)
+//	sess.Options(sessions.Options{
+//		// Secure: true,
+//		// HttpOnly: true,
+//		MaxAge: -1,
+//	})
+//	err := sess.Save()
+//	if err != nil {
+//		return
+//	}
+//	ctx.String(http.StatusOK, "登出成功")
+//}
 
 func (h *UserHandler) Edit(ctx *gin.Context) {
 	type EditRequest struct {
@@ -307,6 +308,10 @@ func (h *UserHandler) Edit(ctx *gin.Context) {
 	}
 	var req EditRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 4,
+			Msg:  "参数格式错误",
+		})
 		return
 	}
 	// 校验参数
@@ -338,6 +343,7 @@ func (h *UserHandler) Edit(ctx *gin.Context) {
 			Code: 5,
 			Msg:  "系统错误",
 		})
+		return
 	}
 	err = h.svc.EditNoSensitive(ctx, domain.User{
 		Id:       uid.(int64),
@@ -346,6 +352,10 @@ func (h *UserHandler) Edit(ctx *gin.Context) {
 		Birthday: birthday,
 	})
 	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
 		return
 	}
 	ctx.JSON(http.StatusOK, Result{
@@ -370,9 +380,11 @@ func (h *UserHandler) Profile(ctx *gin.Context) {
 	user, err := h.svc.Profile(ctx, uid.(int64))
 	if errors.Is(err, service.ErrUserNotFound) {
 		ctx.String(http.StatusOK, "用户不存在")
+		return
 	}
 	if err != nil {
 		ctx.String(http.StatusOK, "系统错误")
+		return
 	}
 	ctx.JSON(http.StatusOK, Profile{
 		Email:    user.Email,
@@ -382,21 +394,6 @@ func (h *UserHandler) Profile(ctx *gin.Context) {
 		Birthday: user.Birthday.Format(time.DateOnly),
 		Ctime:    user.Ctime.Format(time.DateOnly),
 	})
-}
-
-func (h *UserHandler) ProfileJWT(ctx *gin.Context) {
-	c, ok := ctx.Get("claims")
-	if !ok {
-		ctx.String(http.StatusOK, "系统错误")
-		return
-	}
-	claims, ok := c.(*UserClaims)
-	if !ok {
-		ctx.String(http.StatusOK, "系统错误")
-		return
-	}
-	log.Println(claims.UserId)
-	ctx.String(http.StatusOK, "profile: "+strconv.FormatInt(claims.UserId, 10))
 }
 
 type UserClaims struct {
