@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	ErrUserDuplicate = errors.New("邮箱已被注册")
+	ErrUserDuplicate = errors.New("邮箱/手机已被注册")
 	ErrUserNotFound  = gorm.ErrRecordNotFound
 )
 

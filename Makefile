@@ -13,8 +13,10 @@ docker:
 
 .PHONY: mock
 mock:
-	# 生成 mock 文件
+	# 生成 mock 文件...
 	@mockgen -source=internal/service/user.go -package=svcmocks -destination=internal/service/mocks/user_mock.go
 	@mockgen -source=internal/service/code.go -package=svcmocks -destination=internal/service/mocks/code_mock.go
-	# 同步依赖
+	@mockgen -source=internal/repository/user.go -package=repomocks -destination=internal/repository/mocks/user_mock.go
+	@mockgen -source=internal/repository/code.go -package=repomocks -destination=internal/repository/mocks/code_mock.go
+	# 同步依赖...
 	@go mod tidy
