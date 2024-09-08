@@ -65,15 +65,21 @@ func (repo *CachedUserRepository) FindById(ctx context.Context, id int64) (domai
 	}
 	user = repo.entityToDomain(u)
 
+	//_ = repo.cache.Set(ctx, user)
+	//if err != nil {
+	// 这里并不需要管，打日志，做监控就好
+	//return domain.User{}, err
+	//}
 	go func() {
-		err = repo.cache.Set(ctx, user)
-		if err != nil {
-			// 这里并不需要管，打日志，做监控就好
-			//return domain.User{}, err
-		}
+		_ = repo.cache.Set(ctx, user)
+		//err = repo.cache.Set(ctx, user)
+		//if err != nil {
+		//	// 这里并不需要管，打日志，做监控就好
+		//	//return domain.User{}, err
+		//}
 	}()
 
-	return user, err
+	return user, nil
 
 	// 缓存出错，比如：err = io.EOF
 	// 比如出现 缓存击穿、缓存雪崩，如果直接访问mysql，则数据库可能会崩
