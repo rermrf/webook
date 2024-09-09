@@ -111,6 +111,7 @@ func (h *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
 	}
 	var req Req
 	if err := ctx.ShouldBind(&req); err != nil {
+		ctx.JSON(400, Result{Code: http.StatusBadRequest, Msg: err.Error()})
 		return
 	}
 	// 验证手机号
