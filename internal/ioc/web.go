@@ -8,7 +8,10 @@ import (
 	"time"
 	"webook/internal/handler"
 	"webook/internal/handler/middleware"
-	"webook/internal/pkg/gin-pulgin/middlewares/ratelimit"
+	"webook/internal/pkg/ratelimit"
+
+	//"webook/internal/pkg/gin-pulgin/middlewares/ratelimit"
+	limitbuilder "webook/internal/pkg/gin-pulgin/middlewares/ratelimit"
 )
 
 func InitGin(mdls []gin.HandlerFunc, hdl *handler.UserHandler) *gin.Engine {
@@ -19,6 +22,7 @@ func InitGin(mdls []gin.HandlerFunc, hdl *handler.UserHandler) *gin.Engine {
 }
 
 func InitMiddlewares(redisClient redis.Cmdable) []gin.HandlerFunc {
+	limiter := ratelimit.NewRedisSlidingWindowLimiter(redisClient, time.Minute, 1000)
 	return []gin.HandlerFunc{
 		corsHdl(),
 		middleware.NewLoginJWTMiddlewareBuilder().
@@ -28,7 +32,8 @@ func InitMiddlewares(redisClient redis.Cmdable) []gin.HandlerFunc {
 			IgnorePaths("/users/login_sms/code/verify").
 			IgnorePaths("/users/login_sms").
 			Build(),
-		ratelimit.NewBuilder(redisClient, time.Minute, 1000).Build(),
+		//ratelimit.NewBuilder(redisClient, time.Minute, 1000).Build(),
+		limitbuilder.NewBuilder(limiter).Build(),
 	}
 }
 

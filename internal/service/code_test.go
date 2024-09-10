@@ -5,9 +5,9 @@ import (
 )
 
 func TestCodeServiceImpl_Send(t *testing.T) {
-	testCases := []struct {
-		name string
-	}{
-		{},
-	}
+	//testCases := []struct {
+	//	name string
+	//}{
+	//	{},
+	//}
 }

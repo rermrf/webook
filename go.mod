@@ -5,6 +5,7 @@ go 1.23
 toolchain go1.23.0
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/aliyun/alibaba-cloud-sdk-go v1.63.11
 	github.com/gin-contrib/sessions v1.0.1
 	github.com/gin-gonic/gin v1.10.0
@@ -20,7 +21,6 @@ require (
 )
 
 require (
-	github.com/DATA-DOG/go-sqlmock v1.5.2 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
