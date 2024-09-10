@@ -21,11 +21,12 @@ func NewService(client *sms.Client, appId string, signName string) *Service {
 	}
 }
 
-func (s *Service) Send(ctx context.Context, tpl string, args []mysms.NameArg, numbers ...string) error {
+// Send biz 直接代表的就是 tplId
+func (s *Service) Send(ctx context.Context, biz string, args []mysms.NameArg, numbers ...string) error {
 	req := sms.NewSendSmsRequest()
 	req.SmsSdkAppId = s.appId
 	req.SignName = s.signName
-	req.TemplateId = &tpl
+	req.TemplateId = &biz
 	req.PhoneNumberSet = toStringPtrSlice(numbers)
 
 	// 解决阿里云和腾讯云参数类型不一致问题
