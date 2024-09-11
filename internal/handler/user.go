@@ -10,7 +10,6 @@ import (
 
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 const biz = "login"
@@ -21,6 +20,7 @@ type UserHandler struct {
 	emailExp    *regexp.Regexp
 	passwordExp *regexp.Regexp
 	phoneExp    *regexp.Regexp
+	JWTHandler
 }
 
 func NewUserHandler(svc service.UserService, codeSvc service.CodeService) *UserHandler {
@@ -140,7 +140,7 @@ func (h *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
 			Msg:  "系统错误",
-			data: nil,
+			Data: nil,
 		})
 		return
 	}
@@ -235,24 +235,6 @@ func (h *UserHandler) LoginJWT(ctx *gin.Context) {
 		return
 	}
 	ctx.String(http.StatusOK, "登录成功")
-}
-
-func (h *UserHandler) setJWTToken(ctx *gin.Context, userId int64) error {
-	claims := UserClaims{
-		UserId:    userId,
-		UserAgent: ctx.Request.UserAgent(),
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)),
-		},
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenStr, err := token.SignedString([]byte("pBMH@cKP65sknQI%ijB2DzhFnvsfiyt*"))
-	if err != nil {
-		return err
-	}
-	log.Println(tokenStr)
-	ctx.Header("x-jwt-token", tokenStr)
-	return nil
 }
 
 //
@@ -395,10 +377,4 @@ func (h *UserHandler) Profile(ctx *gin.Context) {
 		Birthday: user.Birthday.Format(time.DateOnly),
 		Ctime:    user.Ctime.Format(time.DateOnly),
 	})
-}
-
-type UserClaims struct {
-	UserId    int64  `json:"userId"`
-	UserAgent string `json:"userAgent"`
-	jwt.RegisteredClaims
 }

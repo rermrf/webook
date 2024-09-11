@@ -14,10 +14,11 @@ import (
 	limitbuilder "webook/internal/pkg/gin-pulgin/middlewares/ratelimit"
 )
 
-func InitGin(mdls []gin.HandlerFunc, hdl *handler.UserHandler) *gin.Engine {
+func InitGin(mdls []gin.HandlerFunc, hdl *handler.UserHandler, oauth2WechatHdl *handler.OAuth2WechatHandler) *gin.Engine {
 	server := gin.Default()
 	server.Use(mdls...)
 	hdl.RegisterRoutes(server)
+	oauth2WechatHdl.RegisterRoutes(server)
 	return server
 }
 
@@ -31,6 +32,8 @@ func InitMiddlewares(redisClient redis.Cmdable) []gin.HandlerFunc {
 			IgnorePaths("/users/login_sms/code/send").
 			IgnorePaths("/users/login_sms/code/verify").
 			IgnorePaths("/users/login_sms").
+			IgnorePaths("/oauth2/wechat/authurl").
+			IgnorePaths("/oauth2/wechat/callback").
 			Build(),
 		//ratelimit.NewBuilder(redisClient, time.Minute, 1000).Build(),
 		limitbuilder.NewBuilder(limiter).Build(),

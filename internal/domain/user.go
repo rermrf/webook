@@ -9,7 +9,9 @@ type User struct {
 	Nickname string
 	Phone    string
 	Password string
-	AboutMe  string
-	Ctime    time.Time
-	Birthday time.Time
+	// 不要组合，万一你将来可能还有 DingDingInfo，里面有同名字段
+	WechatInfo WechatInfo
+	AboutMe    string
+	Ctime      time.Time
+	Birthday   time.Time
 }
