@@ -1,13 +1,19 @@
 package async
 
-//type SMSService struct {
-//	svc  sms.Service
-//	repo repository.SMSAsyncReqRepository
-//}
-//
-//func NewSMSService() sms.Service {
-//	return &SMSService{}
-//}
+import (
+	"webook/internal/repository"
+	"webook/internal/service/sms"
+)
+
+type SMSService struct {
+	svc  sms.Service
+	repo repository.SMSAsyncReqRepository
+}
+
+func NewSMSService() sms.Service {
+	return &SMSService{}
+}
+
 //
 //func (s *SMSService) StartAsync() {
 //	go func() {

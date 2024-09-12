@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/lithammer/shortuuid"
 	"net/http"
 	"net/url"
 	"webook/internal/domain"
@@ -15,13 +14,14 @@ var (
 )
 
 type Service interface {
-	AuthURL(ctx context.Context) (string, error)
+	AuthURL(ctx context.Context, state string) (string, error)
 	VerifyCode(ctx context.Context, code string, state string) (domain.WechatInfo, error)
 }
 
 type service struct {
 	appId     string
 	appSecret string
+	//cmd       redis.Cmdable
 }
 
 func NewService(appId string, appSecret string) Service {
@@ -56,15 +56,20 @@ func (s *service) VerifyCode(ctx context.Context, code string, state string) (do
 		return domain.WechatInfo{}, fmt.Errorf("微信返回错误响应，错误码：%d，错误信息：%s", res.ErrCode, res.ErrMsg)
 	}
 
+	//cacheState := s.cmd.Get(ctx, "my-state").String()
+	//if cacheState != state {
+	//	// 不相同
+	//}
+
 	return domain.WechatInfo{
 		OpenId:  res.OpenId,
 		UnionId: res.UnionId,
 	}, nil
 }
 
-func (s *service) AuthURL(ctx context.Context) (string, error) {
+func (s *service) AuthURL(ctx context.Context, state string) (string, error) {
 	const urlPattern = "https://open.weixin.qq.com/connect/qrconnect?appid=%s&redirect_uri=%s&response_type=code&scope=snsapi_login&state=%s#wechat_redirect"
-	state := shortuuid.New()
+	//s.cmd.Set(ctx, "my-state", state, time.Minute)
 	return fmt.Sprintf(urlPattern, s.appId, redirectURL, state), nil
 }
 
