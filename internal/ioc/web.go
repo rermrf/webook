@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 	"webook/internal/handler"
+	ijwt "webook/internal/handler/jwt"
 	"webook/internal/handler/middleware"
 	"webook/internal/pkg/ratelimit"
 
@@ -22,11 +23,11 @@ func InitGin(mdls []gin.HandlerFunc, hdl *handler.UserHandler, oauth2WechatHdl *
 	return server
 }
 
-func InitMiddlewares(redisClient redis.Cmdable) []gin.HandlerFunc {
+func InitMiddlewares(redisClient redis.Cmdable, jwtHandler ijwt.Handler) []gin.HandlerFunc {
 	limiter := ratelimit.NewRedisSlidingWindowLimiter(redisClient, time.Minute, 1000)
 	return []gin.HandlerFunc{
 		corsHdl(),
-		middleware.NewLoginJWTMiddlewareBuilder().
+		middleware.NewLoginJWTMiddlewareBuilder(jwtHandler).
 			IgnorePaths("/users/login").
 			IgnorePaths("/users/signup").
 			IgnorePaths("/users/login_sms/code/send").
@@ -34,6 +35,7 @@ func InitMiddlewares(redisClient redis.Cmdable) []gin.HandlerFunc {
 			IgnorePaths("/users/login_sms").
 			IgnorePaths("/oauth2/wechat/authurl").
 			IgnorePaths("/oauth2/wechat/callback").
+			IgnorePaths("/users/refresh_token").
 			Build(),
 		//ratelimit.NewBuilder(redisClient, time.Minute, 1000).Build(),
 		limitbuilder.NewBuilder(limiter).Build(),
@@ -46,7 +48,7 @@ func corsHdl() gin.HandlerFunc {
 		AllowMethods: cors.DefaultConfig().AllowMethods,
 		AllowHeaders: []string{"Content-Type", "Authorization"},
 		// 不加这个，前端拿不到
-		ExposeHeaders:    []string{"x-jwt-token"},
+		ExposeHeaders:    []string{"x-jwt-token", "x-refresh-token"},
 		AllowCredentials: true, // 是否允许发送Cookie，默认false
 		AllowOriginFunc: func(origin string) bool {
 			if strings.HasPrefix(origin, "http://localhost") {

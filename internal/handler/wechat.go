@@ -6,13 +6,14 @@ import (
 	"github.com/lithammer/shortuuid"
 	"net/http"
 	"time"
+	ijwt "webook/internal/handler/jwt"
 	"webook/internal/service"
 	"webook/internal/service/oauth2/wechat"
 )
 
 type OAuth2WechatHandler struct {
 	svc wechat.Service
-	JWTHandler
+	ijwt.Handler
 	userSvc  service.UserService
 	stateKey []byte
 	cfg      Config
@@ -23,12 +24,13 @@ type Config struct {
 	//StateKey string
 }
 
-func NewOAuth2WechatHandler(svc wechat.Service, userSvc service.UserService) *OAuth2WechatHandler {
+func NewOAuth2WechatHandler(svc wechat.Service, userSvc service.UserService, jwtHandler ijwt.Handler) *OAuth2WechatHandler {
 	return &OAuth2WechatHandler{
 		svc:      svc,
 		userSvc:  userSvc,
 		stateKey: []byte("OdmakyjatZZcNZd&L*Y9^^iD5BM^%yBV"),
 		cfg:      Config{Secure: false},
+		Handler:  jwtHandler,
 	}
 }
 
@@ -101,8 +103,7 @@ func (h *OAuth2WechatHandler) Callback(ctx *gin.Context) {
 	}
 
 	// 从userService中获取id
-	err = h.setJWTToken(ctx, user.Id)
-	if err != nil {
+	if err = h.SetLoginToken(ctx, user.Id); err != nil {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
 			Msg:  "系统错误",
