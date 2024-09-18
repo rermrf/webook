@@ -1,6 +1,12 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
+	"github.com/fsnotify/fsnotify"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
+	_ "github.com/spf13/viper/remote"
 	"webook/config"
 )
 
@@ -11,11 +17,116 @@ func main() {
 	//u := initUser(db, rdb)
 	//u.RegisterRoutes(server)
 
+	//initViperV1()
+	// etcdctl --endpoints=127.0.0.1:12379 put /webook "$(<./config/dev.yaml)"
+	initViperReomte()
+
 	server := InitWebServer()
 
 	err := server.Run(config.Config.Server.HTTPPort)
 	if err != nil {
 		return
+	}
+}
+
+func initViperReomteWatch() {
+	viper.SetConfigType("yaml")
+	err := viper.AddRemoteProvider("etcd3", "http://localhost:12379", "/webook")
+	if err != nil {
+		panic(err)
+	}
+	err = viper.WatchRemoteConfig()
+	if err != nil {
+		panic(err)
+	}
+	// 远程并不能监听
+	//viper.OnConfigChange(func(in fsnotify.Event) {
+	//	fmt.Println("config file changed:", in.Name)
+	//})
+	err = viper.ReadRemoteConfig()
+	if err != nil {
+		panic(err)
+	}
+}
+
+// 使用配置中心的方式
+func initViperReomte() {
+	viper.SetConfigType("yaml")
+	err := viper.AddRemoteProvider("etcd3", "http://localhost:12379", "/webook")
+	if err != nil {
+		panic(err)
+	}
+	err = viper.ReadRemoteConfig()
+	if err != nil {
+		panic(err)
+	}
+}
+
+func initViperV2Watch() {
+	file := pflag.String("config", "./config/dev.yaml", "指定配置文件路径")
+	pflag.Parse()
+	viper.SetConfigFile(*file)
+	// 实时监听配置变更
+	viper.WatchConfig()
+	// 当发生改变时，执行里面的代码快，用来替换之前的对象
+	viper.OnConfigChange(func(in fsnotify.Event) {
+		// 并没有告诉你，变更前和变更后的数据，需要自己手动读取
+		fmt.Println(in.Name, in.Op)
+		fmt.Println(viper.GetString("db.mysql.dsn"))
+	})
+
+	err := viper.ReadInConfig()
+	if err != nil {
+		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+	}
+
+}
+
+func initViperV1() {
+	file := pflag.String("config", "./config/dev.yaml", "指定配置文件路径")
+	pflag.Parse()
+	viper.SetConfigFile(*file)
+
+	err := viper.ReadInConfig()
+	if err != nil {
+		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+	}
+
+	//viper.SetConfigFile("./config/dev.yaml")
+	//err := viper.ReadInConfig()
+	//if err != nil {
+	//	panic(fmt.Errorf("Fatal error config file: %s \n", err))
+	//}
+}
+
+func initViperReader() {
+	viper.SetConfigType("yaml")
+	cfg := `
+	db.mysql:
+  dsn: "root:root@tcp(localhost:13306)/webook?charset=utf8mb4&parseTime=True&loc=Local"
+
+redis:
+  addr: "localhost:6379"
+`
+	err := viper.ReadConfig(bytes.NewReader([]byte(cfg)))
+	if err != nil {
+		panic(err)
+	}
+}
+
+func initViper() {
+	// viper 设置默认值
+	viper.SetDefault("db.mysql.dsn", "root:root@tcp(localhost:3306)/webook?charset=utf8mb4&parseTime=True&loc=Local")
+	// 配置文件的名字，不包含文件名的扩展名
+	viper.SetConfigName("dev")
+	// 告诉 viper 使用 yaml 格式
+	viper.SetConfigType("yaml")
+	// 设置配置文件路径，可以有多个
+	viper.AddConfigPath("./config")
+	// 读取配置文件到 viper 中
+	err := viper.ReadInConfig()
+	if err != nil {
+		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}
 }
 

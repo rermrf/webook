@@ -19,3 +19,10 @@ services:
     ports:
       # 设置端口映射
       - 6379:6379
+  etcd:
+    image: bitnami/etcd
+    environment:
+      # 不需要密码
+      - ALLOW_NONE_AUTHENTICATION=yes
+    ports:
+      - 12379:2379
