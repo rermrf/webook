@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
 	"math/rand"
 	"webook/internal/repository"
 	"webook/internal/service/sms"
@@ -42,7 +43,11 @@ func (svc *CodeServiceImpl) Send(ctx context.Context, biz string, phone string) 
 		return err
 	}
 	// 发送出去
-	return svc.smsSvc.Send(ctx, codeTplId, []string{code}, phone)
+	err = svc.smsSvc.Send(ctx, codeTplId, []string{code}, phone)
+	if err != nil {
+		zap.L().Warn("发送太频繁", zap.Error(err))
+	}
+	return err
 }
 
 func (svc *CodeServiceImpl) generateCode() string {

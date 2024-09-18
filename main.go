@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
+	"go.uber.org/zap"
 	"webook/config"
 )
 
@@ -17,9 +18,9 @@ func main() {
 	//u := initUser(db, rdb)
 	//u.RegisterRoutes(server)
 
-	//initViperV1()
+	initViperV1()
 	// etcdctl --endpoints=127.0.0.1:12379 put /webook "$(<./config/dev.yaml)"
-	initViperReomte()
+	//initViperReomte()
 
 	server := InitWebServer()
 
@@ -27,6 +28,16 @@ func main() {
 	if err != nil {
 		return
 	}
+}
+
+func initLogger() {
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		panic(err)
+	}
+	// 如果你不 replace，直接用 zap.L()，啥都打印不了
+	zap.ReplaceGlobals(logger)
+	zap.L().Info("")
 }
 
 func initViperReomteWatch() {

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 	"log"
 	"net/http"
 	"time"
@@ -97,6 +98,10 @@ func (h *UserHandler) RefreshToken(ctx *gin.Context) {
 	err = h.SetJWTToken(ctx, rc.UserId, rc.Ssid)
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusUnauthorized)
+		// 正常来说，msg 的部分就应该包含足够的定位信息
+		zap.L().Error("设置 JWT token 异常",
+			zap.Error(err),
+			zap.String("Method", "UserHandler:RefreshToken"))
 		return
 	}
 	ctx.JSON(http.StatusOK, Result{Msg: "刷新成功"})
@@ -130,6 +135,13 @@ func (h *UserHandler) LoginSMS(ctx *gin.Context) {
 	}
 	if err != nil {
 		ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
+		zap.L().Error("校验验证码出错", zap.Error(err),
+			// 不能这么打，因为手机号码是敏感数据，不能打到日志里面
+			// 打印加密后的数据
+			// 脱敏， 152****1212
+			zap.String("phone", req.Phone))
+		// 最多打印 Debug 级别，因为生产环境中并不开 Debug
+		zap.L().Debug("", zap.String("手机号", req.Phone))
 		return
 	}
 	if !ok {
@@ -184,6 +196,10 @@ func (h *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
 			Msg: "发送成功",
 		})
 	case errors.Is(err, service.ErrCodeSendTooMany):
+		// 按照链路来说，同一个 Error 可能会记录四五遍
+		// 如果一条链路都是一个人负责，那就打一遍没有问题
+		// 如果按照层次不同人负责，则会出现重复打日志的情况
+		zap.L().Warn("发送太频繁", zap.Error(err))
 		ctx.JSON(http.StatusOK, Result{
 			Code: 4,
 			Msg:  "发送次数过多",

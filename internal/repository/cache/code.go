@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 	"log"
 )
 
@@ -68,6 +69,14 @@ func (c *RedisCodeCache) Verify(ctx context.Context, biz, phone, inputCode strin
 		return true, nil
 	case -1:
 		// 正常来说，如果频繁出现这个错误，需要告警
+
+		// 偶尔出现能够接受的，但是频繁出现不能接受的，打WARN
+		zap.L().Warn("短信发送太频繁",
+			zap.String("biz", biz),
+			// phone 是不能直接记
+			zap.String("phone", phone))
+		// 需要在对应的告警系统里面配置，
+		//比如说规则，一分钟内出现100次 WARN，就告警
 		return false, ErrCodeVerifyTooManyTimes
 	case -2:
 		return false, nil

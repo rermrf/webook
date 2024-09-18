@@ -1,6 +1,7 @@
 package ioc
 
 import (
+	"context"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -9,6 +10,8 @@ import (
 	"webook/internal/handler"
 	ijwt "webook/internal/handler/jwt"
 	"webook/internal/handler/middleware"
+	"webook/internal/handler/middleware/logger"
+	logger2 "webook/internal/pkg/logger"
 	"webook/internal/pkg/ratelimit"
 
 	//"webook/internal/pkg/gin-pulgin/middlewares/ratelimit"
@@ -23,10 +26,13 @@ func InitGin(mdls []gin.HandlerFunc, hdl *handler.UserHandler, oauth2WechatHdl *
 	return server
 }
 
-func InitMiddlewares(redisClient redis.Cmdable, jwtHandler ijwt.Handler) []gin.HandlerFunc {
+func InitMiddlewares(redisClient redis.Cmdable, jwtHandler ijwt.Handler, l logger2.LoggerV1) []gin.HandlerFunc {
 	limiter := ratelimit.NewRedisSlidingWindowLimiter(redisClient, time.Minute, 1000)
 	return []gin.HandlerFunc{
 		corsHdl(),
+		logger.NewBuilder(func(ctx context.Context, al *logger.AccessLog) {
+			l.Info("HTTP请求", logger2.Field{Key: "al", Value: al})
+		}).AllowReqBody().AllowRespBody().Build(),
 		middleware.NewLoginJWTMiddlewareBuilder(jwtHandler).
 			IgnorePaths("/users/login").
 			IgnorePaths("/users/signup").
