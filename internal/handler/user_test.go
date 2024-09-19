@@ -151,7 +151,7 @@ func TestUserHandler_SignUp(t *testing.T) {
 			defer ctrl.Finish()
 
 			server := gin.Default()
-			h := NewUserHandler(tc.mock(ctrl), nil)
+			h := NewUserHandler(tc.mock(ctrl), nil, nil, nil)
 			h.RegisterRoutes(server)
 
 			req, err := http.NewRequest(http.MethodPost, "/users/signup", bytes.NewBuffer([]byte(tc.reqBody)))
@@ -600,7 +600,7 @@ func TestUserHandler_Edit(t *testing.T) {
 			server := gin.Default()
 			// 通过中间件模拟转入id
 			server.Use(tc.middleware)
-			h := NewUserHandler(tc.mock(ctrl), nil)
+			h := NewUserHandler(tc.mock(ctrl), nil, nil, nil)
 			h.RegisterRoutes(server)
 
 			req, err := http.NewRequest(http.MethodPost, "/users/edit", bytes.NewBuffer([]byte(tc.reqBody)))

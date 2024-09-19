@@ -20,11 +20,12 @@ import (
 	limitbuilder "webook/internal/pkg/gin-pulgin/middlewares/ratelimit"
 )
 
-func InitGin(mdls []gin.HandlerFunc, hdl *handler.UserHandler, oauth2WechatHdl *handler.OAuth2WechatHandler) *gin.Engine {
+func InitGin(mdls []gin.HandlerFunc, hdl *handler.UserHandler, oauth2WechatHdl *handler.OAuth2WechatHandler, articleHdl *handler.ArticleHandler) *gin.Engine {
 	server := gin.Default()
 	server.Use(mdls...)
 	hdl.RegisterRoutes(server)
 	oauth2WechatHdl.RegisterRoutes(server)
+	articleHdl.RegisterRoutes(server)
 	return server
 }
 

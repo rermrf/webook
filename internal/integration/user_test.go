@@ -11,12 +11,13 @@ import (
 	"testing"
 	"time"
 	"webook/internal/handler"
+	"webook/internal/integration/startup"
 	"webook/internal/ioc"
 )
 
 // 集成测试
 func TestUserhandler_SendLoginSMSCode(t *testing.T) {
-	server := InitWebServer()
+	server := startup.InitWebServer()
 	rdb := ioc.InitRedis()
 	testCases := []struct {
 		name     string

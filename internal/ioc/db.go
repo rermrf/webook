@@ -38,7 +38,7 @@ func InitDB(l logger.LoggerV1) *gorm.DB {
 		panic("failed to connect database")
 	}
 
-	err = dao.InitTable(db)
+	err = dao.InitTables(db)
 	if err != nil {
 		panic(err)
 	}
