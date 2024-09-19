@@ -5,12 +5,17 @@ import (
 	"context"
 	"github.com/gin-gonic/gin"
 	"io"
+	"sync/atomic"
 	"time"
 )
 
+// MiddlewareBuilder 注意点：
+// 1. 小心日志内容过多。URL 可能很长，请求体，响应体都可能很大，需要考虑是不是完全输出到日志里面
+// 2. 考虑 1 的问题，以及用户可能换用不同的日志框架，所以有足够的灵活性
+// 3. 考虑动态开关，结合配置文件，要小心并发安全
 type MiddlewareBuilder struct {
 	// 控制请求体是否需要打印
-	allowReqBody bool
+	allowReqBody atomic.Bool
 	// 控制响应体是否需要打印
 	allowRespBody bool
 	loggerFunc    func(ctx context.Context, al *AccessLog)
@@ -18,12 +23,13 @@ type MiddlewareBuilder struct {
 
 func NewBuilder(fn func(ctx context.Context, al *AccessLog)) *MiddlewareBuilder {
 	return &MiddlewareBuilder{
-		loggerFunc: fn,
+		loggerFunc:   fn,
+		allowReqBody: atomic.Bool{},
 	}
 }
 
-func (b *MiddlewareBuilder) AllowReqBody() *MiddlewareBuilder {
-	b.allowReqBody = true
+func (b *MiddlewareBuilder) AllowReqBody(ok bool) *MiddlewareBuilder {
+	b.allowReqBody.Store(ok)
 	return b
 }
 
@@ -44,7 +50,7 @@ func (b *MiddlewareBuilder) Build() gin.HandlerFunc {
 			// url 本身可能很长
 			Url: url,
 		}
-		if b.allowReqBody && ctx.Request.Body != nil {
+		if b.allowReqBody.Load() && ctx.Request.Body != nil {
 			// Body 读完就没有了，一次性操作
 			body, _ := ctx.GetRawData()
 			ctx.Request.Body = io.NopCloser(bytes.NewReader(body))

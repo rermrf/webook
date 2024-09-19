@@ -28,7 +28,7 @@ func InitWebServer() *gin.Engine {
 	jwtHandler := jwt.NewRedisJWTHandler(cmdable)
 	loggerV1 := ioc.InitLogger()
 	v := ioc.InitMiddlewares(cmdable, jwtHandler, loggerV1)
-	db := ioc.InitDB()
+	db := ioc.InitDB(loggerV1)
 	userDao := dao.NewUserDao(db)
 	userCache := cache.NewUserCache(cmdable)
 	userRepository := repository.NewUserRepository(userDao, userCache)

@@ -2,9 +2,11 @@ package ioc
 
 import (
 	"context"
+	"github.com/fsnotify/fsnotify"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
+	"github.com/spf13/viper"
 	"strings"
 	"time"
 	"webook/internal/handler"
@@ -28,11 +30,17 @@ func InitGin(mdls []gin.HandlerFunc, hdl *handler.UserHandler, oauth2WechatHdl *
 
 func InitMiddlewares(redisClient redis.Cmdable, jwtHandler ijwt.Handler, l logger2.LoggerV1) []gin.HandlerFunc {
 	limiter := ratelimit.NewRedisSlidingWindowLimiter(redisClient, time.Minute, 1000)
+	bd := logger.NewBuilder(func(ctx context.Context, al *logger.AccessLog) {
+		l.Info("HTTP请求", logger2.Field{Key: "al", Value: al})
+	}).AllowReqBody(true).AllowRespBody()
+	// 监听配置文件
+	viper.OnConfigChange(func(in fsnotify.Event) {
+		ok := viper.GetBool("web.logreq")
+		bd.AllowReqBody(ok)
+	})
 	return []gin.HandlerFunc{
 		corsHdl(),
-		logger.NewBuilder(func(ctx context.Context, al *logger.AccessLog) {
-			l.Info("HTTP请求", logger2.Field{Key: "al", Value: al})
-		}).AllowReqBody().AllowRespBody().Build(),
+		bd.Build(),
 		middleware.NewLoginJWTMiddlewareBuilder(jwtHandler).
 			IgnorePaths("/users/login").
 			IgnorePaths("/users/signup").

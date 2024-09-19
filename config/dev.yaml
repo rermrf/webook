@@ -4,3 +4,6 @@ db:
 
 redis:
   addr: "localhost:6379"
+
+web:
+  logreq: false
