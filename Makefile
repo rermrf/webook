@@ -16,8 +16,12 @@ mock:
 	# 生成 mock 文件...
 	@mockgen -source=internal/service/user.go -package=svcmocks -destination=internal/service/mocks/user_mock.go
 	@mockgen -source=internal/service/code.go -package=svcmocks -destination=internal/service/mocks/code_mock.go
+	@mockgen -source=internal/service/article.go -package=svcmocks -destination=internal/service/mocks/article_mock.go
 	@mockgen -source=internal/repository/user.go -package=repomocks -destination=internal/repository/mocks/user_mock.go
 	@mockgen -source=internal/repository/code.go -package=repomocks -destination=internal/repository/mocks/code_mock.go
+	@mockgen -source=internal/repository/article/article.go -package=artrepomocks -destination=internal/repository/article/mocks/article_mock.go
+	@mockgen -source=internal/repository/article/article_author.go -package=artrepomocks -destination=internal/repository/article/mocks/article_author_mock.go
+	@mockgen -source=internal/repository/article/article_reader.go -package=artrepomocks -destination=internal/repository/article/mocks/article_reader_mock.go
 	@mockgen -source=internal/repository/dao/user.go -package=daomocks -destination=internal/repository/dao/mocks/user_dao_mock.go
 	@mockgen -source=internal/repository/cache/user.go -package=cachemocks -destination=internal/repository/cache/mocks/user_cache_mock.go
 	@mockgen -source=internal/service/sms/types.go -package=smsmocks -destination=internal/service/sms/mocks/sms_mock.go

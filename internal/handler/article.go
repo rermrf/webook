@@ -31,14 +31,11 @@ func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 	//g.PUT("/")
 
 	g.POST("/edit", h.Edit)
+	g.POST("/publish", h.Publish)
 }
 
-func (h *ArticleHandler) Edit(ctx *gin.Context) {
-	type Req struct {
-		Title   string `json:"title"`
-		Content string `json:"content"`
-	}
-	var req Req
+func (h *ArticleHandler) Publish(ctx *gin.Context) {
+	var req ArticleReq
 	if err := ctx.ShouldBind(&req); err != nil {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 4,
@@ -46,7 +43,6 @@ func (h *ArticleHandler) Edit(ctx *gin.Context) {
 		})
 		return
 	}
-
 	c, _ := ctx.Get("claims")
 	claims, ok := c.(*ijwt.UserClaims)
 	if !ok {
@@ -58,16 +54,44 @@ func (h *ArticleHandler) Edit(ctx *gin.Context) {
 		h.l.Error("未发现用户的 session 信息")
 		return
 	}
+	id, err := h.svc.Publish(ctx, req.toDomain(req, claims))
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		h.l.Error("发表帖子失败", logger.Error(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{
+		Msg:  "OK",
+		Data: id,
+	})
+}
 
+func (h *ArticleHandler) Edit(ctx *gin.Context) {
+	var req ArticleReq
+	if err := ctx.ShouldBind(&req); err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 4,
+			Msg:  "参数错误",
+		})
+		return
+	}
+	c, _ := ctx.Get("claims")
+	claims, ok := c.(*ijwt.UserClaims)
+	if !ok {
+		//ctx.AbortWithStatus(http.StatusUnauthorized)
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		h.l.Error("未发现用户的 session 信息")
+		return
+	}
 	// TODO: 检测输入
 	// 调用 service 的代码
-	id, err := h.svc.Save(ctx, domain.Article{
-		Title:   req.Title,
-		Content: req.Content,
-		Author: domain.Author{
-			Id: claims.UserId,
-		},
-	})
+	id, err := h.svc.Save(ctx, req.toDomain(req, claims))
 	if err != nil {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
@@ -80,4 +104,19 @@ func (h *ArticleHandler) Edit(ctx *gin.Context) {
 		Msg:  "OK",
 		Data: id,
 	})
+}
+
+type ArticleReq struct {
+	Id      int64  `json:"id"`
+	Title   string `json:"title"`
+	Content string `json:"content"`
+}
+
+func (r ArticleReq) toDomain(req ArticleReq, claims *ijwt.UserClaims) domain.Article {
+	return domain.Article{
+		Id:      req.Id,
+		Title:   req.Title,
+		Content: req.Content,
+		Author:  domain.Author{Id: claims.UserId},
+	}
 }

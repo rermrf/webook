@@ -9,6 +9,7 @@ import (
 	"log"
 	"testing"
 	"webook/internal/domain"
+	"webook/internal/pkg/logger"
 	"webook/internal/repository"
 	repomocks "webook/internal/repository/mocks"
 )
@@ -50,7 +51,7 @@ func TestUserServiceImpl_SignUp(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			svc := NewUserService(tc.mock(ctrl))
+			svc := NewUserService(tc.mock(ctrl), logger.NopLogger{})
 			err := svc.SignUp(tc.context, tc.user)
 
 			assert.Equal(t, tc.wantErr, err)
@@ -128,7 +129,7 @@ func TestUserServiceImpl_Login(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			svc := NewUserService(tc.mock(ctrl))
+			svc := NewUserService(tc.mock(ctrl), logger.NopLogger{})
 			gotUser, err := svc.Login(tc.context, tc.email, tc.password)
 			assert.Equal(t, tc.wantErr, err)
 			assert.Equal(t, tc.wantUser, gotUser)
@@ -179,7 +180,7 @@ func TestUserServiceImpl_Profile(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			svc := NewUserService(tc.mock(ctrl))
+			svc := NewUserService(tc.mock(ctrl), logger.NopLogger{})
 			user, err := svc.Profile(context.Background(), tc.id)
 			assert.Equal(t, tc.wantErr, err)
 			assert.Equal(t, tc.wantUser, user)
@@ -221,7 +222,7 @@ func TestUserServiceImpl_EditNoSensitive(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			svc := NewUserService(tc.mock(ctrl))
+			svc := NewUserService(tc.mock(ctrl), logger.NopLogger{})
 			err := svc.EditNoSensitive(context.Background(), tc.user)
 
 			assert.Equal(t, tc.wantErr, err)
@@ -291,7 +292,7 @@ func TestUserServiceImpl_FindOrCreate(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			svc := NewUserService(tc.mock(ctrl))
+			svc := NewUserService(tc.mock(ctrl), logger.NopLogger{})
 			gotUser, err := svc.FindOrCreate(context.Background(), tc.phone)
 			assert.Equal(t, tc.wantErr, err)
 			assert.Equal(t, tc.wantUser, gotUser)

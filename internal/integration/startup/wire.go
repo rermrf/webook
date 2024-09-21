@@ -9,8 +9,10 @@ import (
 	ijwt "webook/internal/handler/jwt"
 	"webook/internal/ioc"
 	"webook/internal/repository"
+	"webook/internal/repository/article"
 	"webook/internal/repository/cache"
 	"webook/internal/repository/dao"
+	article2 "webook/internal/repository/dao/article"
 	"webook/internal/service"
 )
 
@@ -30,14 +32,14 @@ func InitWebServer() *gin.Engine {
 		userSvcProvider,
 
 		// dao 部分
-		dao.NewGormArticleDao,
+		article2.NewGormArticleDao,
 
 		// cache 部分
 		cache.NewCodeCache,
 
 		// repo 部分
 		repository.NewCodeRepository,
-		repository.NewArticleRepository,
+		article.NewArticleRepository,
 
 		// Service 部分
 		ioc.InitSMSService,
@@ -63,8 +65,8 @@ func InitArticleHandler() *handler.ArticleHandler {
 	wire.Build(thirdPartySet,
 		service.NewArticleService,
 		handler.NewArticleHandler,
-		repository.NewArticleRepository,
-		dao.NewGormArticleDao,
+		article.NewArticleRepository,
+		article2.NewGormArticleDao,
 	)
 	return &handler.ArticleHandler{}
 }

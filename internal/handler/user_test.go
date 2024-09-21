@@ -264,7 +264,7 @@ func TestUserHandler_LoginJWT(t *testing.T) {
 			defer ctrl.Finish()
 
 			server := gin.Default()
-			h := NewUserHandler(tc.mock(ctrl), nil)
+			h := NewUserHandler(tc.mock(ctrl), nil, nil, nil)
 			h.RegisterRoutes(server)
 
 			req, err := http.NewRequest(http.MethodPost, "/users/login", bytes.NewBuffer([]byte(tc.reqBody)))
@@ -399,7 +399,8 @@ func TestUserHandler_LoginSMS(t *testing.T) {
 			defer ctrl.Finish()
 
 			server := gin.Default()
-			h := NewUserHandler(tc.mock(ctrl))
+			uSvc, cSvc := tc.mock(ctrl)
+			h := NewUserHandler(uSvc, cSvc, nil, nil)
 			h.RegisterRoutes(server)
 
 			req, err := http.NewRequest(http.MethodPost, "/users/login_sms", bytes.NewBuffer([]byte(tc.reqBody)))
@@ -472,7 +473,7 @@ func TestUserHandler_SendLoginSMSCode(t *testing.T) {
 			defer ctrl.Finish()
 
 			server := gin.Default()
-			h := NewUserHandler(nil, tc.mock(ctrl))
+			h := NewUserHandler(nil, tc.mock(ctrl), nil, nil)
 			h.RegisterRoutes(server)
 
 			req, err := http.NewRequest(http.MethodPost, "/users/login_sms/code/send", bytes.NewBuffer([]byte(tc.reqBody)))
@@ -691,7 +692,7 @@ func TestUserHandler_Profile(t *testing.T) {
 
 			server := gin.Default()
 			server.Use(tc.middleware)
-			h := NewUserHandler(tc.mock(ctrl), nil)
+			h := NewUserHandler(tc.mock(ctrl), nil, nil, nil)
 			h.RegisterRoutes(server)
 
 			req, err := http.NewRequest(http.MethodGet, "/users/profile", nil)

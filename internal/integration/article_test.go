@@ -13,7 +13,7 @@ import (
 	"testing"
 	ijwt "webook/internal/handler/jwt"
 	"webook/internal/integration/startup"
-	"webook/internal/repository/dao"
+	"webook/internal/repository/dao/article"
 )
 
 // ArticleTestSuite 测试套件
@@ -69,14 +69,14 @@ func (s *ArticleTestSuite) TestEdit() {
 			before: func(t *testing.T) {},
 			after: func(t *testing.T) {
 				// 验证数据库
-				var art dao.Article
+				var art article.Article
 				err := s.db.Where("id=?", 1).First(&art).Error
 				assert.NoError(t, err)
 				assert.True(t, art.Ctime > 0)
 				assert.True(t, art.Utime > 0)
 				art.Ctime = 0
 				art.Utime = 0
-				assert.Equal(t, dao.Article{
+				assert.Equal(t, article.Article{
 					Id:       1,
 					Title:    "我的标题",
 					Content:  "我的内容",
@@ -88,6 +88,93 @@ func (s *ArticleTestSuite) TestEdit() {
 				Code: 0,
 				Msg:  "OK",
 				Data: 1,
+			},
+		},
+		{
+			name: "修改已有的帖子，并保存",
+			art: Article{
+				Id:      2,
+				Title:   "新的标题",
+				Content: "新的内容",
+			},
+			before: func(t *testing.T) {
+				// 修改已有帖子，必须先在数据库中预有数据
+				err := s.db.Create(article.Article{
+					Id:       2,
+					Title:    "我的标题",
+					Content:  "我的内容",
+					AuthorId: 123,
+					// 跟时间有关的测试，不是逼不得已，不要用 time.Now()
+					// 因为 time.Now() 每次运行都不同，很难断言
+					Ctime: 1234,
+					Utime: 1234,
+				}).Error
+				assert.NoError(t, err)
+			},
+			after: func(t *testing.T) {
+				// 验证数据库
+				var art article.Article
+				err := s.db.Where("id=?", 2).First(&art).Error
+				assert.NoError(t, err)
+				// 是为了确保我更新了更新时间
+				assert.True(t, art.Utime > 1234)
+				art.Utime = 0
+				assert.Equal(t, article.Article{
+					Id:       2,
+					Title:    "新的标题",
+					Content:  "新的内容",
+					AuthorId: 123,
+					Ctime:    1234,
+				}, art)
+			},
+			wantCode: http.StatusOK,
+			wantRes: Result[int64]{
+				Code: 0,
+				Msg:  "OK",
+				Data: 2,
+			},
+		},
+		{
+			name: "修改别人的帖子",
+			art: Article{
+				Id:      3,
+				Title:   "新的标题",
+				Content: "新的内容",
+			},
+			before: func(t *testing.T) {
+				// 修改已有帖子，必须先在数据库中预有数据
+				err := s.db.Create(article.Article{
+					Id:      3,
+					Title:   "我的标题",
+					Content: "我的内容",
+					// 测试模拟的用户是123，这里是789
+					// 意味着你在修改别人的数据
+					AuthorId: 789,
+					// 跟时间有关的测试，不是逼不得已，不要用 time.Now()
+					// 因为 time.Now() 每次运行都不同，很难断言
+					Ctime: 1234,
+					Utime: 1234,
+				}).Error
+				assert.NoError(t, err)
+			},
+			after: func(t *testing.T) {
+				// 验证数据库
+				var art article.Article
+				err := s.db.Where("id=?", 3).First(&art).Error
+				assert.NoError(t, err)
+				assert.Equal(t, article.Article{
+					Id:       3,
+					Title:    "我的标题",
+					Content:  "我的内容",
+					AuthorId: 789,
+					Ctime:    1234,
+					Utime:    1234,
+				}, art)
+			},
+			wantCode: http.StatusOK,
+			wantRes: Result[int64]{
+				Code: 5,
+				Msg:  "系统错误",
 			},
 		},
 	}
@@ -132,6 +219,7 @@ func TestArticle(t *testing.T) {
 }
 
 type Article struct {
+	Id      int64  `json:"id"`
 	Title   string `json:"title"`
 	Content string `json:"content"`
 }
