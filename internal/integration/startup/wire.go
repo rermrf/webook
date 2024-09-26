@@ -61,12 +61,12 @@ func InitWebServer() *gin.Engine {
 	return new(gin.Engine)
 }
 
-func InitArticleHandler() *handler.ArticleHandler {
+func InitArticleHandler(dao article2.ArticleDao) *handler.ArticleHandler {
 	wire.Build(thirdPartySet,
 		service.NewArticleService,
 		handler.NewArticleHandler,
 		article.NewArticleRepository,
-		article2.NewGormArticleDao,
+		//article2.NewGormArticleDao,
 	)
 	return &handler.ArticleHandler{}
 }

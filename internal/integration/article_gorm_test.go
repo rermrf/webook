@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"webook/internal/domain"
 	ijwt "webook/internal/handler/jwt"
 	"webook/internal/integration/startup"
 	"webook/internal/repository/dao/article"
@@ -34,7 +35,7 @@ func (s *ArticleTestSuite) SetupSuite() {
 	})
 	s.db = startup.InitDB()
 	// 使用 wire 注入
-	artHdl := startup.InitArticleHandler()
+	artHdl := startup.InitArticleHandler(article.NewGormArticleDao(s.db))
 	artHdl.RegisterRoutes(s.server)
 }
 
@@ -42,6 +43,169 @@ func (s *ArticleTestSuite) SetupSuite() {
 func (s *ArticleTestSuite) TearDownSuite() {
 	// 清空所有数据，并且自增主键恢复到 1
 	s.db.Exec("TRUNCATE TABLE articles")
+	s.db.Exec("TRUNCATE TABLE publish_articles")
+}
+
+func (s *ArticleTestSuite) TestPublish() {
+	testCases := []struct {
+		name string
+		// 预期中的输入
+		art Article
+
+		// 集成测试准备数据
+		before func(t *testing.T)
+		// 集成测试验证数据
+		after func(t *testing.T)
+
+		// Http 响应码
+		wantCode int
+		// 我希望 Http 响应带上帖子的 id
+		wantRes Result[int64]
+	}{
+		{
+			name: "新建发布成功",
+			art: Article{
+				Title:   "我的标题",
+				Content: "我的内容",
+			},
+			before: func(t *testing.T) {
+				// 新建发布
+			},
+			after: func(t *testing.T) {
+				var art article.Article
+				err := s.db.Where("id = ?", 1).First(&art).Error
+				assert.NoError(s.T(), err)
+				assert.True(t, art.Id > 0)
+				assert.True(t, art.Ctime > 0)
+				assert.True(t, art.Utime > 0)
+				art.Id = 0
+				art.Ctime = 0
+				art.Utime = 0
+				assert.Equal(t, art, article.Article{
+					Title:    "我的标题",
+					Content:  "我的内容",
+					Status:   domain.ArticleStatusPublished.ToUint8(),
+					AuthorId: 123,
+				})
+			},
+			wantCode: http.StatusOK,
+			wantRes: Result[int64]{
+				Msg:  "OK",
+				Data: 1,
+			},
+		},
+		{
+			// 制作库有，但是线上库没有
+			name: "更新帖子发布成功",
+			art: Article{
+				Id:      2,
+				Title:   "新的标题",
+				Content: "新的内容",
+			},
+			before: func(t *testing.T) {
+				// 模拟已经存在的数据
+				err := s.db.Create(&article.Article{
+					Id:       2,
+					Title:    "已经存在的标题",
+					Content:  "已经存在的内容",
+					Status:   domain.ArticleStatusUnPublished.ToUint8(),
+					AuthorId: 123,
+					Ctime:    1234,
+					Utime:    5678,
+				}).Error
+				assert.NoError(s.T(), err)
+			},
+			after: func(t *testing.T) {
+				var art article.Article
+				err := s.db.Where("id = ?", 2).First(&art).Error
+				assert.NoError(s.T(), err)
+				assert.True(t, art.Utime > 5678)
+				art.Utime = 0
+				assert.Equal(t, art, article.Article{
+					Id:       2,
+					Title:    "新的标题",
+					Content:  "新的内容",
+					Status:   domain.ArticleStatusPublished.ToUint8(),
+					AuthorId: 123,
+					Ctime:    1234,
+				})
+			},
+			wantCode: http.StatusOK,
+			wantRes: Result[int64]{
+				Msg:  "OK",
+				Data: 2,
+			},
+		},
+		{
+			name: "更新帖子并且重新发表",
+			art: Article{
+				Id:      3,
+				Title:   "新的标题",
+				Content: "新的内容",
+			},
+			before: func(t *testing.T) {
+				err := s.db.Create(&article.Article{
+					Id:       3,
+					Title:    "旧的标题",
+					Content:  "旧的内容",
+					Status:   domain.ArticleStatusPublished.ToUint8(),
+					AuthorId: 123,
+					Ctime:    1234,
+					Utime:    5678,
+				}).Error
+				assert.NoError(s.T(), err)
+			},
+			after: func(t *testing.T) {
+				var art article.Article
+				err := s.db.Where("id = ?", 3).First(&art).Error
+				assert.NoError(s.T(), err)
+				assert.True(t, art.Id > 0)
+				assert.True(t, art.Ctime > 0)
+				assert.True(t, art.Utime > 0)
+				art.Id = 0
+				art.Ctime = 0
+				art.Utime = 0
+				assert.Equal(t, art, article.Article{
+					Title:    "新的标题",
+					Content:  "新的内容",
+					Status:   domain.ArticleStatusPublished.ToUint8(),
+					AuthorId: 123,
+				})
+			},
+			wantCode: http.StatusOK,
+			wantRes: Result[int64]{
+				Msg:  "OK",
+				Data: 3,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		s.T().Run(tc.name, func(t *testing.T) {
+			// 构造请求
+			tc.before(t)
+			reqBody, err := json.Marshal(tc.art)
+			assert.NoError(t, err)
+			req, err := http.NewRequest(http.MethodPost, "/articles/publish", bytes.NewBuffer(reqBody))
+			require.NoError(t, err)
+
+			req.Header.Set("Content-Type", "application/json")
+			// 执行
+			resp := httptest.NewRecorder()
+			s.server.ServeHTTP(resp, req)
+
+			// 验证
+			assert.Equal(t, tc.wantCode, resp.Code)
+			if resp.Code != http.StatusOK {
+				return
+			}
+			var webRes Result[int64]
+			err = json.Unmarshal(resp.Body.Bytes(), &webRes)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.wantRes, webRes)
+			tc.after(t)
+		})
+	}
 }
 
 func (s *ArticleTestSuite) TestEdit() {
@@ -81,6 +245,7 @@ func (s *ArticleTestSuite) TestEdit() {
 					Title:    "我的标题",
 					Content:  "我的内容",
 					AuthorId: 123,
+					Status:   domain.ArticleStatusUnPublished.ToUint8(),
 				}, art)
 			},
 			wantCode: http.StatusOK,
@@ -108,6 +273,8 @@ func (s *ArticleTestSuite) TestEdit() {
 					// 因为 time.Now() 每次运行都不同，很难断言
 					Ctime: 1234,
 					Utime: 1234,
+					// 假设这是一个已经发表的，然后你去修改，改成了没发表
+					Status: domain.ArticleStatusPublished.ToUint8(),
 				}).Error
 				assert.NoError(t, err)
 			},
@@ -125,6 +292,7 @@ func (s *ArticleTestSuite) TestEdit() {
 					Content:  "新的内容",
 					AuthorId: 123,
 					Ctime:    1234,
+					Status:   domain.ArticleStatusUnPublished.ToUint8(),
 				}, art)
 			},
 			wantCode: http.StatusOK,
@@ -154,6 +322,8 @@ func (s *ArticleTestSuite) TestEdit() {
 					// 因为 time.Now() 每次运行都不同，很难断言
 					Ctime: 1234,
 					Utime: 1234,
+					// 为了验证状态没有变
+					Status: domain.ArticleStatusPublished.ToUint8(),
 				}).Error
 				assert.NoError(t, err)
 			},
@@ -169,6 +339,7 @@ func (s *ArticleTestSuite) TestEdit() {
 					AuthorId: 789,
 					Ctime:    1234,
 					Utime:    1234,
+					Status:   domain.ArticleStatusPublished.ToUint8(),
 				}, art)
 			},
 			wantCode: http.StatusOK,
@@ -204,10 +375,6 @@ func (s *ArticleTestSuite) TestEdit() {
 			tc.after(t)
 		})
 	}
-}
-
-func (s *ArticleTestSuite) TestPublish() {
-
 }
 
 func (s *ArticleTestSuite) TestABC() {

@@ -10,19 +10,27 @@ services:
       - ./script/mysql/:/docker-entrypoint-initdb.d/
     ports:
       # 设置端口映射
-      - 13306:3306
+      - "13306:3306"
   redis:
-    image: redis:latest
+    image: redis:7.4.0
     # restart: always
     environment:
       REDIS_PASSWORD: ""
     ports:
       # 设置端口映射
-      - 6379:6379
+      - "6379:6379"
   etcd:
-    image: bitnami/etcd
+    image: bitnami/etcd:3.4.34
     environment:
       # 不需要密码
       - ALLOW_NONE_AUTHENTICATION=yes
     ports:
-      - 12379:2379
+      - "12379:2379"
+  mongo:
+    image: mongo:8.0.0
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    ports:
+      - "27017:27017"
