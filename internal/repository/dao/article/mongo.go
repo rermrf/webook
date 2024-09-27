@@ -125,3 +125,19 @@ func (m *MongoArticleDao) SyncStatus(ctx context.Context, id int64, author int64
 	//TODO implement me
 	panic("implement me")
 }
+
+//func ToUpdate(vals map[string]interface{}) bson.M {
+//	return vals
+//}
+//
+//func ToFilter(vals map[string]interface{}) bson.D {
+//	var res bson.D
+//	for k, v := range vals {
+//		res = append(res, bson.E{Key: k, Value: v})
+//	}
+//	return res
+//}
+//
+//func Set(vals map[string]interface{}) bson.M {
+//	return bson.M{"$set": bson.M{vals}}
+//}
