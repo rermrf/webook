@@ -19,7 +19,7 @@ type CachedArticleRepository struct {
 	dao dao.ArticleDao
 }
 
-func NewArticleRepository(dao dao.ArticleDao) ArticleRepository {
+func NewArticleRepository(dao dao.ArticleDao) *CachedArticleRepository {
 	return &CachedArticleRepository{
 		dao: dao,
 	}

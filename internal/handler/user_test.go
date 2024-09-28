@@ -13,6 +13,7 @@ import (
 	"net/http/httptest"
 	"testing"
 	"webook/internal/domain"
+	"webook/internal/pkg/logger"
 	"webook/internal/service"
 	svcmocks "webook/internal/service/mocks"
 )
@@ -151,7 +152,7 @@ func TestUserHandler_SignUp(t *testing.T) {
 			defer ctrl.Finish()
 
 			server := gin.Default()
-			h := NewUserHandler(tc.mock(ctrl), nil, nil, nil)
+			h := NewUserHandler(tc.mock(ctrl), nil, nil, nil, logger.NopLogger{})
 			h.RegisterRoutes(server)
 
 			req, err := http.NewRequest(http.MethodPost, "/users/signup", bytes.NewBuffer([]byte(tc.reqBody)))
@@ -264,7 +265,7 @@ func TestUserHandler_LoginJWT(t *testing.T) {
 			defer ctrl.Finish()
 
 			server := gin.Default()
-			h := NewUserHandler(tc.mock(ctrl), nil, nil, nil)
+			h := NewUserHandler(tc.mock(ctrl), nil, nil, nil, logger.NopLogger{})
 			h.RegisterRoutes(server)
 
 			req, err := http.NewRequest(http.MethodPost, "/users/login", bytes.NewBuffer([]byte(tc.reqBody)))
@@ -400,7 +401,7 @@ func TestUserHandler_LoginSMS(t *testing.T) {
 
 			server := gin.Default()
 			uSvc, cSvc := tc.mock(ctrl)
-			h := NewUserHandler(uSvc, cSvc, nil, nil)
+			h := NewUserHandler(uSvc, cSvc, nil, nil, logger.NopLogger{})
 			h.RegisterRoutes(server)
 
 			req, err := http.NewRequest(http.MethodPost, "/users/login_sms", bytes.NewBuffer([]byte(tc.reqBody)))
@@ -473,7 +474,7 @@ func TestUserHandler_SendLoginSMSCode(t *testing.T) {
 			defer ctrl.Finish()
 
 			server := gin.Default()
-			h := NewUserHandler(nil, tc.mock(ctrl), nil, nil)
+			h := NewUserHandler(nil, tc.mock(ctrl), nil, nil, logger.NopLogger{})
 			h.RegisterRoutes(server)
 
 			req, err := http.NewRequest(http.MethodPost, "/users/login_sms/code/send", bytes.NewBuffer([]byte(tc.reqBody)))
@@ -601,7 +602,7 @@ func TestUserHandler_Edit(t *testing.T) {
 			server := gin.Default()
 			// 通过中间件模拟转入id
 			server.Use(tc.middleware)
-			h := NewUserHandler(tc.mock(ctrl), nil, nil, nil)
+			h := NewUserHandler(tc.mock(ctrl), nil, nil, nil, logger.NopLogger{})
 			h.RegisterRoutes(server)
 
 			req, err := http.NewRequest(http.MethodPost, "/users/edit", bytes.NewBuffer([]byte(tc.reqBody)))
@@ -692,7 +693,7 @@ func TestUserHandler_Profile(t *testing.T) {
 
 			server := gin.Default()
 			server.Use(tc.middleware)
-			h := NewUserHandler(tc.mock(ctrl), nil, nil, nil)
+			h := NewUserHandler(tc.mock(ctrl), nil, nil, nil, logger.NopLogger{})
 			h.RegisterRoutes(server)
 
 			req, err := http.NewRequest(http.MethodGet, "/users/profile", nil)

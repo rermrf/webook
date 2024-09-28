@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
@@ -10,6 +11,8 @@ import (
 	"time"
 	"webook/internal/domain"
 	ijwt "webook/internal/handler/jwt"
+	gin_pulgin "webook/internal/pkg/gin-pulgin"
+	"webook/internal/pkg/logger"
 	"webook/internal/service"
 
 	regexp "github.com/dlclark/regexp2"
@@ -26,9 +29,10 @@ type UserHandler struct {
 	phoneExp    *regexp.Regexp
 	ijwt.Handler
 	cmd redis.Cmdable
+	l   logger.LoggerV1
 }
 
-func NewUserHandler(svc service.UserService, codeSvc service.CodeService, cmd redis.Cmdable, handler ijwt.Handler) *UserHandler {
+func NewUserHandler(svc service.UserService, codeSvc service.CodeService, cmd redis.Cmdable, handler ijwt.Handler, l logger.LoggerV1) *UserHandler {
 	const (
 		emailRegexPattern    = `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
 		passwordRegexPattern = `^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&.])[A-Za-z\d@$!%*?&.]{8,72}$`
@@ -42,6 +46,7 @@ func NewUserHandler(svc service.UserService, codeSvc service.CodeService, cmd re
 		phoneExp:    regexp.MustCompile(phoneRegexPattern, regexp.None),
 		Handler:     handler,
 		cmd:         cmd,
+		l:           l,
 	}
 }
 
@@ -52,7 +57,7 @@ func (h *UserHandler) RegisterRoutes(server *gin.Engine) {
 	ug.POST("/edit", h.Edit)
 	ug.GET("/profile", h.Profile)
 	ug.POST("/login_sms/code/send", h.SendLoginSMSCode)
-	ug.POST("/login_sms", h.LoginSMS)
+	ug.POST("/login_sms", gin_pulgin.WrapBody[LoginSMSReq](h.l.With(logger.String("method", "login_sms")), h.LoginSMS))
 	ug.POST("/logout", h.LogoutJWT)
 	ug.POST("/refresh_token", h.RefreshToken)
 }
@@ -107,67 +112,64 @@ func (h *UserHandler) RefreshToken(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, Result{Msg: "刷新成功"})
 }
 
-func (h *UserHandler) LoginSMS(ctx *gin.Context) {
-	type Req struct {
-		Phone string `json:"phone"`
-		Code  string `json:"code"`
-	}
-	var req Req
-	if err := ctx.ShouldBind(&req); err != nil {
-		ctx.String(http.StatusBadRequest, "请求参数错误")
-		return
-	}
+type LoginSMSReq struct {
+	Phone string `json:"phone"`
+	Code  string `json:"code"`
+}
+
+func (h *UserHandler) LoginSMS(ctx *gin.Context, req LoginSMSReq) (Result, error) {
 	// 验证手机号
 	ok, err := h.phoneExp.MatchString(req.Phone)
 	if err != nil {
-		ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
-		return
+		//ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
+		return Result{Code: 5, Msg: "系统错误"}, err
 	}
 	if !ok {
-		ctx.JSON(http.StatusOK, Result{Code: 4, Msg: "手机号格式不正确"})
-		return
+		//ctx.JSON(http.StatusOK, Result{Code: 4, Msg: "手机号格式不正确"})
+		return Result{Code: 4, Msg: "手机号格式不正确"}, errors.New("手机号码格式不正确")
 	}
 
 	ok, err = h.codeSvc.Verify(ctx, biz, req.Code, req.Phone)
 	if errors.Is(err, service.ErrCodeVerifyTooManyTimes) {
-		ctx.JSON(http.StatusOK, Result{Code: 4, Msg: "重试次数过多，请重新发送"})
-		return
+		//ctx.JSON(http.StatusOK, Result{Code: 4, Msg: "重试次数过多，请重新发送"})
+		return Result{Code: 4, Msg: "重试次数过多，请重新发送"}, err
 	}
 	if err != nil {
-		ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
-		zap.L().Error("校验验证码出错", zap.Error(err),
-			// 不能这么打，因为手机号码是敏感数据，不能打到日志里面
-			// 打印加密后的数据
-			// 脱敏， 152****1212
-			zap.String("phone", req.Phone))
+		//ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
+		//zap.L().Error("校验验证码出错", zap.Error(err),
+		// 不能这么打，因为手机号码是敏感数据，不能打到日志里面
+		// 打印加密后的数据
+		// 脱敏， 152****1212
+		//zap.String("phone", req.Phone))
 		// 最多打印 Debug 级别，因为生产环境中并不开 Debug
-		zap.L().Debug("", zap.String("手机号", req.Phone))
-		return
+		//zap.L().Debug("", zap.String("手机号", req.Phone))
+		return Result{Code: 5, Msg: "系统错误"}, err
 	}
 	if !ok {
-		ctx.JSON(http.StatusOK, Result{Code: 4, Msg: "验证码错误"})
-		return
+		//ctx.JSON(http.StatusOK, Result{Code: 4, Msg: "验证码错误"})
+		return Result{Code: 4, Msg: "验证码错误"}, nil
 	}
 
 	user, err := h.svc.FindOrCreate(ctx, req.Phone)
 	if err != nil {
-		ctx.JSON(http.StatusOK, Result{
-			Code: 5, Msg: "系统错误",
-		})
-		return
+		//ctx.JSON(http.StatusOK, Result{
+		//	Code: 5, Msg: "系统错误",
+		//})
+		return Result{Code: 5, Msg: "系统错误"}, fmt.Errorf("登录或注册用户失败 %w", err)
 	}
 
 	if err = h.SetLoginToken(ctx, user.Id); err != nil {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5, Msg: "系统错误",
 		})
-		return
+		return Result{Code: 5, Msg: "系统错误"}, err
 	}
 
-	ctx.JSON(http.StatusOK, Result{
-		Code: 2,
-		Msg:  "验证码校验通过",
-	})
+	//ctx.JSON(http.StatusOK, Result{
+	//	Code: 2,
+	//	Msg:  "验证码校验通过",
+	//})
+	return Result{Code: 2, Msg: "验证码校验通过"}, nil
 }
 
 func (h *UserHandler) SendLoginSMSCode(ctx *gin.Context) {

@@ -8,8 +8,14 @@ type ZapLogger struct {
 	l *zap.Logger
 }
 
-func NewZapLogger(l *zap.Logger) *ZapLogger {
+func NewZapLogger(l *zap.Logger) LoggerV1 {
 	return &ZapLogger{l: l}
+}
+
+func (z *ZapLogger) With(args ...Field) LoggerV1 {
+	return &ZapLogger{
+		l: z.l.With(z.toZapFields(args)...),
+	}
 }
 
 func (z *ZapLogger) Debug(msg string, args ...Field) {

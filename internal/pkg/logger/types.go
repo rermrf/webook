@@ -18,6 +18,8 @@ type LoggerV1 interface {
 	Info(msg string, args ...Field)
 	Warn(msg string, args ...Field)
 	Error(msg string, args ...Field)
+	// args 会加入进去 LoggerV1 的任何打印出来的日志里面
+	With(args ...Field) LoggerV1
 }
 
 type Field struct {

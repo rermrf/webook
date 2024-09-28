@@ -12,8 +12,10 @@ import (
 	"webook/internal/handler/jwt"
 	"webook/internal/ioc"
 	"webook/internal/repository"
+	article2 "webook/internal/repository/article"
 	"webook/internal/repository/cache"
 	"webook/internal/repository/dao"
+	"webook/internal/repository/dao/article"
 	"webook/internal/service"
 )
 
@@ -37,9 +39,13 @@ func InitWebServer() *gin.Engine {
 	codeRepository := repository.NewCodeRepository(codeCache)
 	smsService := ioc.InitSMSService()
 	codeService := service.NewCodeService(codeRepository, smsService)
-	userHandler := handler.NewUserHandler(userService, codeService, cmdable, jwtHandler)
+	userHandler := handler.NewUserHandler(userService, codeService, cmdable, jwtHandler, loggerV1)
 	wechatService := ioc.InitOAuth2WechatService(loggerV1)
 	oAuth2WechatHandler := handler.NewOAuth2WechatHandler(wechatService, userService, jwtHandler)
-	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler)
+	articleDao := article.NewGormArticleDao(db)
+	articleRepository := article2.NewArticleRepository(articleDao)
+	articleService := service.NewArticleService(articleRepository, loggerV1)
+	articleHandler := handler.NewArticleHandler(articleService, loggerV1)
+	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler)
 	return engine
 }
