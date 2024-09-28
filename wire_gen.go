@@ -8,6 +8,7 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/google/wire"
 	"webook/internal/handler"
 	"webook/internal/handler/jwt"
 	"webook/internal/ioc"
@@ -49,3 +50,7 @@ func InitWebServer() *gin.Engine {
 	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler)
 	return engine
 }
+
+// wire.go:
+
+var UserSet = wire.NewSet(handler.NewUserHandler, dao.NewUserDao, cache.NewUserCache, repository.NewCachedUserRepository)

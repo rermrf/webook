@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 	ijwt "webook/internal/handler/jwt"
+	"webook/internal/pkg/gin-pulgin"
 	"webook/internal/service"
 	"webook/internal/service/oauth2/wechat"
 )
@@ -44,7 +45,7 @@ func (h *OAuth2WechatHandler) AuthURL(ctx *gin.Context) {
 	state := shortuuid.New()
 	url, err := h.svc.AuthURL(ctx, state)
 	if err != nil {
-		ctx.JSON(http.StatusOK, Result{
+		ctx.JSON(http.StatusOK, gin_pulgin.Result{
 			Code: 5,
 			Msg:  "构造扫码登录URL失败",
 		})
@@ -59,14 +60,14 @@ func (h *OAuth2WechatHandler) AuthURL(ctx *gin.Context) {
 	})
 	tokenStr, err := token.SignedString(h.stateKey)
 	if err != nil {
-		ctx.JSON(http.StatusOK, Result{
+		ctx.JSON(http.StatusOK, gin_pulgin.Result{
 			Code: 5,
 			Msg:  "系统错误",
 		})
 		return
 	}
 	ctx.SetCookie("jwt-state", tokenStr, 600, "/oauth2/wechat/callback", "", h.cfg.Secure, true)
-	ctx.JSON(http.StatusOK, Result{
+	ctx.JSON(http.StatusOK, gin_pulgin.Result{
 		Data: url,
 	})
 }
@@ -87,7 +88,7 @@ func (h *OAuth2WechatHandler) Callback(ctx *gin.Context) {
 
 	info, err := h.svc.VerifyCode(ctx, code, state)
 	if err != nil {
-		ctx.JSON(http.StatusOK, Result{
+		ctx.JSON(http.StatusOK, gin_pulgin.Result{
 			Code: 5,
 			Msg:  "系统错误",
 		})
@@ -95,7 +96,7 @@ func (h *OAuth2WechatHandler) Callback(ctx *gin.Context) {
 	}
 	user, err := h.userSvc.FindOrCreateByWechat(ctx, info)
 	if err != nil {
-		ctx.JSON(http.StatusOK, Result{
+		ctx.JSON(http.StatusOK, gin_pulgin.Result{
 			Code: 5,
 			Msg:  "系统错误",
 		})
@@ -104,14 +105,14 @@ func (h *OAuth2WechatHandler) Callback(ctx *gin.Context) {
 
 	// 从userService中获取id
 	if err = h.SetLoginToken(ctx, user.Id); err != nil {
-		ctx.JSON(http.StatusOK, Result{
+		ctx.JSON(http.StatusOK, gin_pulgin.Result{
 			Code: 5,
 			Msg:  "系统错误",
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, Result{
+	ctx.JSON(http.StatusOK, gin_pulgin.Result{
 		Msg: "OK",
 	})
 	// 验证微信的 code
@@ -123,7 +124,7 @@ func (h *OAuth2WechatHandler) verify(ctx *gin.Context) (string, error, bool) {
 	if err != nil {
 		// 做好监控，防止有人恶意攻击
 		// 记录日志
-		ctx.JSON(http.StatusOK, Result{
+		ctx.JSON(http.StatusOK, gin_pulgin.Result{
 			Code: 4,
 			Msg:  "登录失败",
 		})
@@ -137,7 +138,7 @@ func (h *OAuth2WechatHandler) verify(ctx *gin.Context) (string, error, bool) {
 	if err != nil || !token.Valid {
 		// 做好监控，防止有人恶意攻击
 		// 记录日志
-		ctx.JSON(http.StatusOK, Result{
+		ctx.JSON(http.StatusOK, gin_pulgin.Result{
 			Code: 4,
 			Msg:  "登录失败",
 		})
@@ -146,7 +147,7 @@ func (h *OAuth2WechatHandler) verify(ctx *gin.Context) (string, error, bool) {
 
 	// 校验 state
 	if state != s.State {
-		ctx.JSON(http.StatusOK, Result{
+		ctx.JSON(http.StatusOK, gin_pulgin.Result{
 			Code: 4,
 			Msg:  "登录失败",
 		})

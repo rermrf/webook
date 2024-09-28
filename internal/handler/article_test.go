@@ -13,6 +13,7 @@ import (
 	"testing"
 	"webook/internal/domain"
 	ijwt "webook/internal/handler/jwt"
+	"webook/internal/pkg/gin-pulgin"
 	"webook/internal/pkg/logger"
 	"webook/internal/service"
 	svcmocks "webook/internal/service/mocks"
@@ -27,7 +28,7 @@ func TestArticleHandler_Publish(t *testing.T) {
 		reqBody string
 
 		wantCode int
-		wantRes  Result
+		wantRes  gin_pulgin.Result
 	}{
 		{
 			name: "新建并发表",
@@ -51,7 +52,7 @@ func TestArticleHandler_Publish(t *testing.T) {
 			},
 			reqBody:  `{ "id": 1, "title": "我的标题", "content": "我的内容" }`,
 			wantCode: http.StatusOK,
-			wantRes: Result{
+			wantRes: gin_pulgin.Result{
 				Msg:  "OK",
 				Data: float64(1),
 			},
@@ -78,7 +79,7 @@ func TestArticleHandler_Publish(t *testing.T) {
 			},
 			reqBody:  `{ "id": 1, "title": "我的标题", "content": "我的内容" }`,
 			wantCode: http.StatusOK,
-			wantRes: Result{
+			wantRes: gin_pulgin.Result{
 				Code: 5,
 				Msg:  "系统错误",
 			},
@@ -91,7 +92,7 @@ func TestArticleHandler_Publish(t *testing.T) {
 			},
 			reqBody:  `{ "id": 1, "title": "我的标题", "content": "我的内容",,, }`,
 			wantCode: http.StatusOK,
-			wantRes: Result{
+			wantRes: gin_pulgin.Result{
 				Code: 4,
 				Msg:  "参数错误",
 			},
@@ -104,7 +105,7 @@ func TestArticleHandler_Publish(t *testing.T) {
 			},
 			reqBody:  `{ "id": 1, "title": "我的标题", "content": "我的内容" }`,
 			wantCode: http.StatusOK,
-			wantRes: Result{
+			wantRes: gin_pulgin.Result{
 				Code: 5,
 				Msg:  "系统错误",
 			},
@@ -133,7 +134,7 @@ func TestArticleHandler_Publish(t *testing.T) {
 			if resp.Code != http.StatusOK {
 				return
 			}
-			var webRes Result
+			var webRes gin_pulgin.Result
 			err = json.NewDecoder(resp.Body).Decode(&webRes)
 			require.NoError(t, err)
 			assert.Equal(t, tc.wantRes, webRes)

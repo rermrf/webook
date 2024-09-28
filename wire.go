@@ -16,13 +16,19 @@ import (
 	"webook/internal/service"
 )
 
+var UserSet = wire.NewSet(
+	handler.NewUserHandler,
+	dao.NewUserDao,
+	cache.NewUserCache,
+	repository.NewCachedUserRepository,
+)
+
 func InitWebServer() *gin.Engine {
 	wire.Build(
 		ioc.InitDB, ioc.InitRedis, ioc.InitLogger,
-		dao.NewUserDao, cache.NewUserCache, cache.NewCodeCache, article2.NewGormArticleDao,
-		repository.NewCachedUserRepository, repository.NewCodeRepository, article.NewArticleRepository,
+		cache.NewCodeCache, article2.NewGormArticleDao,
+		repository.NewCodeRepository, article.NewArticleRepository,
 		service.NewUserService, service.NewCodeService, service.NewArticleService, ioc.InitSMSService,
-		handler.NewUserHandler,
 		handler.NewOAuth2WechatHandler,
 		handler.NewArticleHandler,
 		ijwt.NewRedisJWTHandler,
@@ -31,6 +37,11 @@ func InitWebServer() *gin.Engine {
 		ioc.InitGin,
 		ioc.InitMiddlewares,
 		ioc.InitOAuth2WechatService,
+		//UserSet,
+		handler.NewUserHandler,
+		dao.NewUserDao,
+		cache.NewUserCache,
+		repository.NewCachedUserRepository,
 	)
 	return new(gin.Engine)
 }

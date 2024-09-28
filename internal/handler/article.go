@@ -1,15 +1,15 @@
 package handler
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"webook/internal/domain"
 	ijwt "webook/internal/handler/jwt"
+	"webook/internal/pkg/gin-pulgin"
 	"webook/internal/pkg/logger"
 	"webook/internal/service"
 )
-
-//var _ handler = (*ArticleHandler)(nil)
 
 type ArticleHandler struct {
 	svc service.ArticleService
@@ -25,130 +25,48 @@ func NewArticleHandler(svc service.ArticleService, l logger.LoggerV1) *ArticleHa
 
 func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 	g := server.Group("/articles")
-	// 新增
-	//g.POST("/")
-	// 修改
-	//g.PUT("/")
-
-	g.POST("/edit", h.Edit)
-	g.POST("/publish", h.Publish)
-	g.POST("/withdraw", h.Withdraw)
+	g.POST("/edit", gin_pulgin.WrapBodyAndToken(h.l, h.Edit))
+	g.POST("/publish", gin_pulgin.WrapBodyAndToken(h.l, h.Publish))
+	g.POST("/withdraw", gin_pulgin.WrapBodyAndToken(h.l, h.Withdraw))
 }
 
-func (h *ArticleHandler) Withdraw(ctx *gin.Context) {
-	type Req struct {
-		Id int64
-	}
-	var req Req
-	if err := ctx.ShouldBind(&req); err != nil {
-		ctx.JSON(http.StatusOK, Result{
-			Code: 4,
-			Msg:  "参数错误",
-		})
-		return
-	}
-	c, _ := ctx.Get("claims")
-	claims, ok := c.(*ijwt.UserClaims)
-	if !ok {
-		//ctx.AbortWithStatus(http.StatusUnauthorized)
-		ctx.JSON(http.StatusOK, Result{
-			Code: 5,
-			Msg:  "系统错误",
-		})
-		h.l.Error("未发现用户的 session 信息")
-		return
-	}
+type WithdrawReq struct {
+	Id int64
+}
+
+func (h *ArticleHandler) Withdraw(ctx *gin.Context, req WithdrawReq, uc ijwt.UserClaims) (gin_pulgin.Result, error) {
 	err := h.svc.WithDraw(ctx, domain.Article{
 		Id: req.Id,
 		Author: domain.Author{
-			Id: claims.UserId,
+			Id: uc.UserId,
 		},
 	})
 	if err != nil {
-		ctx.JSON(http.StatusOK, Result{
-			Code: 5,
-			Msg:  "系统错误",
-		})
-		h.l.Error("撤回帖子失败", logger.Error(err))
-		return
+		return gin_pulgin.Result{Code: 5, Msg: "系统错误"}, fmt.Errorf("撤回帖子失败 %w", err)
 	}
-	ctx.JSON(http.StatusOK, Result{
-		Msg:  "OK",
-		Data: req.Id,
-	})
-
+	return gin_pulgin.Result{Msg: "OK", Data: req.Id}, nil
 }
 
-func (h *ArticleHandler) Publish(ctx *gin.Context) {
-	var req ArticleReq
-	if err := ctx.ShouldBind(&req); err != nil {
-		ctx.JSON(http.StatusOK, Result{
-			Code: 4,
-			Msg:  "参数错误",
-		})
-		return
-	}
-	c, _ := ctx.Get("claims")
-	claims, ok := c.(*ijwt.UserClaims)
-	if !ok {
-		//ctx.AbortWithStatus(http.StatusUnauthorized)
-		ctx.JSON(http.StatusOK, Result{
-			Code: 5,
-			Msg:  "系统错误",
-		})
-		h.l.Error("未发现用户的 session 信息")
-		return
-	}
-	id, err := h.svc.Publish(ctx, req.toDomain(req, claims))
+func (h *ArticleHandler) Publish(ctx *gin.Context, req ArticleReq, uc ijwt.UserClaims) (gin_pulgin.Result, error) {
+	id, err := h.svc.Publish(ctx, req.toDomain(req, &uc))
 	if err != nil {
-		ctx.JSON(http.StatusOK, Result{
-			Code: 5,
-			Msg:  "系统错误",
-		})
-		h.l.Error("发表帖子失败", logger.Error(err))
-		return
+		return gin_pulgin.Result{Code: 5, Msg: "系统错误"}, fmt.Errorf("发表帖子失败 %w", err)
 	}
-	ctx.JSON(http.StatusOK, Result{
-		Msg:  "OK",
-		Data: id,
-	})
+	return gin_pulgin.Result{Msg: "OK", Data: id}, nil
 }
 
-func (h *ArticleHandler) Edit(ctx *gin.Context) {
-	var req ArticleReq
-	if err := ctx.ShouldBind(&req); err != nil {
-		ctx.JSON(http.StatusOK, Result{
-			Code: 4,
-			Msg:  "参数错误",
-		})
-		return
-	}
-	c, _ := ctx.Get("claims")
-	claims, ok := c.(*ijwt.UserClaims)
-	if !ok {
-		//ctx.AbortWithStatus(http.StatusUnauthorized)
-		ctx.JSON(http.StatusOK, Result{
-			Code: 5,
-			Msg:  "系统错误",
-		})
-		h.l.Error("未发现用户的 session 信息")
-		return
-	}
+func (h *ArticleHandler) Edit(ctx *gin.Context, req ArticleReq, uc ijwt.UserClaims) (gin_pulgin.Result, error) {
 	// TODO: 检测输入
 	// 调用 service 的代码
-	id, err := h.svc.Save(ctx, req.toDomain(req, claims))
+	id, err := h.svc.Save(ctx, req.toDomain(req, &uc))
 	if err != nil {
-		ctx.JSON(http.StatusOK, Result{
+		ctx.JSON(http.StatusOK, gin_pulgin.Result{
 			Code: 5,
 			Msg:  "系统错误",
 		})
-		h.l.Error("保存帖子失败", logger.Error(err))
-		return
+		return gin_pulgin.Result{Code: 5, Msg: "系统错误"}, fmt.Errorf("保存帖子失败 %w", err)
 	}
-	ctx.JSON(http.StatusOK, Result{
-		Msg:  "OK",
-		Data: id,
-	})
+	return gin_pulgin.Result{Msg: "OK", Data: id}, nil
 }
 
 type ArticleReq struct {

@@ -10,9 +10,9 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
-	"webook/internal/handler"
 	"webook/internal/integration/startup"
 	"webook/internal/ioc"
+	"webook/internal/pkg/gin-pulgin"
 )
 
 // 集成测试
@@ -25,7 +25,7 @@ func TestUserhandler_SendLoginSMSCode(t *testing.T) {
 		after    func(t *testing.T)
 		reqBody  string
 		wantCode int
-		wantBody handler.Result
+		wantBody gin_pulgin.Result
 	}{
 		{
 			name: "发送成功",
@@ -44,7 +44,7 @@ func TestUserhandler_SendLoginSMSCode(t *testing.T) {
 				"phone": "15012001200"
 			}`,
 			wantCode: http.StatusOK,
-			wantBody: handler.Result{
+			wantBody: gin_pulgin.Result{
 				Code: 0,
 				Msg:  "发送成功",
 			},
@@ -72,7 +72,7 @@ func TestUserhandler_SendLoginSMSCode(t *testing.T) {
 				"phone": "15012001200"
 			}`,
 			wantCode: http.StatusOK,
-			wantBody: handler.Result{
+			wantBody: gin_pulgin.Result{
 				Code: 4,
 				Msg:  "发送次数过多",
 			},
@@ -100,7 +100,7 @@ func TestUserhandler_SendLoginSMSCode(t *testing.T) {
 				"phone": "15012001200"
 			}`,
 			wantCode: http.StatusOK,
-			wantBody: handler.Result{
+			wantBody: gin_pulgin.Result{
 				Code: 5,
 				Msg:  "系统错误",
 			},
@@ -115,7 +115,7 @@ func TestUserhandler_SendLoginSMSCode(t *testing.T) {
 				"phone": ""
 			}`,
 			wantCode: http.StatusOK,
-			wantBody: handler.Result{
+			wantBody: gin_pulgin.Result{
 				Code: 4,
 				Msg:  "手机号格式不正确",
 			},
@@ -150,7 +150,7 @@ func TestUserhandler_SendLoginSMSCode(t *testing.T) {
 			if resp.Code != 200 {
 				return
 			}
-			var result handler.Result
+			var result gin_pulgin.Result
 			err = json.NewDecoder(resp.Body).Decode(&result)
 			require.NoError(t, err)
 			assert.Equal(t, tc.wantBody, result)
