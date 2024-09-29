@@ -16,32 +16,66 @@ import (
 	"webook/internal/service"
 )
 
+// User 相关依赖
 var UserSet = wire.NewSet(
 	handler.NewUserHandler,
+	service.NewUserService,
 	dao.NewUserDao,
 	cache.NewUserCache,
 	repository.NewCachedUserRepository,
 )
 
+// Gorm 文章相关依赖
+var GormArticleSet = wire.NewSet(
+	handler.NewArticleHandler,
+	service.NewArticleService,
+	article.NewArticleRepository,
+	article2.NewGormArticleDao,
+	article2.InitCollections,
+)
+
+// Mongo 文章相关依赖
+var MongoArticleSet = wire.NewSet(
+	ioc.InitMongoDB,
+	ioc.InitSnowflakeNode,
+	handler.NewArticleHandler,
+	service.NewArticleService,
+	article.NewArticleRepository,
+	article2.NewMongoArticleDao,
+)
+
+// 短信相关依赖
+var CodeSet = wire.NewSet(
+	ioc.InitSMSService,
+	service.NewCodeService,
+	cache.NewCodeCache,
+	repository.NewCodeRepository,
+)
+
+var ThirdPartySet = wire.NewSet(
+	ioc.InitRedis,
+	ioc.InitDB,
+	ioc.InitLogger,
+	ijwt.NewRedisJWTHandler,
+)
+
+var OAuth2Set = wire.NewSet(
+	handler.NewOAuth2WechatHandler,
+	ioc.InitOAuth2WechatService,
+)
+
 func InitWebServer() *gin.Engine {
 	wire.Build(
-		ioc.InitDB, ioc.InitRedis, ioc.InitLogger,
-		cache.NewCodeCache, article2.NewGormArticleDao,
-		repository.NewCodeRepository, article.NewArticleRepository,
-		service.NewUserService, service.NewCodeService, service.NewArticleService, ioc.InitSMSService,
-		handler.NewOAuth2WechatHandler,
-		handler.NewArticleHandler,
-		ijwt.NewRedisJWTHandler,
 		// 中间件，路由等？
 		//gin.Default,
 		ioc.InitGin,
 		ioc.InitMiddlewares,
-		ioc.InitOAuth2WechatService,
-		//UserSet,
-		handler.NewUserHandler,
-		dao.NewUserDao,
-		cache.NewUserCache,
-		repository.NewCachedUserRepository,
+		UserSet,
+		//GormArticleSet,
+		MongoArticleSet,
+		CodeSet,
+		ThirdPartySet,
+		OAuth2Set,
 	)
 	return new(gin.Engine)
 }

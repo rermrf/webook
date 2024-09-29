@@ -43,7 +43,9 @@ func InitWebServer() *gin.Engine {
 	userHandler := handler.NewUserHandler(userService, codeService, cmdable, jwtHandler, loggerV1)
 	wechatService := ioc.InitOAuth2WechatService(loggerV1)
 	oAuth2WechatHandler := handler.NewOAuth2WechatHandler(wechatService, userService, jwtHandler)
-	articleDao := article.NewGormArticleDao(db)
+	database := ioc.InitMongoDB()
+	node := ioc.InitSnowflakeNode()
+	articleDao := article.NewMongoArticleDao(database, node)
 	articleRepository := article2.NewArticleRepository(articleDao)
 	articleService := service.NewArticleService(articleRepository, loggerV1)
 	articleHandler := handler.NewArticleHandler(articleService, loggerV1)
@@ -53,4 +55,18 @@ func InitWebServer() *gin.Engine {
 
 // wire.go:
 
-var UserSet = wire.NewSet(handler.NewUserHandler, dao.NewUserDao, cache.NewUserCache, repository.NewCachedUserRepository)
+// User 相关依赖
+var UserSet = wire.NewSet(handler.NewUserHandler, service.NewUserService, dao.NewUserDao, cache.NewUserCache, repository.NewCachedUserRepository)
+
+// Gorm 文章相关依赖
+var GormArticleSet = wire.NewSet(handler.NewArticleHandler, service.NewArticleService, article2.NewArticleRepository, article.NewGormArticleDao, article.InitCollections)
+
+// Mongo 文章相关依赖
+var MongoArticleSet = wire.NewSet(ioc.InitMongoDB, ioc.InitSnowflakeNode, handler.NewArticleHandler, service.NewArticleService, article2.NewArticleRepository, article.NewMongoArticleDao)
+
+// 短信相关依赖
+var CodeSet = wire.NewSet(ioc.InitSMSService, service.NewCodeService, cache.NewCodeCache, repository.NewCodeRepository)
+
+var ThirdPartySet = wire.NewSet(ioc.InitRedis, ioc.InitDB, ioc.InitLogger, jwt.NewRedisJWTHandler)
+
+var OAuth2Set = wire.NewSet(handler.NewOAuth2WechatHandler, ioc.InitOAuth2WechatService)

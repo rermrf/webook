@@ -1,6 +1,8 @@
 db:
   mysql:
     dsn: "root:root@tcp(localhost:13306)/webook?charset=utf8mb4&parseTime=True&loc=Local"
+  mongo:
+    url: "mongodb://root:example@localhost:27017/"
 
 redis:
   addr: "localhost:6379"

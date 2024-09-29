@@ -64,7 +64,7 @@ func (r *RedisJWTHandler) ClearToken(ctx *gin.Context) error {
 	ctx.Header("x-jwt-token", "")
 	ctx.Header("x-refresh-token", "")
 
-	claims := ctx.MustGet("cliams").(*UserClaims)
+	claims := ctx.MustGet("claims").(*UserClaims)
 	return r.cmd.Set(ctx, fmt.Sprintf("users:ssid:%s", claims.Ssid), "", time.Hour*24*7).Err()
 }
 
@@ -102,7 +102,7 @@ func (r *RedisJWTHandler) CheckSession(ctx *gin.Context, ssid string) error {
 	case redis.Nil:
 		return nil
 	case nil:
-		if val == 0 {
+		if val > 0 {
 			return errors.New("session 已经无效了")
 		}
 	default:

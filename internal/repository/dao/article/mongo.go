@@ -41,7 +41,7 @@ type MongoArticleDao struct {
 	node     *snowflake.Node
 }
 
-func NewMongoArticleDao(database *mongo.Database, node *snowflake.Node) *MongoArticleDao {
+func NewMongoArticleDao(database *mongo.Database, node *snowflake.Node) ArticleDao {
 	return &MongoArticleDao{
 		database: database,
 		col:      database.Collection("articles"),
