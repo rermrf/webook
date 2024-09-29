@@ -44,6 +44,15 @@ var MongoArticleSet = wire.NewSet(
 	article2.NewMongoArticleDao,
 )
 
+// S3 文章相关依赖：将制作库存储所有信息，线上库存储除文章以外的信息，oss存储文章
+var S3ArticleSet = wire.NewSet(
+	handler.NewArticleHandler,
+	service.NewArticleService,
+	article.NewArticleRepository,
+	article2.NewOssDAO,
+	ioc.InitOss,
+)
+
 // 短信相关依赖
 var CodeSet = wire.NewSet(
 	ioc.InitSMSService,
@@ -71,8 +80,9 @@ func InitWebServer() *gin.Engine {
 		ioc.InitGin,
 		ioc.InitMiddlewares,
 		UserSet,
-		//GormArticleSet,
-		MongoArticleSet,
+		GormArticleSet,
+		//MongoArticleSet,
+		//S3ArticleSet,
 		CodeSet,
 		ThirdPartySet,
 		OAuth2Set,

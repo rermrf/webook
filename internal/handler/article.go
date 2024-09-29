@@ -3,7 +3,6 @@ package handler
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"net/http"
 	"webook/internal/domain"
 	ijwt "webook/internal/handler/jwt"
 	"webook/internal/pkg/gin-pulgin"
@@ -60,10 +59,6 @@ func (h *ArticleHandler) Edit(ctx *gin.Context, req ArticleReq, uc ijwt.UserClai
 	// 调用 service 的代码
 	id, err := h.svc.Save(ctx, req.toDomain(req, &uc))
 	if err != nil {
-		ctx.JSON(http.StatusOK, gin_pulgin.Result{
-			Code: 5,
-			Msg:  "系统错误",
-		})
 		return gin_pulgin.Result{Code: 5, Msg: "系统错误"}, fmt.Errorf("保存帖子失败 %w", err)
 	}
 	return gin_pulgin.Result{Msg: "OK", Data: id}, nil

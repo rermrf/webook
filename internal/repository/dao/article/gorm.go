@@ -102,7 +102,7 @@ func (dao GormArticleDao) Sync(ctx context.Context, art Article) (int64, error) 
 		if err != nil {
 			return err
 		}
-
+		art.Id = id
 		// 新增到线上表
 		return txDao.Upsert(ctx, PublishArticle(art))
 	})
@@ -115,7 +115,7 @@ func (dao GormArticleDao) Insert(ctx context.Context, art Article) (int64, error
 	art.Ctime = now
 	art.Utime = now
 	err := dao.db.WithContext(ctx).Create(&art).Error
-	return 1, err
+	return art.Id, err
 }
 
 func (dao GormArticleDao) UpdateById(ctx context.Context, art Article) error {

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/spf13/viper"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"strconv"
@@ -23,8 +24,9 @@ type S3DAO struct {
 
 func NewOssDAO(oss *s3.S3, db *gorm.DB) ArticleDao {
 	return &S3DAO{
-		oss:    oss,
-		bucket: aws.String("webook-1258698140"),
+		oss: oss,
+		//bucket: aws.String("webook-1258698140"),
+		bucket: aws.String(viper.GetString("oss.bucket")),
 		GormArticleDao: GormArticleDao{
 			db: db,
 		},
