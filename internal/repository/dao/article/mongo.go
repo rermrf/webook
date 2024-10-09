@@ -102,7 +102,7 @@ func (m *MongoArticleDao) Sync(ctx context.Context, article Article) (int64, err
 	article.Utime = now
 	upsertV1 := bson.M{
 		// 更新，如果不存在，就是插入
-		"$set": PublishArticle(article),
+		"$set": PublishedArticle(article),
 		"$setOnInsert": bson.M{
 			// 在插入的时候要插入 ctime
 			"ctime": now,
@@ -116,7 +116,7 @@ func (m *MongoArticleDao) Sync(ctx context.Context, article Article) (int64, err
 	return id, err
 }
 
-func (m *MongoArticleDao) Upsert(ctx context.Context, pArt PublishArticle) error {
+func (m *MongoArticleDao) Upsert(ctx context.Context, pArt PublishedArticle) error {
 	//TODO implement me
 	panic("implement me")
 }

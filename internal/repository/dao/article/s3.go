@@ -55,7 +55,7 @@ func (dao *S3DAO) Sync(ctx context.Context, art Article) (int64, error) {
 		}
 		now := time.Now().UnixMilli()
 		art.Id = id
-		publishArt := PublishArticle(art)
+		publishArt := PublishedArticle(art)
 		publishArt.Utime = now
 		publishArt.Ctime = now
 		// 线上库不会保存这个 Content，要准备上传到 OSS 里面
@@ -98,7 +98,7 @@ func (dao *S3DAO) SyncStatus(ctx context.Context, id int64, author int64, status
 			return errors.New("非法修改别人的文章状态")
 		}
 
-		res = tx.Model(&PublishArticle{}).
+		res = tx.Model(&PublishedArticle{}).
 			Where("id = ? AND author_id = ?", id, author).
 			Update("status", status)
 		if res.Error != nil {

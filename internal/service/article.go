@@ -12,6 +12,9 @@ type ArticleService interface {
 	Publish(ctx context.Context, article domain.Article) (int64, error)
 	PublishV1(ctx context.Context, article domain.Article) (int64, error)
 	WithDraw(ctx context.Context, article domain.Article) error
+	List(ctx context.Context, uid int64, offset int, limit int) ([]domain.Article, error)
+	GetById(ctx context.Context, id int64) (domain.Article, error)
+	GetPublishedById(ctx context.Context, id int64) (domain.Article, error)
 }
 
 type articleService struct {
@@ -36,6 +39,18 @@ func NewArticleServiceV1(author article.ArticleAuthorRepository, reader article.
 		reader: reader,
 		l:      l,
 	}
+}
+
+func (s *articleService) GetPublishedById(ctx context.Context, id int64) (domain.Article, error) {
+	return s.repo.GetPublishedById(ctx, id)
+}
+
+func (s *articleService) GetById(ctx context.Context, id int64) (domain.Article, error) {
+	return s.repo.GetById(ctx, id)
+}
+
+func (s *articleService) List(ctx context.Context, uid int64, offset int, limit int) ([]domain.Article, error) {
+	return s.repo.List(ctx, uid, offset, limit)
 }
 
 func (s *articleService) WithDraw(ctx context.Context, art domain.Article) error {

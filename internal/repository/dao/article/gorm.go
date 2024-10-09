@@ -12,8 +12,11 @@ type ArticleDao interface {
 	Insert(ctx context.Context, art Article) (int64, error)
 	UpdateById(ctx context.Context, article Article) error
 	Sync(ctx context.Context, article Article) (int64, error)
-	Upsert(ctx context.Context, pArt PublishArticle) error
+	Upsert(ctx context.Context, pArt PublishedArticle) error
 	SyncStatus(ctx context.Context, id int64, author int64, status uint8) error
+	GetByAuthor(ctx context.Context, author int64, offset int, limit int) ([]Article, error)
+	GetById(ctx context.Context, id int64) (Article, error)
+	GetPubById(ctx context.Context, id int64) (PublishedArticle, error)
 }
 
 type GormArticleDao struct {
@@ -24,6 +27,41 @@ func NewGormArticleDao(db *gorm.DB) ArticleDao {
 	return &GormArticleDao{
 		db: db,
 	}
+}
+
+func (dao GormArticleDao) GetPubById(ctx context.Context, id int64) (PublishedArticle, error) {
+	var res PublishedArticle
+	err := dao.db.WithContext(ctx).Where("id = ?", id).First(&res).Error
+	return res, err
+}
+
+func (dao GormArticleDao) GetById(ctx context.Context, id int64) (Article, error) {
+	var art Article
+	err := dao.db.WithContext(ctx).
+		Where("id = ?", id).First(&art).Error
+	return art, err
+}
+
+func (dao GormArticleDao) GetByAuthor(ctx context.Context, author int64, offset int, limit int) ([]Article, error) {
+	var arts []Article
+	// SELECT * FROM XXX WHERE XX ORDER BY utime DESC
+	// 在设计 order by 语句的时候，要注意让 order by 中的数据命中索引
+	// 索引天然有序，因为使用了 B+ 树
+
+	// SQL 优化的案例：早期的时候，
+	// 我们的 order by 没有命中索引的，内存排序非常慢
+	// 工作就是优化了这个查询，加进去了索引
+	// author_id => author_id, utime 的联合索引
+	err := dao.db.WithContext(ctx).Model(&Article{}).
+		Where("author_id = ?", author).
+		Offset(offset).
+		Limit(limit).
+		// 升序排序：utime ASC
+		// 混合排序：
+		// ctime ASC, utime DESC
+		Order("utime DESC").
+		Find(&arts).Error
+	return arts, err
 }
 
 func (dao GormArticleDao) SyncStatus(ctx context.Context, id int64, author int64, status uint8) error {
@@ -45,7 +83,7 @@ func (dao GormArticleDao) SyncStatus(ctx context.Context, id int64, author int64
 			// 用 prometheus 打点，只要频繁出现，就告警，然后手工介入排查
 			return fmt.Errorf("操作非自己的文章, uid: %d, aid: %d", id, id)
 		}
-		return tx.Model(&PublishArticle{}).
+		return tx.Model(&PublishedArticle{}).
 			Where("id = ?", id).
 			Updates(map[string]any{
 				"status": status,
@@ -55,7 +93,7 @@ func (dao GormArticleDao) SyncStatus(ctx context.Context, id int64, author int64
 }
 
 // Upsert INSERT or UPDATE
-func (dao GormArticleDao) Upsert(ctx context.Context, pArt PublishArticle) error {
+func (dao GormArticleDao) Upsert(ctx context.Context, pArt PublishedArticle) error {
 	now := time.Now().UnixMilli()
 	pArt.Ctime = now
 	pArt.Utime = now
@@ -104,7 +142,7 @@ func (dao GormArticleDao) Sync(ctx context.Context, art Article) (int64, error) 
 		}
 		art.Id = id
 		// 新增到线上表
-		return txDao.Upsert(ctx, PublishArticle(art))
+		return txDao.Upsert(ctx, PublishedArticle(art))
 	})
 
 	return id, err
@@ -169,3 +207,5 @@ type Article struct {
 	Ctime  int64 `bson:"ctime,omitempty"`
 	Utime  int64 `bson:"utime,omitempty"`
 }
+
+type PublishedArticle Article

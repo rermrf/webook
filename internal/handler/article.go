@@ -3,17 +3,15 @@ package handler
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"net/http"
+	"strconv"
+	"time"
 	"webook/internal/domain"
 	ijwt "webook/internal/handler/jwt"
 	"webook/internal/pkg/gin-pulgin"
 	"webook/internal/pkg/logger"
 	"webook/internal/service"
 )
-
-type ArticleHandler struct {
-	svc service.ArticleService
-	l   logger.LoggerV1
-}
 
 func NewArticleHandler(svc service.ArticleService, l logger.LoggerV1) *ArticleHandler {
 	return &ArticleHandler{
@@ -27,10 +25,92 @@ func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 	g.POST("/edit", gin_pulgin.WrapBodyAndToken(h.l, h.Edit))
 	g.POST("/publish", gin_pulgin.WrapBodyAndToken(h.l, h.Publish))
 	g.POST("/withdraw", gin_pulgin.WrapBodyAndToken(h.l, h.Withdraw))
+	// 创作者的查询接口
+	g.POST("/list", gin_pulgin.WrapBodyAndToken[ListReq, ijwt.UserClaims](h.l, h.List))
+	g.GET("/detail/:id", gin_pulgin.WrapClaims(h.l, h.Detail))
+
+	pub := g.Group("/pub")
+	pub.GET("/:id")
 }
 
-type WithdrawReq struct {
-	Id int64
+//type ReaderHandler struct {
+//	pub := g.Group("/pub")
+//	pub.GET("/:id")
+//}
+
+func (h *ArticleHandler) PubDetail(ctx *gin.Context) {
+	idStr := ctx.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin_pulgin.Result{
+			Code: 4,
+			Msg:  "参数错误",
+		})
+		h.l.Error("前端输入的 ID 不对", logger.Error(err))
+		return
+	}
+	art, err := h.svc.GetPublishedById(ctx, int64(id))
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin_pulgin.Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		h.l.Error("获得文章信息失败", logger.Error(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, gin_pulgin.Result{
+		Data: ArticleVO{
+			Id:      art.Id,
+			Title:   art.Title,
+			Status:  art.Status.ToUint8(),
+			Content: art.Content,
+			// 要把作者信息带出去
+			AuthorName: art.Author.Name,
+			Ctime:      art.Ctime.Format(time.DateTime),
+			Utime:      art.Utime.Format(time.DateTime),
+		},
+	})
+}
+
+func (h *ArticleHandler) Detail(ctx *gin.Context, uc ijwt.UserClaims) (gin_pulgin.Result, error) {
+	idStr := ctx.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil {
+		h.l.Error("前端输入的 ID 不对", logger.Error(err))
+		return gin_pulgin.Result{
+			Code: 4,
+			Msg:  "参数错误",
+		}, err
+	}
+	art, err := h.svc.GetById(ctx, id)
+	if err != nil {
+		return gin_pulgin.Result{
+			Code: 5,
+			Msg:  "系统错误",
+		}, err
+	}
+	if art.Author.Id != uc.UserId {
+		return gin_pulgin.Result{
+			Code: 4,
+			// 不需要告诉前端究竟发生了什么
+			Msg: "输入有误",
+		}, fmt.Errorf("非法访问文章，创作者 ID 不匹配 %d", uc.UserId)
+	}
+	return gin_pulgin.Result{
+		Data: ArticleVO{
+			Id:    art.Id,
+			Title: art.Title,
+			// 不需要摘要详细信息
+			//Abstract: art.Abstract(),
+			Status:  art.Status.ToUint8(),
+			Content: art.Content,
+			// 这个接口是创作者看自己的文章，不需要这个字段
+			//AuthorId:   art.Author.Id,
+			//AuthorName: art.Author.Name,
+			Ctime: art.Ctime.Format(time.DateTime),
+			Utime: art.Utime.Format(time.DateTime),
+		},
+	}, nil
 }
 
 func (h *ArticleHandler) Withdraw(ctx *gin.Context, req WithdrawReq, uc ijwt.UserClaims) (gin_pulgin.Result, error) {
@@ -64,10 +144,36 @@ func (h *ArticleHandler) Edit(ctx *gin.Context, req ArticleReq, uc ijwt.UserClai
 	return gin_pulgin.Result{Msg: "OK", Data: id}, nil
 }
 
-type ArticleReq struct {
-	Id      int64  `json:"id"`
-	Title   string `json:"title"`
-	Content string `json:"content"`
+func (h *ArticleHandler) List(ctx *gin.Context, req ListReq, uc ijwt.UserClaims) (gin_pulgin.Result, error) {
+	res, err := h.svc.List(ctx, uc.UserId, req.Offset, req.Limit)
+	if err != nil {
+		return gin_pulgin.Result{Code: 5, Msg: "系统错误"}, nil
+	}
+	// 在列表页，不显示全文，只显示一个"摘要"
+	// 比如说，简单的摘要就是前几句话
+	// 强大的摘要是 AI 帮你生成的
+	return gin_pulgin.Result{
+		Data: req.articlesToVO(res),
+	}, err
+}
+
+func (r ListReq) articlesToVO(src []domain.Article) []ArticleVO {
+	var res []ArticleVO
+	for _, v := range src {
+		res = append(res, ArticleVO{
+			Id:       v.Id,
+			Title:    v.Title,
+			Abstract: v.Abstract(),
+			Status:   v.Status.ToUint8(),
+			// 这个列表请求，不需要返回内容
+			//Content:  v.Content,
+			// 这个是创作者看自己的文章列表，也不需要这个字段
+			//AuthorId: v.Author.Id,
+			Ctime: v.Ctime.Format(time.DateTime),
+			Utime: v.Utime.Format(time.DateTime),
+		})
+	}
+	return res
 }
 
 func (r ArticleReq) toDomain(req ArticleReq, claims *ijwt.UserClaims) domain.Article {

@@ -32,6 +32,7 @@ var GormArticleSet = wire.NewSet(
 	article.NewArticleRepository,
 	article2.NewGormArticleDao,
 	article2.InitCollections,
+	cache.NewRedisArticleCache,
 )
 
 // Mongo 文章相关依赖
