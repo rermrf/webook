@@ -44,9 +44,11 @@ func InitWebServer() *gin.Engine {
 	wechatService := ioc.InitOAuth2WechatService(loggerV1)
 	oAuth2WechatHandler := handler.NewOAuth2WechatHandler(wechatService, userService, jwtHandler)
 	articleDao := article.NewGormArticleDao(db)
-	articleRepository := article2.NewArticleRepository(articleDao)
+	articleCache := cache.NewRedisArticleCache(cmdable)
+	articleRepository := article2.NewArticleRepository(articleDao, articleCache, loggerV1, userRepository)
 	articleService := service.NewArticleService(articleRepository, loggerV1)
-	articleHandler := handler.NewArticleHandler(articleService, loggerV1)
+	interactiveService := service.NewInteractiveService()
+	articleHandler := handler.NewArticleHandler(articleService, loggerV1, interactiveService)
 	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler)
 	return engine
 }
@@ -57,7 +59,7 @@ func InitWebServer() *gin.Engine {
 var UserSet = wire.NewSet(handler.NewUserHandler, service.NewUserService, dao.NewUserDao, cache.NewUserCache, repository.NewCachedUserRepository)
 
 // Gorm 文章相关依赖
-var GormArticleSet = wire.NewSet(handler.NewArticleHandler, service.NewArticleService, article2.NewArticleRepository, article.NewGormArticleDao, article.InitCollections)
+var GormArticleSet = wire.NewSet(handler.NewArticleHandler, service.NewArticleService, article2.NewArticleRepository, article.NewGormArticleDao, article.InitCollections, cache.NewRedisArticleCache)
 
 // Mongo 文章相关依赖
 var MongoArticleSet = wire.NewSet(ioc.InitMongoDB, ioc.InitSnowflakeNode, handler.NewArticleHandler, service.NewArticleService, article2.NewArticleRepository, article.NewMongoArticleDao)
@@ -69,5 +71,7 @@ var S3ArticleSet = wire.NewSet(handler.NewArticleHandler, service.NewArticleServ
 var CodeSet = wire.NewSet(ioc.InitSMSService, service.NewCodeService, cache.NewCodeCache, repository.NewCodeRepository)
 
 var ThirdPartySet = wire.NewSet(ioc.InitRedis, ioc.InitDB, ioc.InitLogger, jwt.NewRedisJWTHandler)
+
+var InteractiveSet = wire.NewSet(service.NewInteractiveService, repository.NewCachedInteractiveRepository, dao.NewGORMInteractiveDao, cache.NewRedisInteractiveCache)
 
 var OAuth2Set = wire.NewSet(handler.NewOAuth2WechatHandler, ioc.InitOAuth2WechatService)

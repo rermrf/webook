@@ -1,10 +1,5 @@
 package handler
 
-import (
-	"webook/internal/pkg/logger"
-	"webook/internal/service"
-)
-
 // vo: view object, 对标前端的
 
 type ArticleVO struct {
@@ -40,7 +35,8 @@ type WithdrawReq struct {
 	Id int64
 }
 
-type ArticleHandler struct {
-	svc service.ArticleService
-	l   logger.LoggerV1
+type LikeReq struct {
+	// 点赞和取消点赞都复用这个接口
+	Like bool  `json:"like"`
+	Id   int64 `json:"id"`
 }

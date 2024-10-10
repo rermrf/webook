@@ -29,11 +29,12 @@ type CachedArticleRepository struct {
 	l        logger.LoggerV1
 }
 
-func NewArticleRepository(dao dao.ArticleDao, cache cache.ArticleCache, l logger.LoggerV1) ArticleRepository {
+func NewArticleRepository(dao dao.ArticleDao, cache cache.ArticleCache, l logger.LoggerV1, userRepo repository.UserRepository) ArticleRepository {
 	return &CachedArticleRepository{
-		dao:   dao,
-		cache: cache,
-		l:     l,
+		dao:      dao,
+		userRepo: userRepo,
+		cache:    cache,
+		l:        l,
 	}
 }
 

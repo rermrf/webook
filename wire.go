@@ -69,6 +69,13 @@ var ThirdPartySet = wire.NewSet(
 	ijwt.NewRedisJWTHandler,
 )
 
+var InteractiveSet = wire.NewSet(
+	service.NewInteractiveService,
+	repository.NewCachedInteractiveRepository,
+	dao.NewGORMInteractiveDao,
+	cache.NewRedisInteractiveCache,
+)
+
 var OAuth2Set = wire.NewSet(
 	handler.NewOAuth2WechatHandler,
 	ioc.InitOAuth2WechatService,
@@ -87,6 +94,7 @@ func InitWebServer() *gin.Engine {
 		CodeSet,
 		ThirdPartySet,
 		OAuth2Set,
+		InteractiveSet,
 	)
 	return new(gin.Engine)
 }

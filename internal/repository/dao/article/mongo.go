@@ -50,6 +50,21 @@ func NewMongoArticleDao(database *mongo.Database, node *snowflake.Node) ArticleD
 	}
 }
 
+func (m *MongoArticleDao) GetByAuthor(ctx context.Context, author int64, offset int, limit int) ([]Article, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MongoArticleDao) GetById(ctx context.Context, id int64) (Article, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MongoArticleDao) GetPubById(ctx context.Context, id int64) (PublishedArticle, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (m *MongoArticleDao) Insert(ctx context.Context, art Article) (int64, error) {
 	now := time.Now().UnixMilli()
 	id := m.node.Generate().Int64()
