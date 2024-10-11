@@ -1,6 +1,7 @@
+-- 获取具体业务
 local key = KEYS[1]
 -- 对应到的是 hincrby 中的 field
-local cntKey = ARGC[1]
+local cntKey = ARGV[1]
 -- +1 或者 -1
 local delta = tonumber(ARGV[2])
 local exists = redis.call("EXISTS", key)
