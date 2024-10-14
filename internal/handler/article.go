@@ -1,9 +1,10 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"net/http"
+	"golang.org/x/sync/errgroup"
 	"strconv"
 	"time"
 	"webook/internal/domain"
@@ -39,7 +40,7 @@ func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 	g.GET("/detail/:id", gin_pulgin.WrapClaims(h.l, h.Detail))
 
 	pub := g.Group("/pub")
-	pub.GET("/:id", h.PubDetail)
+	pub.GET("/:id", gin_pulgin.WrapClaims(h.l, h.PubDetail))
 
 	pub.POST("/like", gin_pulgin.WrapBodyAndToken(h.l, h.Like))
 	pub.POST("/collect", gin_pulgin.WrapBodyAndToken[LikeReq, ijwt.UserClaims](h.l, h.Like))
@@ -67,26 +68,47 @@ func (h *ArticleHandler) Like(ctx *gin.Context, req LikeReq, uc ijwt.UserClaims)
 	return gin_pulgin.Result{Msg: "OK"}, nil
 }
 
-func (h *ArticleHandler) PubDetail(ctx *gin.Context) {
+func (h *ArticleHandler) PubDetail(ctx *gin.Context, uc ijwt.UserClaims) (gin_pulgin.Result, error) {
 	idStr := ctx.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		ctx.JSON(http.StatusOK, gin_pulgin.Result{
+		return gin_pulgin.Result{
 			Code: 4,
 			Msg:  "参数错误",
-		})
-		h.l.Error("前端输入的 ID 不对", logger.Error(err))
-		return
+		}, errors.New("前端输入的 ID 不对")
 	}
-	art, err := h.svc.GetPublishedById(ctx, int64(id))
+
+	var eg errgroup.Group
+	var art domain.Article
+	eg.Go(func() error {
+		// 读文章本体
+		art, err = h.svc.GetPublishedById(ctx, int64(id))
+		return err
+	})
+
+	// 要在这里获得这篇文章的全部计数
+	// 可以容忍这个错误
+	var intr domain.Interactive
+	eg.Go(func() error {
+		intr, err = h.intrSvc.Get(ctx, h.biz, int64(id), uc.UserId)
+		if err != nil {
+			// 几率日志
+			h.l.Error("查询文章相关数据失败", logger.Error(err))
+		}
+		return nil
+		//return err
+	})
+
+	// 等待
+	err = eg.Wait()
 	if err != nil {
-		ctx.JSON(http.StatusOK, gin_pulgin.Result{
+		// 代表查询出错了
+		return gin_pulgin.Result{
 			Code: 5,
 			Msg:  "系统错误",
-		})
-		h.l.Error("获得文章信息失败", logger.Error(err))
-		return
+		}, errors.New("获得文章信息失败")
 	}
+
 	// 增加阅读计数
 	go func() {
 		er := h.intrSvc.IncrReadCnt(ctx, h.biz, art.Id)
@@ -96,7 +118,7 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context) {
 	}()
 
 	// 这个功能是不是可以让前端，主动发一个 HTTP 请求，来增加一个计数？
-	ctx.JSON(http.StatusOK, gin_pulgin.Result{
+	return gin_pulgin.Result{
 		Data: ArticleVO{
 			Id:      art.Id,
 			Title:   art.Title,
@@ -106,8 +128,13 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context) {
 			AuthorName: art.Author.Name,
 			Ctime:      art.Ctime.Format(time.DateTime),
 			Utime:      art.Utime.Format(time.DateTime),
+			Liked:      intr.Liked,
+			Collected:  intr.Collected,
+			ReadCnt:    intr.ReadCnt,
+			LikeCnt:    intr.LikeCnt,
+			CollectCnt: intr.CollectCnt,
 		},
-	})
+	}, nil
 }
 
 func (h *ArticleHandler) Detail(ctx *gin.Context, uc ijwt.UserClaims) (gin_pulgin.Result, error) {
