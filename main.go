@@ -22,8 +22,14 @@ func main() {
 	// etcdctl --endpoints=127.0.0.1:12379 put /webook "$(<./config/dev.yaml)"
 	//initViperReomte()
 
-	server := InitWebServer()
-
+	app := InitWebServer()
+	for _, c := range app.Consumers {
+		err := c.Start()
+		if err != nil {
+			panic(err)
+		}
+	}
+	server := app.Server
 	err := server.Run(config.Config.Server.HTTPPort)
 	if err != nil {
 		return

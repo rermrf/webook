@@ -70,7 +70,7 @@ func (h *ArticleHandler) Like(ctx *gin.Context, req LikeReq, uc ijwt.UserClaims)
 
 func (h *ArticleHandler) PubDetail(ctx *gin.Context, uc ijwt.UserClaims) (gin_pulgin.Result, error) {
 	idStr := ctx.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 64)
+	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		return gin_pulgin.Result{
 			Code: 4,
@@ -82,7 +82,7 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context, uc ijwt.UserClaims) (gin_pu
 	var art domain.Article
 	eg.Go(func() error {
 		// 读文章本体
-		art, err = h.svc.GetPublishedById(ctx, int64(id))
+		art, err = h.svc.GetPublishedById(ctx, id, uc.UserId)
 		return err
 	})
 
@@ -90,7 +90,7 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context, uc ijwt.UserClaims) (gin_pu
 	// 可以容忍这个错误
 	var intr domain.Interactive
 	eg.Go(func() error {
-		intr, err = h.intrSvc.Get(ctx, h.biz, int64(id), uc.UserId)
+		intr, err = h.intrSvc.Get(ctx, h.biz, id, uc.UserId)
 		if err != nil {
 			// 几率日志
 			h.l.Error("查询文章相关数据失败", logger.Error(err))

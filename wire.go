@@ -3,8 +3,8 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
+	article3 "webook/internal/events/article"
 	"webook/internal/handler"
 	ijwt "webook/internal/handler/jwt"
 	"webook/internal/ioc"
@@ -74,6 +74,7 @@ var InteractiveSet = wire.NewSet(
 	repository.NewCachedInteractiveRepository,
 	dao.NewGORMInteractiveDao,
 	cache.NewRedisInteractiveCache,
+	article3.NewInteractiveReadEventConsumer,
 )
 
 var OAuth2Set = wire.NewSet(
@@ -81,20 +82,31 @@ var OAuth2Set = wire.NewSet(
 	ioc.InitOAuth2WechatService,
 )
 
-func InitWebServer() *gin.Engine {
+var KafkaSet = wire.NewSet(
+	ioc.InitKafka,
+	ioc.NewConsumer,
+	ioc.NewSyncProducer,
+	article3.NewKafkaProducer,
+)
+
+func InitWebServer() *App {
 	wire.Build(
 		// 中间件，路由等？
 		//gin.Default,
 		ioc.InitGin,
 		ioc.InitMiddlewares,
 		UserSet,
-		GormArticleSet,
-		//MongoArticleSet,
-		//S3ArticleSet,
+
 		CodeSet,
 		ThirdPartySet,
 		OAuth2Set,
 		InteractiveSet,
+		KafkaSet,
+		GormArticleSet,
+		//MongoArticleSet,
+		//S3ArticleSet,
+		// 组装我这个结构体的所有字段
+		wire.Struct(new(App), "*"),
 	)
-	return new(gin.Engine)
+	return new(App)
 }

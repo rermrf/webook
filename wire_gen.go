@@ -7,8 +7,8 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
+	article3 "webook/internal/events/article"
 	"webook/internal/handler"
 	"webook/internal/handler/jwt"
 	"webook/internal/ioc"
@@ -26,7 +26,7 @@ import (
 
 // Injectors from wire.go:
 
-func InitWebServer() *gin.Engine {
+func InitWebServer() *App {
 	cmdable := ioc.InitRedis()
 	jwtHandler := jwt.NewRedisJWTHandler(cmdable)
 	loggerV1 := ioc.InitLogger()
@@ -46,14 +46,23 @@ func InitWebServer() *gin.Engine {
 	articleDao := article.NewGormArticleDao(db)
 	articleCache := cache.NewRedisArticleCache(cmdable)
 	articleRepository := article2.NewArticleRepository(articleDao, articleCache, loggerV1, userRepository)
-	articleService := service.NewArticleService(articleRepository, loggerV1)
+	client := ioc.InitKafka()
+	syncProducer := ioc.NewSyncProducer(client)
+	producer := article3.NewKafkaProducer(syncProducer)
+	articleService := service.NewArticleService(articleRepository, loggerV1, producer)
 	interactiveDao := dao.NewGORMInteractiveDao(db)
 	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
-	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDao, interactiveCache)
+	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDao, interactiveCache, loggerV1)
 	interactiveService := service.NewInteractiveService(interactiveRepository)
 	articleHandler := handler.NewArticleHandler(articleService, loggerV1, interactiveService)
 	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler)
-	return engine
+	interactiveReadEventConsumer := article3.NewInteractiveReadEventConsumer(client, interactiveRepository, loggerV1)
+	v2 := ioc.NewConsumer(interactiveReadEventConsumer)
+	app := &App{
+		Server:    engine,
+		Consumers: v2,
+	}
+	return app
 }
 
 // wire.go:
@@ -75,6 +84,8 @@ var CodeSet = wire.NewSet(ioc.InitSMSService, service.NewCodeService, cache.NewC
 
 var ThirdPartySet = wire.NewSet(ioc.InitRedis, ioc.InitDB, ioc.InitLogger, jwt.NewRedisJWTHandler)
 
-var InteractiveSet = wire.NewSet(service.NewInteractiveService, repository.NewCachedInteractiveRepository, dao.NewGORMInteractiveDao, cache.NewRedisInteractiveCache)
+var InteractiveSet = wire.NewSet(service.NewInteractiveService, repository.NewCachedInteractiveRepository, dao.NewGORMInteractiveDao, cache.NewRedisInteractiveCache, article3.NewInteractiveReadEventConsumer)
 
 var OAuth2Set = wire.NewSet(handler.NewOAuth2WechatHandler, ioc.InitOAuth2WechatService)
+
+var KafkaSet = wire.NewSet(ioc.InitKafka, ioc.NewConsumer, ioc.NewSyncProducer, article3.NewKafkaProducer)

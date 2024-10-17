@@ -14,3 +14,7 @@ oss:
   bucket: "webook-1258698140"
   region: "ap-nanjing"
   endpoint: "https://webook-1258698140.cos.ap-nanjing.myqcloud.com"
+
+kafka:
+  addrs:
+    - "localhost:9094"

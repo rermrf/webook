@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"webook/internal/domain"
+	events "webook/internal/events/article"
 	"webook/internal/pkg/logger"
 	"webook/internal/repository/article"
 )
@@ -14,22 +15,24 @@ type ArticleService interface {
 	WithDraw(ctx context.Context, article domain.Article) error
 	List(ctx context.Context, uid int64, offset int, limit int) ([]domain.Article, error)
 	GetById(ctx context.Context, id int64) (domain.Article, error)
-	GetPublishedById(ctx context.Context, id int64) (domain.Article, error)
+	GetPublishedById(ctx context.Context, id, uid int64) (domain.Article, error)
 }
 
 type articleService struct {
 	repo article.ArticleRepository
 
 	// v1 依靠两个不同的 repository 来解决这种跨表，或者夸库的问题
-	author article.ArticleAuthorRepository
-	reader article.ArticleReaderRepository
-	l      logger.LoggerV1
+	author   article.ArticleAuthorRepository
+	reader   article.ArticleReaderRepository
+	l        logger.LoggerV1
+	producer events.Producer
 }
 
-func NewArticleService(repo article.ArticleRepository, l logger.LoggerV1) ArticleService {
+func NewArticleService(repo article.ArticleRepository, l logger.LoggerV1, producer events.Producer) ArticleService {
 	return &articleService{
-		repo: repo,
-		l:    l,
+		repo:     repo,
+		l:        l,
+		producer: producer,
 	}
 }
 
@@ -41,8 +44,24 @@ func NewArticleServiceV1(author article.ArticleAuthorRepository, reader article.
 	}
 }
 
-func (s *articleService) GetPublishedById(ctx context.Context, id int64) (domain.Article, error) {
-	return s.repo.GetPublishedById(ctx, id)
+func (s *articleService) GetPublishedById(ctx context.Context, id, uid int64) (domain.Article, error) {
+	art, err := s.repo.GetPublishedById(ctx, id)
+	if err != nil {
+		go func() {
+			er := s.producer.ProducerReadEvent(ctx, events.ReadEvent{
+				// 即便消费者要用 art 里面的数据
+				// 让他去查，而不是在 event 里面带
+				Uid: uid,
+				Aid: art.Id,
+			})
+			if er != nil {
+				s.l.Error("发送读者阅读时间失败", logger.Error(err), logger.Int64("uid", uid), logger.Int64("artId", art.Id))
+				return
+			}
+		}()
+	}
+
+	return art, err
 }
 
 func (s *articleService) GetById(ctx context.Context, id int64) (domain.Article, error) {
