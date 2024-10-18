@@ -56,8 +56,8 @@ func InitWebServer() *App {
 	interactiveService := service.NewInteractiveService(interactiveRepository)
 	articleHandler := handler.NewArticleHandler(articleService, loggerV1, interactiveService)
 	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler)
-	interactiveReadEventConsumer := article3.NewInteractiveReadEventConsumer(client, interactiveRepository, loggerV1)
-	v2 := ioc.NewConsumer(interactiveReadEventConsumer)
+	interactiveReadBatchConsumer := article3.NewInteractiveReadBatchConsumer(client, loggerV1, interactiveRepository)
+	v2 := ioc.NewConsumer(interactiveReadBatchConsumer)
 	app := &App{
 		Server:    engine,
 		Consumers: v2,
@@ -84,7 +84,7 @@ var CodeSet = wire.NewSet(ioc.InitSMSService, service.NewCodeService, cache.NewC
 
 var ThirdPartySet = wire.NewSet(ioc.InitRedis, ioc.InitDB, ioc.InitLogger, jwt.NewRedisJWTHandler)
 
-var InteractiveSet = wire.NewSet(service.NewInteractiveService, repository.NewCachedInteractiveRepository, dao.NewGORMInteractiveDao, cache.NewRedisInteractiveCache, article3.NewInteractiveReadEventConsumer)
+var InteractiveSet = wire.NewSet(service.NewInteractiveService, repository.NewCachedInteractiveRepository, dao.NewGORMInteractiveDao, cache.NewRedisInteractiveCache, article3.NewInteractiveReadBatchConsumer)
 
 var OAuth2Set = wire.NewSet(handler.NewOAuth2WechatHandler, ioc.InitOAuth2WechatService)
 

@@ -14,9 +14,10 @@ type InteractiveDao interface {
 	InsertLikeInfo(ctx context.Context, biz string, bizId int64, uid int64) error
 	DeleteLikeInfo(ctx context.Context, biz string, bizId int64, uid int64) error
 	InsertCollectionBiz(ctx context.Context, cb UserCollectionBiz) error
-	GetCollectInfo(ctx context.Context, biz string, bizId int64, uid int64) (UserLikeBiz, error)
-	GetLikeInfo(ctx context.Context, biz string, bizId int64, uid int64) (UserCollectionBiz, error)
+	GetCollectInfo(ctx context.Context, biz string, bizId int64, uid int64) (UserCollectionBiz, error)
+	GetLikeInfo(ctx context.Context, biz string, bizId int64, uid int64) (UserLikeBiz, error)
 	Get(ctx context.Context, biz string, bizId int64) (Interactive, error)
+	BatchIncrReadCnt(ctx context.Context, bizs []string, ids []int64) error
 	//GetItems() ([]ColletctionItem, error)
 }
 
@@ -28,6 +29,32 @@ func NewGORMInteractiveDao(db *gorm.DB) InteractiveDao {
 	return &GORMInteractiveDao{
 		db: db,
 	}
+}
+
+func (dao *GORMInteractiveDao) BatchIncrReadCnt(ctx context.Context, bizs []string, ids []int64) error {
+	// 可以用 map 合并吗？
+	// 看情况，如果一批次里面，biz 和 bizid 都相等的占很多，那么就用 map 合并，性能会更好
+	// 不然没有效果
+
+	// 为什么在这里 for 循环比在上层更快？
+	// 因为这里是一个事务，在上层循环就不止一个事务了
+	// A：十条消息调用十次 IncrReadCnt
+	// B：就是批量
+	// 事务本身的开销，A 是 B 的十倍
+	// 刷新 redolog、undolog、binlog 到磁盘，A 是十次，B 是一次
+	return dao.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		txDao := NewGORMInteractiveDao(tx)
+		for i := range bizs {
+			err := txDao.IncrReadCnt(ctx, bizs[i], ids[i])
+			if err != nil {
+				// 两种处理方式
+				// 1. 只记录日志，不回滚，因为阅读计数并不是强一致性要求
+				// 2. 返回错误
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (dao *GORMInteractiveDao) IncrReadCnt(ctx context.Context, biz string, bizId int64) error {
@@ -140,15 +167,15 @@ func (dao *GORMInteractiveDao) InsertCollectionBiz(ctx context.Context, cb UserC
 	})
 }
 
-func (dao *GORMInteractiveDao) GetCollectInfo(ctx context.Context, biz string, bizId int64, uid int64) (UserLikeBiz, error) {
-	var res UserLikeBiz
-	err := dao.db.WithContext(ctx).Where("biz = ? AND biz_id = ? AND uid = ? AND status = ?", biz, bizId, uid, 1).First(&res).Error
+func (dao *GORMInteractiveDao) GetCollectInfo(ctx context.Context, biz string, bizId int64, uid int64) (UserCollectionBiz, error) {
+	var res UserCollectionBiz
+	err := dao.db.WithContext(ctx).Where("biz = ? AND biz_id = ? AND uid = ?", biz, bizId, uid).First(&res).Error
 	return res, err
 }
 
-func (dao *GORMInteractiveDao) GetLikeInfo(ctx context.Context, biz string, bizId int64, uid int64) (UserCollectionBiz, error) {
-	var res UserCollectionBiz
-	err := dao.db.WithContext(ctx).Where("biz = ? AND biz_id = ? AND uid = ? AND status = ?", biz, bizId, uid, 1).First(&res).Error
+func (dao *GORMInteractiveDao) GetLikeInfo(ctx context.Context, biz string, bizId int64, uid int64) (UserLikeBiz, error) {
+	var res UserLikeBiz
+	err := dao.db.WithContext(ctx).Where("biz = ? AND biz_id = ? AND uid = ? AND status = ?", biz, bizId, uid, 2).First(&res).Error
 	return res, err
 }
 

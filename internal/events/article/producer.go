@@ -14,6 +14,12 @@ type KafkaProducer struct {
 	producer sarama.SyncProducer
 }
 
+func NewKafkaProducer(pc sarama.SyncProducer) Producer {
+	return &KafkaProducer{
+		producer: pc,
+	}
+}
+
 // ProducerReadEvent 如果有复杂的重试逻辑，就用装饰器
 // 如果你认为你的重试逻辑很简单，你就放这里
 func (k *KafkaProducer) ProducerReadEvent(ctx context.Context, evt ReadEvent) error {
@@ -26,12 +32,6 @@ func (k *KafkaProducer) ProducerReadEvent(ctx context.Context, evt ReadEvent) er
 		Value: sarama.ByteEncoder(data),
 	})
 	return err
-}
-
-func NewKafkaProducer(pc sarama.SyncProducer) Producer {
-	return &KafkaProducer{
-		producer: pc,
-	}
 }
 
 type ReadEvent struct {

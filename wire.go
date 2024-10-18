@@ -74,7 +74,8 @@ var InteractiveSet = wire.NewSet(
 	repository.NewCachedInteractiveRepository,
 	dao.NewGORMInteractiveDao,
 	cache.NewRedisInteractiveCache,
-	article3.NewInteractiveReadEventConsumer,
+	//article3.NewInteractiveReadEventConsumer,
+	article3.NewInteractiveReadBatchConsumer,
 )
 
 var OAuth2Set = wire.NewSet(

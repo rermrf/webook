@@ -23,6 +23,8 @@ func main() {
 	//initViperReomte()
 
 	app := InitWebServer()
+
+	// kafka 消费
 	for _, c := range app.Consumers {
 		err := c.Start()
 		if err != nil {

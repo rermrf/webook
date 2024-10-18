@@ -10,6 +10,7 @@ import (
 
 type InteractiveRepository interface {
 	IncrReadCnt(ctx context.Context, biz string, bizId int64) error
+	BatchIncrReadCnt(ctx context.Context, bizs []string, bizIds []int64) error
 	IncrLike(ctx context.Context, biz string, bizId int64, uid int64) error
 	DecrLike(ctx context.Context, biz string, bizId int64, uid int64) error
 	AddCollectionItem(ctx context.Context, biz string, bizId int64, cid int64, uid int64) error
@@ -30,6 +31,12 @@ func NewCachedInteractiveRepository(dao dao.InteractiveDao, cache cache.Interact
 		cache: cache,
 		l:     l,
 	}
+}
+
+// BatchIncrReadCnt bizs 和 ids 的长度必须一致
+func (c *CachedInteractiveRepository) BatchIncrReadCnt(ctx context.Context, bizs []string, bizIds []int64) error {
+	// 在这里要不要检测 bizs 和 ids 的长度是否相等？
+	return c.dao.BatchIncrReadCnt(ctx, bizs, bizIds)
 }
 
 func (c *CachedInteractiveRepository) IncrReadCnt(ctx context.Context, biz string, bizId int64) error {

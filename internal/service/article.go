@@ -46,7 +46,7 @@ func NewArticleServiceV1(author article.ArticleAuthorRepository, reader article.
 
 func (s *articleService) GetPublishedById(ctx context.Context, id, uid int64) (domain.Article, error) {
 	art, err := s.repo.GetPublishedById(ctx, id)
-	if err != nil {
+	if err == nil {
 		go func() {
 			er := s.producer.ProducerReadEvent(ctx, events.ReadEvent{
 				// 即便消费者要用 art 里面的数据

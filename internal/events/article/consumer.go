@@ -29,7 +29,7 @@ func (k *InteractiveReadEventConsumer) Start() error {
 		return err
 	}
 	go func() {
-		err := cg.Consume(context.Background(), []string{"article_read"}, saramax.NewHandler[ReadEvent](k.l, k.Consume))
+		err := cg.Consume(context.Background(), []string{"read_article"}, saramax.NewHandler[ReadEvent](k.l, k.Consume))
 		if err != nil {
 			k.l.Error("退出了消费循环异常", logger.Error(err))
 		}

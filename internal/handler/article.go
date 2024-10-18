@@ -110,12 +110,12 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context, uc ijwt.UserClaims) (gin_pu
 	}
 
 	// 增加阅读计数
-	go func() {
-		er := h.intrSvc.IncrReadCnt(ctx, h.biz, art.Id)
-		if er != nil {
-			h.l.Error("增加阅读计数失败", logger.Int64("artId", art.Id), logger.Error(er))
-		}
-	}()
+	//go func() {
+	//	er := h.intrSvc.IncrReadCnt(ctx, h.biz, art.Id)
+	//	if er != nil {
+	//		h.l.Error("增加阅读计数失败", logger.Int64("artId", art.Id), logger.Error(er))
+	//	}
+	//}()
 
 	// 这个功能是不是可以让前端，主动发一个 HTTP 请求，来增加一个计数？
 	return gin_pulgin.Result{
@@ -125,6 +125,7 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context, uc ijwt.UserClaims) (gin_pu
 			Status:  art.Status.ToUint8(),
 			Content: art.Content,
 			// 要把作者信息带出去
+			AuthorId:   art.Author.Id,
 			AuthorName: art.Author.Name,
 			Ctime:      art.Ctime.Format(time.DateTime),
 			Utime:      art.Utime.Format(time.DateTime),
