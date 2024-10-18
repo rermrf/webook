@@ -40,7 +40,6 @@ func (b *BatchHandler[T]) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 	batchSize := b.batchSize
 	ctx, cancel := context.WithTimeout(context.Background(), b.batchDuration)
 	for {
-		var last *sarama.ConsumerMessage
 		done := false
 		msgs := make([]*sarama.ConsumerMessage, 0, batchSize)
 		ts := make([]T, 0, batchSize)
@@ -55,7 +54,6 @@ func (b *BatchHandler[T]) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 					// 消费者被关闭
 					return nil
 				}
-				last = msg
 				var t T
 				err := json.Unmarshal(msg.Value, &t)
 				if err != nil {
@@ -81,8 +79,8 @@ func (b *BatchHandler[T]) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 
 			// 还要继续消费
 		}
-		if last != nil {
-			session.MarkMessage(last, "")
+		for _, msg := range msgs {
+			session.MarkMessage(msg, "")
 		}
 	}
 }

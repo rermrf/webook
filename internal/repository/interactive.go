@@ -17,6 +17,7 @@ type InteractiveRepository interface {
 	Get(ctx context.Context, biz string, bizId int64) (domain.Interactive, error)
 	Liked(ctx context.Context, biz string, bizId int64, uid int64) (bool, error)
 	Collected(ctx context.Context, biz string, bizId int64, uid int64) (bool, error)
+	//AddRecord(ctx context.Context, biz string, aid int64) error
 }
 
 type CachedInteractiveRepository struct {
@@ -36,7 +37,14 @@ func NewCachedInteractiveRepository(dao dao.InteractiveDao, cache cache.Interact
 // BatchIncrReadCnt bizs 和 ids 的长度必须一致
 func (c *CachedInteractiveRepository) BatchIncrReadCnt(ctx context.Context, bizs []string, bizIds []int64) error {
 	// 在这里要不要检测 bizs 和 ids 的长度是否相等？
-	return c.dao.BatchIncrReadCnt(ctx, bizs, bizIds)
+	err := c.dao.BatchIncrReadCnt(ctx, bizs, bizIds)
+	if err != nil {
+		return err
+	}
+	// 一样的批量的去修改 redis，所以要去改 lua 脚本
+	//c.cache.IncrReadCntIfPresent()
+	// TODO：新的lua脚本或者用pipeline
+	return nil
 }
 
 func (c *CachedInteractiveRepository) IncrReadCnt(ctx context.Context, biz string, bizId int64) error {

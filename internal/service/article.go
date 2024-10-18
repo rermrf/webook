@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 	"webook/internal/domain"
 	events "webook/internal/events/article"
 	"webook/internal/pkg/logger"
@@ -26,6 +27,13 @@ type articleService struct {
 	reader   article.ArticleReaderRepository
 	l        logger.LoggerV1
 	producer events.Producer
+
+	ch chan readInfo
+}
+
+type readInfo struct {
+	uid int64
+	aid int64
 }
 
 func NewArticleService(repo article.ArticleRepository, l logger.LoggerV1, producer events.Producer) ArticleService {
@@ -33,6 +41,42 @@ func NewArticleService(repo article.ArticleRepository, l logger.LoggerV1, produc
 		repo:     repo,
 		l:        l,
 		producer: producer,
+		//ch:       make(chan readInfo, 10),
+	}
+}
+
+func NewArticleServiceV2(repo article.ArticleRepository, l logger.LoggerV1, producer events.Producer) ArticleService {
+	ch := make(chan readInfo, 10)
+	go func() {
+		uids := make([]int64, 0, 10)
+		aids := make([]int64, 0, 10)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		for i := 0; i < 10; i++ {
+			select {
+			case info, ok := <-ch:
+				if !ok {
+					cancel()
+					return
+				}
+				uids = append(uids, info.uid)
+				aids = append(aids, info.aid)
+			case <-ctx.Done():
+				break
+			}
+		}
+		cancel()
+		ctx, cancel = context.WithTimeout(context.Background(), time.Second)
+		producer.ProducerReadEventV1(ctx, events.ReadEventV1{
+			Uids: uids,
+			Aids: aids,
+		})
+		cancel()
+	}()
+	return &articleService{
+		repo:     repo,
+		l:        l,
+		producer: producer,
+		ch:       ch,
 	}
 }
 
@@ -48,6 +92,7 @@ func (s *articleService) GetPublishedById(ctx context.Context, id, uid int64) (d
 	art, err := s.repo.GetPublishedById(ctx, id)
 	if err == nil {
 		go func() {
+			// 生产者也可以通过改批量来提高性能
 			er := s.producer.ProducerReadEvent(ctx, events.ReadEvent{
 				// 即便消费者要用 art 里面的数据
 				// 让他去查，而不是在 event 里面带
@@ -57,6 +102,14 @@ func (s *articleService) GetPublishedById(ctx context.Context, id, uid int64) (d
 			if er != nil {
 				s.l.Error("发送读者阅读时间失败", logger.Error(err), logger.Int64("uid", uid), logger.Int64("artId", art.Id))
 				return
+			}
+		}()
+
+		go func() {
+			// 改批量的做法
+			s.ch <- readInfo{
+				uid: uid,
+				aid: art.Id,
 			}
 		}()
 	}
