@@ -3,7 +3,6 @@ package article
 import (
 	"context"
 	"github.com/IBM/sarama"
-	"time"
 	"webook/internal/pkg/logger"
 	"webook/internal/pkg/saramax"
 	"webook/internal/repository"
@@ -39,7 +38,8 @@ func (c *HistoryReadEventConsumer) Start() error {
 
 // Consume 这个不是幂等的
 func (c *HistoryReadEventConsumer) Consume(msg *sarama.ConsumerMessage, t ReadEvent) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	return c.repo.AddRecord(ctx, "article", t.Aid)
+	//ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	//defer cancel()
+	//return c.repo.AddRecord(ctx, "article", t.Aid)
+	return nil
 }

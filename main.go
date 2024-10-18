@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/fsnotify/fsnotify"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
 	"go.uber.org/zap"
+	"net/http"
 	"webook/config"
 )
 
@@ -19,6 +21,8 @@ func main() {
 	//u.RegisterRoutes(server)
 
 	initViperV1()
+	initLogger()
+	initPrometheus()
 	// etcdctl --endpoints=127.0.0.1:12379 put /webook "$(<./config/dev.yaml)"
 	//initViperReomte()
 
@@ -36,6 +40,13 @@ func main() {
 	if err != nil {
 		return
 	}
+}
+
+func initPrometheus() {
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		http.ListenAndServe(":8082", nil)
+	}()
 }
 
 func initLogger() {

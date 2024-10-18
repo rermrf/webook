@@ -1,18 +1,16 @@
 package ioc
 
 import (
-	"context"
-	"github.com/fsnotify/fsnotify"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
-	"github.com/spf13/viper"
 	"strings"
 	"time"
+	"webook/internal"
 	"webook/internal/handler"
 	ijwt "webook/internal/handler/jwt"
 	"webook/internal/handler/middleware"
-	"webook/internal/handler/middleware/logger"
+	"webook/internal/pkg/gin-pulgin/middlewares/metric"
 	logger2 "webook/internal/pkg/logger"
 	"webook/internal/pkg/ratelimit"
 
@@ -26,22 +24,30 @@ func InitGin(mdls []gin.HandlerFunc, hdl *handler.UserHandler, oauth2WechatHdl *
 	hdl.RegisterRoutes(server)
 	oauth2WechatHdl.RegisterRoutes(server)
 	articleHdl.RegisterRoutes(server)
+	(&internal.ObservabilityHandler{}).RegisterRoutes(server)
 	return server
 }
 
 func InitMiddlewares(redisClient redis.Cmdable, jwtHandler ijwt.Handler, l logger2.LoggerV1) []gin.HandlerFunc {
 	limiter := ratelimit.NewRedisSlidingWindowLimiter(redisClient, time.Minute, 1000)
-	bd := logger.NewBuilder(func(ctx context.Context, al *logger.AccessLog) {
-		l.Info("HTTP请求", logger2.Field{Key: "al", Value: al})
-	}).AllowReqBody(true).AllowRespBody()
-	// 监听配置文件
-	viper.OnConfigChange(func(in fsnotify.Event) {
-		ok := viper.GetBool("web.logreq")
-		bd.AllowReqBody(ok)
-	})
+	//bd := logger.NewBuilder(func(ctx context.Context, al *logger.AccessLog) {
+	//	l.Info("HTTP请求", logger2.Field{Key: "al", Value: al})
+	//}).AllowReqBody(true).AllowRespBody()
+	//// 监听配置文件
+	//viper.OnConfigChange(func(in fsnotify.Event) {
+	//	ok := viper.GetBool("web.logreq")
+	//	bd.AllowReqBody(ok)
+	//})
 	return []gin.HandlerFunc{
 		corsHdl(),
-		bd.Build(),
+		(&metric.MiddlewareBuilder{
+			Namespace:  "emoji",
+			Subsystem:  "webook",
+			Name:       "gin_http",
+			Help:       "统计 GIN 的 HTTP 接口",
+			InstanceID: "my_instance_id",
+		}).Build(),
+		//bd.Build(),
 		middleware.NewLoginJWTMiddlewareBuilder(jwtHandler).
 			IgnorePaths("/users/login").
 			IgnorePaths("/users/signup").
@@ -51,6 +57,7 @@ func InitMiddlewares(redisClient redis.Cmdable, jwtHandler ijwt.Handler, l logge
 			IgnorePaths("/oauth2/wechat/authurl").
 			IgnorePaths("/oauth2/wechat/callback").
 			IgnorePaths("/users/refresh_token").
+			IgnorePaths("/test/metric").
 			Build(),
 		//ratelimit.NewBuilder(redisClient, time.Minute, 1000).Build(),
 		limitbuilder.NewBuilder(limiter).Build(),

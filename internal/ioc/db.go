@@ -5,6 +5,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	glogger "gorm.io/gorm/logger"
+	"gorm.io/plugin/prometheus"
 	"time"
 	"webook/internal/pkg/logger"
 	"webook/internal/repository/dao"
@@ -36,6 +37,20 @@ func InitDB(l logger.LoggerV1) *gorm.DB {
 	})
 	if err != nil {
 		panic("failed to connect database")
+	}
+
+	err = db.Use(prometheus.New(prometheus.Config{
+		DBName:          "webook",
+		RefreshInterval: 15,
+		StartServer:     false,
+		MetricsCollector: []prometheus.MetricsCollector{
+			&prometheus.MySQL{
+				VariableNames: []string{"thread_running"},
+			},
+		},
+	}))
+	if err != nil {
+		panic(err)
 	}
 
 	err = dao.InitTables(db)
