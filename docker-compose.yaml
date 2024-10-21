@@ -60,5 +60,8 @@ services:
     image: grafana/grafana-enterprise
     ports:
       - "3000:3000"
-#  zipkin:
+  zipkin:
     # 用的是不支持 kafka 之类的简化版本
+    image: openzipkin/zipkin-slim:3.4
+    ports:
+      - "9411:9411"

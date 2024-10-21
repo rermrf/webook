@@ -56,7 +56,10 @@ func InitDB(l logger.LoggerV1) *gorm.DB {
 
 	// 监控查询的执行时间
 	pcb := newCallbacks()
-	pcb.registerAll(db)
+	//err = pcb.Initialize(db)
+	//if err != nil {
+	//	return nil
+	//}
 	err = db.Use(pcb)
 	if err != nil {
 		panic(err)
@@ -74,7 +77,7 @@ type Callbacks struct {
 }
 
 func (c *Callbacks) Name() string {
-	return "promethus-query"
+	return "prometheus-query"
 }
 
 func (c *Callbacks) Initialize(db *gorm.DB) error {
@@ -87,7 +90,7 @@ func newCallbacks() *Callbacks {
 		// 在这边要考虑设置各种 Namespace
 		Namespace: "emoji",
 		Subsystem: "webook",
-		Name:      "gorm_quer_time",
+		Name:      "gorm_query_time",
 		Help:      "统计 GORM 的执行时间",
 		ConstLabels: map[string]string{
 			"db": "webook",
@@ -176,7 +179,7 @@ func (c *Callbacks) before() func(db *gorm.DB) {
 
 func (c *Callbacks) after(typ string) func(db *gorm.DB) {
 	return func(db *gorm.DB) {
-		val, _ := db.Get("strat_time")
+		val, _ := db.Get("start_time")
 		startTime, ok := val.(time.Time)
 		if !ok {
 			// 啥都干不了

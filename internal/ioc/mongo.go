@@ -17,7 +17,14 @@ func InitMongoDB() *mongo.Database {
 
 	monitor := &event.CommandMonitor{
 		Started: func(ctx context.Context, evt *event.CommandStartedEvent) {
+			//startTIme := time.Now()
 			fmt.Println(evt.Command)
+		},
+		Succeeded: func(ctx context.Context, succeededEvent *event.CommandSucceededEvent) {
+
+		},
+		Failed: func(ctx context.Context, errEvent *event.CommandFailedEvent) {
+
 		},
 	}
 	opts := options.Client().

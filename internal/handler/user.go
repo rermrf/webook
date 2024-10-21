@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 	"webook/internal/domain"
+	"webook/internal/errs"
 	ijwt "webook/internal/handler/jwt"
 	gin_pulgin "webook/internal/pkg/gin-pulgin"
 	"webook/internal/pkg/logger"
@@ -236,11 +237,16 @@ type LoginRequest struct {
 func (h *UserHandler) LoginJWT(ctx *gin.Context, req LoginRequest) (gin_pulgin.Result, error) {
 	user, err := h.svc.Login(ctx, req.Email, req.Password)
 	if errors.Is(err, service.ErrInvalidUserOrPassword) {
-		return gin_pulgin.Result{Msg: "用户名或密码错误"}, nil
+		return gin_pulgin.Result{
+			Code: errs.UserInvalidOrPassword,
+			Msg:  "用户名或密码错误",
+		}, nil
 	}
 	if err != nil {
-		ctx.String(http.StatusOK, "系统错误")
-		return gin_pulgin.Result{Msg: "系统错误"}, fmt.Errorf("登录错误 %w", err)
+		return gin_pulgin.Result{
+			Code: errs.UserInternalServerError,
+			Msg:  "系统错误",
+		}, fmt.Errorf("登录错误 %w", err)
 	}
 
 	// 设置 token

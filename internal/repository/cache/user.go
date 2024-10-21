@@ -42,6 +42,8 @@ func (cache *RedisUserCache) Delete(ctx context.Context, id int64) error {
 // Get 只要 error 为 nil，就认为缓存里有数据
 // 如果没有数据，返回一个特定的 error
 func (cache *RedisUserCache) Get(ctx context.Context, id int64) (domain.User, error) {
+	//ctx = context.WithValue(ctx, "biz", "user")
+	ctx = context.WithValue(ctx, "pattern", "user:info:%d")
 	key := cache.key(id)
 	// 数据不存在， err = redis.Nil
 	val, err := cache.client.Get(ctx, key).Bytes()

@@ -208,4 +208,22 @@ type Article struct {
 	Utime  int64 `bson:"utime,omitempty"`
 }
 
+//func (u *Article) BeforeCreate(tx *gorm.DB) error {
+//	startTime := time.Now()
+//	tx.Set("start_time", startTime)
+//	slog.Default().Info("这是 create 的钩子函数")
+//	return nil
+//}
+//
+//func (u *Article) AfterCreate(tx *gorm.DB) error {
+//	val, _ := tx.Get("start_time")
+//	startTime, ok := val.(time.Time)
+//	if !ok {
+//		return nil
+//	}
+//	duration := time.Since(startTime)
+//	slog.Default().Info("这是 create 的钩子函数")
+//	return nil
+//}
+
 type PublishedArticle Article

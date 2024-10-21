@@ -14,6 +14,7 @@ import (
 	"webook/internal/domain"
 )
 
+// S3DAO prometheus 监控 oss 只能嵌入式的埋点
 type S3DAO struct {
 	oss *s3.S3
 	// 通过组合 GORMArticleDAO 来简化操作

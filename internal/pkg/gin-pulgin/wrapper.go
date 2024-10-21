@@ -2,13 +2,23 @@ package gin_pulgin
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
 	"net/http"
+	"strconv"
 	ijwt "webook/internal/handler/jwt"
 	"webook/internal/pkg/logger"
 )
 
 // L 使用包变量
 //var L logger.LoggerV1
+
+var vector *prometheus.CounterVec
+
+func InitCounter(opt prometheus.CounterOpts) {
+	// 可以考虑使用 code，method，命中路由，HTTP 状态码
+	vector = prometheus.NewCounterVec(opt, []string{"code"})
+	prometheus.MustRegister(vector)
+}
 
 func WrapBodyAndToken[T any, C ijwt.UserClaims](l logger.LoggerV1, fn func(ctx *gin.Context, req T, uc C) (Result, error)) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
@@ -39,6 +49,7 @@ func WrapBodyAndToken[T any, C ijwt.UserClaims](l logger.LoggerV1, fn func(ctx *
 				logger.String("route", ctx.FullPath()),
 				logger.Error(err))
 		}
+		vector.WithLabelValues(strconv.Itoa(res.Code)).Inc()
 		ctx.JSON(http.StatusOK, res)
 	}
 }

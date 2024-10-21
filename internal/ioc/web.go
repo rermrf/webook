@@ -3,6 +3,7 @@ package ioc
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
 	"strings"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"webook/internal/handler"
 	ijwt "webook/internal/handler/jwt"
 	"webook/internal/handler/middleware"
+	gin_pulgin "webook/internal/pkg/gin-pulgin"
 	"webook/internal/pkg/gin-pulgin/middlewares/metric"
 	logger2 "webook/internal/pkg/logger"
 	"webook/internal/pkg/ratelimit"
@@ -38,6 +40,12 @@ func InitMiddlewares(redisClient redis.Cmdable, jwtHandler ijwt.Handler, l logge
 	//	ok := viper.GetBool("web.logreq")
 	//	bd.AllowReqBody(ok)
 	//})
+	gin_pulgin.InitCounter(prometheus.CounterOpts{
+		Namespace: "emoji",
+		Subsystem: "webook",
+		Name:      "http_biz_code",
+		Help:      "HTTP 的业务错误码",
+	})
 	return []gin.HandlerFunc{
 		corsHdl(),
 		(&metric.MiddlewareBuilder{
@@ -57,7 +65,7 @@ func InitMiddlewares(redisClient redis.Cmdable, jwtHandler ijwt.Handler, l logge
 			IgnorePaths("/oauth2/wechat/authurl").
 			IgnorePaths("/oauth2/wechat/callback").
 			IgnorePaths("/users/refresh_token").
-			IgnorePaths("/test/metric").
+			IgnorePaths("/test/metrics").
 			Build(),
 		//ratelimit.NewBuilder(redisClient, time.Minute, 1000).Build(),
 		limitbuilder.NewBuilder(limiter).Build(),
