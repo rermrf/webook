@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"net/http"
 	"time"
@@ -173,7 +174,7 @@ func (h *UserHandler) SendLoginSMSCode(ctx *gin.Context, req SendLoginSMSCodeReq
 	if !ok {
 		return gin_pulgin.Result{Code: 4, Msg: "手机号格式不正确"}, nil
 	}
-	err = h.codeSvc.Send(ctx, biz, req.Phone)
+	err = h.codeSvc.Send(ctx.Request.Context(), biz, req.Phone)
 	switch {
 	case err == nil:
 		return gin_pulgin.Result{Msg: "发送成功"}, nil
@@ -219,8 +220,12 @@ func (h *UserHandler) SignUp(ctx *gin.Context, req SignUpRequest) (gin_pulgin.Re
 	}
 
 	// 调用一下 svc 的方法
-	err = h.svc.SignUp(ctx, domain.User{Email: req.Email, Password: req.Password})
+	// 直接传入 ctx 在 opentelemetry 中无效，需要传入ctx.Request.Context()
+	err = h.svc.SignUp(ctx.Request.Context(), domain.User{Email: req.Email, Password: req.Password})
 	if errors.Is(err, service.ErrUserDuplicate) {
+		// 复用
+		span := trace.SpanFromContext(ctx.Request.Context())
+		span.AddEvent("邮箱冲突")
 		return gin_pulgin.Result{Msg: "邮箱已注册"}, fmt.Errorf("%s 已被注册", req.Email)
 	}
 	if err != nil {

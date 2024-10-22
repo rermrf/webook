@@ -4,11 +4,12 @@ import (
 	"webook/internal/service/sms"
 	"webook/internal/service/sms/memory"
 	"webook/internal/service/sms/metrics"
+	"webook/internal/service/sms/opentelemtry"
 )
 
 func InitSMSService() sms.Service {
 	// 这里切换验证码发送商
-	return metrics.NewPrometheusDecorator(memory.NewService())
+	return opentelemtry.NewTracingOTELService(metrics.NewPrometheusDecorator(memory.NewService()))
 }
 
 // 使用 限流器

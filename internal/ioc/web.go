@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"strings"
 	"time"
 	"webook/internal"
@@ -40,6 +41,7 @@ func InitMiddlewares(redisClient redis.Cmdable, jwtHandler ijwt.Handler, l logge
 	//	ok := viper.GetBool("web.logreq")
 	//	bd.AllowReqBody(ok)
 	//})
+
 	gin_pulgin.InitCounter(prometheus.CounterOpts{
 		Namespace: "emoji",
 		Subsystem: "webook",
@@ -69,6 +71,8 @@ func InitMiddlewares(redisClient redis.Cmdable, jwtHandler ijwt.Handler, l logge
 			Build(),
 		//ratelimit.NewBuilder(redisClient, time.Minute, 1000).Build(),
 		limitbuilder.NewBuilder(limiter).Build(),
+		// gin 接入 opentelemetry
+		otelgin.Middleware("webook"),
 	}
 }
 

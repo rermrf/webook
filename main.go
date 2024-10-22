@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"github.com/fsnotify/fsnotify"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -10,7 +11,9 @@ import (
 	_ "github.com/spf13/viper/remote"
 	"go.uber.org/zap"
 	"net/http"
+	"time"
 	"webook/config"
+	"webook/internal/ioc"
 )
 
 func main() {
@@ -22,6 +25,9 @@ func main() {
 
 	initViperV1()
 	initLogger()
+
+	closeFunc := ioc.InitOTEL()
+
 	initPrometheus()
 	// etcdctl --endpoints=127.0.0.1:12379 put /webook "$(<./config/dev.yaml)"
 	//initViperReomte()
@@ -40,6 +46,11 @@ func main() {
 	if err != nil {
 		return
 	}
+
+	// 一分钟内关完
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	closeFunc(ctx)
 }
 
 func initPrometheus() {
