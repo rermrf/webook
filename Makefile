@@ -17,6 +17,7 @@ mock:
 	@mockgen -source=internal/service/user.go -package=svcmocks -destination=internal/service/mocks/user_mock.go
 	@mockgen -source=internal/service/code.go -package=svcmocks -destination=internal/service/mocks/code_mock.go
 	@mockgen -source=internal/service/article.go -package=svcmocks -destination=internal/service/mocks/article_mock.go
+	@mockgen -source=internal/service/interactive.go -package=svcmocks -destination=internal/service/mocks/interactive_mock.go
 	@mockgen -source=internal/repository/user.go -package=repomocks -destination=internal/repository/mocks/user_mock.go
 	@mockgen -source=internal/repository/code.go -package=repomocks -destination=internal/repository/mocks/code_mock.go
 	@mockgen -source=internal/repository/article/article.go -package=artrepomocks -destination=internal/repository/article/mocks/article_mock.go

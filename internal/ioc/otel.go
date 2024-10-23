@@ -62,3 +62,22 @@ func newTraceProvider(res *resource.Resource) (*trace.TracerProvider, error) {
 	)
 	return traceProvider, nil
 }
+
+// 动态控制是否需要监控
+//type MyTracerProvider struct {
+//	Enable      bool
+//	nopProvider trace.TracerProvider
+//	provider    trace.TracerProvider
+//}
+//
+//func (m *MyTracerProvider) tracerProvider() {
+//	//TODO implement me
+//	panic("implement me")
+//}
+//
+//func (m *MyTracerProvider) Tracer(name string, options ...trace2.TracerOption) trace2.Tracer {
+//	if m.Enable {
+//		return m.nopProvider.Tracer(name, options...)
+//	}
+//	return m.provider.Tracer(name, options...)
+//}
