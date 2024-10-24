@@ -18,7 +18,7 @@ type ArticleService interface {
 	List(ctx context.Context, uid int64, offset int, limit int) ([]domain.Article, error)
 	GetById(ctx context.Context, id int64) (domain.Article, error)
 	GetPublishedById(ctx context.Context, id, uid int64) (domain.Article, error)
-	// ListPub 只会取 start 七天内的数据
+	// ListPub 根据 start 来查询
 	ListPub(ctx context.Context, startTime time.Time, offset int, limit int) ([]domain.Article, error)
 }
 
@@ -92,8 +92,7 @@ func NewArticleServiceV1(author article.ArticleAuthorRepository, reader article.
 }
 
 func (s *articleService) ListPub(ctx context.Context, startTime time.Time, offset int, limit int) ([]domain.Article, error) {
-	//TODO implement me
-	panic("implement me")
+	return s.repo.ListPub(ctx, startTime, offset, limit)
 }
 
 func (s *articleService) GetPublishedById(ctx context.Context, id, uid int64) (domain.Article, error) {

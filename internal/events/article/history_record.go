@@ -23,6 +23,7 @@ func NewHistoryReadEventConsumer(client sarama.Client, repo repository.Interacti
 }
 
 func (c *HistoryReadEventConsumer) Start() error {
+	// 在这里上报 prometheus 就可以
 	cg, err := sarama.NewConsumerGroupFromClient("interactive", c.client)
 	if err != nil {
 		return err

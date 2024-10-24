@@ -90,6 +90,12 @@ var KafkaSet = wire.NewSet(
 	article3.NewKafkaProducer,
 )
 
+var rankingServiceSet = wire.NewSet(
+	service.NewBatchRankingService,
+	repository.NewCachedRankingRepository,
+	cache.NewRankingRedisCache,
+)
+
 func InitWebServer() *App {
 	wire.Build(
 		// 中间件，路由等？
@@ -107,6 +113,11 @@ func InitWebServer() *App {
 		//MongoArticleSet,
 		//S3ArticleSet,
 		// 组装我这个结构体的所有字段
+
+		rankingServiceSet,
+		ioc.InitRankingJob,
+		ioc.InitJob,
+
 		wire.Struct(new(App), "*"),
 	)
 	return new(App)

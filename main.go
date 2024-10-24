@@ -41,6 +41,9 @@ func main() {
 			panic(err)
 		}
 	}
+
+	app.cron.Start()
+
 	server := app.Server
 	err := server.Run(config.Config.Server.HTTPPort)
 	if err != nil {
@@ -51,6 +54,14 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	closeFunc(ctx)
+
+	cx := app.cron.Stop()
+	// 可以考虑超时强制退出，防止有些任务执行特别长的时间
+	tm := time.NewTimer(time.Minute * 10)
+	select {
+	case <-tm.C:
+	case <-cx.Done():
+	}
 }
 
 func initPrometheus() {

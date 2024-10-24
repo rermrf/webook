@@ -58,9 +58,15 @@ func InitWebServer() *App {
 	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler)
 	interactiveReadBatchConsumer := article3.NewInteractiveReadBatchConsumer(client, loggerV1, interactiveRepository)
 	v2 := ioc.NewConsumer(interactiveReadBatchConsumer)
+	rankingCache := cache.NewRankingRedisCache(cmdable)
+	rankingRepository := repository.NewCachedRankingRepository(rankingCache)
+	rankingService := service.NewBatchRankingService(articleService, interactiveService, rankingRepository)
+	rankingJob := ioc.InitRankingJob(rankingService)
+	cron := ioc.InitJob(loggerV1, rankingJob)
 	app := &App{
 		Server:    engine,
 		Consumers: v2,
+		cron:      cron,
 	}
 	return app
 }
@@ -89,3 +95,5 @@ var InteractiveSet = wire.NewSet(service.NewInteractiveService, repository.NewCa
 var OAuth2Set = wire.NewSet(handler.NewOAuth2WechatHandler, ioc.InitOAuth2WechatService)
 
 var KafkaSet = wire.NewSet(ioc.InitKafka, ioc.NewConsumer, ioc.NewSyncProducer, article3.NewKafkaProducer)
+
+var rankingServiceSet = wire.NewSet(service.NewBatchRankingService, repository.NewCachedRankingRepository, cache.NewRankingRedisCache)
