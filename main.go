@@ -56,6 +56,7 @@ func main() {
 	closeFunc(ctx)
 
 	cx := app.cron.Stop()
+	// 想办法 close
 	// 可以考虑超时强制退出，防止有些任务执行特别长的时间
 	tm := time.NewTimer(time.Minute * 10)
 	select {

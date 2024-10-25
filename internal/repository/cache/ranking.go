@@ -23,6 +23,7 @@ func NewRankingRedisCache(client redis.Cmdable) RankingCache {
 }
 
 func (r *RankingRedisCache) Set(ctx context.Context, arts []domain.Article) error {
+	// 可以趁机，把 article 写到缓存里面 id => article
 	for i := 0; i < len(arts); i++ {
 		arts[i].Content = ""
 	}
