@@ -2,8 +2,10 @@ package job
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"golang.org/x/sync/semaphore"
+	"net/http"
 	"time"
 	"webook/internal/domain"
 	"webook/internal/pkg/logger"
@@ -17,6 +19,37 @@ type Executor interface {
 	// 当从 ctx.Done 有信号的时候，就需要考虑结束执行
 	// 真正去执行一个任务
 	Exec(ctx context.Context, j domain.Job) error
+}
+
+type HttpExecutor struct {
+}
+
+func (h *HttpExecutor) Name() string {
+	return "http"
+}
+
+func (h *HttpExecutor) Exec(ctx context.Context, j domain.Job) error {
+	type Config struct {
+		Endpoint string
+		Method   string
+	}
+	var cfg Config
+	err := json.Unmarshal([]byte(j.Cfg), &cfg)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequest(cfg.Method, cfg.Endpoint, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("执行失败")
+	}
+	return nil
 }
 
 type LocalFuncExecutor struct {
