@@ -9,6 +9,7 @@ package startup
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
+	article3 "webook/internal/events/article"
 	"webook/internal/handler"
 	"webook/internal/handler/jwt"
 	"webook/internal/ioc"
@@ -40,25 +41,64 @@ func InitWebServer() *gin.Engine {
 	wechatService := InitWechatService(loggerV1)
 	oAuth2WechatHandler := handler.NewOAuth2WechatHandler(wechatService, userService, jwtHandler)
 	articleDao := article.NewGormArticleDao(db)
-	articleRepository := article2.NewArticleRepository(articleDao)
-	articleService := service.NewArticleService(articleRepository, loggerV1)
-	articleHandler := handler.NewArticleHandler(articleService, loggerV1)
+	articleCache := cache.NewRedisArticleCache(cmdable)
+	articleRepository := article2.NewArticleRepository(articleDao, articleCache, loggerV1, userRepository)
+	client := InitKafka()
+	syncProducer := NewSyncProducer(client)
+	producer := article3.NewKafkaProducer(syncProducer)
+	articleService := service.NewArticleService(articleRepository, loggerV1, producer)
+	interactiveDao := dao.NewGORMInteractiveDao(db)
+	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
+	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDao, interactiveCache, loggerV1)
+	interactiveService := service.NewInteractiveService(interactiveRepository)
+	articleHandler := handler.NewArticleHandler(articleService, loggerV1, interactiveService)
 	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler)
 	return engine
 }
 
-func InitArticleHandler(dao2 article.ArticleDao) *handler.ArticleHandler {
-	articleRepository := article2.NewArticleRepository(dao2)
+func InitArticleHandler(d article.ArticleDao) *handler.ArticleHandler {
+	cmdable := InitRedis()
+	articleCache := cache.NewRedisArticleCache(cmdable)
 	loggerV1 := InitLog()
-	articleService := service.NewArticleService(articleRepository, loggerV1)
-	articleHandler := handler.NewArticleHandler(articleService, loggerV1)
+	db := InitDB()
+	userDao := dao.NewUserDao(db)
+	userCache := cache.NewUserCache(cmdable)
+	userRepository := repository.NewCachedUserRepository(userDao, userCache)
+	articleRepository := article2.NewArticleRepository(d, articleCache, loggerV1, userRepository)
+	client := InitKafka()
+	syncProducer := NewSyncProducer(client)
+	producer := article3.NewKafkaProducer(syncProducer)
+	articleService := service.NewArticleService(articleRepository, loggerV1, producer)
+	interactiveDao := dao.NewGORMInteractiveDao(db)
+	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
+	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDao, interactiveCache, loggerV1)
+	interactiveService := service.NewInteractiveService(interactiveRepository)
+	articleHandler := handler.NewArticleHandler(articleService, loggerV1, interactiveService)
 	return articleHandler
+}
+
+func InitInteractiveService() service.InteractiveService {
+	db := InitDB()
+	interactiveDao := dao.NewGORMInteractiveDao(db)
+	cmdable := InitRedis()
+	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
+	loggerV1 := InitLog()
+	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDao, interactiveCache, loggerV1)
+	interactiveService := service.NewInteractiveService(interactiveRepository)
+	return interactiveService
 }
 
 // wire.go:
 
 var thirdPartySet = wire.NewSet(
+	NewSyncProducer,
+	InitKafka,
 	InitDB, InitRedis,
-	InitLog)
+	InitLog,
+)
 
-var userSvcProvider = wire.NewSet(dao.NewUserDao, cache.NewUserCache, repository.NewCachedUserRepository, service.NewUserService)
+var userSvcProvider = wire.NewSet(dao.NewUserDao, cache.NewUserCache, repository.NewCachedUserRepository, service.NewUserService, handler.NewUserHandler)
+
+var interactiveSet = wire.NewSet(service.NewInteractiveService, repository.NewCachedInteractiveRepository, dao.NewGORMInteractiveDao, cache.NewRedisInteractiveCache, article3.NewKafkaProducer)
+
+var articleSet = wire.NewSet(handler.NewArticleHandler, service.NewArticleService, article2.NewArticleRepository, article.NewGormArticleDao, cache.NewRedisArticleCache)

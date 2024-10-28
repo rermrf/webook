@@ -5,6 +5,7 @@ package startup
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
+	events "webook/internal/events/article"
 	"webook/internal/handler"
 	ijwt "webook/internal/handler/jwt"
 	"webook/internal/ioc"
@@ -17,41 +18,56 @@ import (
 )
 
 var thirdPartySet = wire.NewSet(
+	NewSyncProducer,
+	InitKafka,
 	InitDB, InitRedis,
-	InitLog)
+	InitLog,
+)
 
 var userSvcProvider = wire.NewSet(
 	dao.NewUserDao,
 	cache.NewUserCache,
 	repository.NewCachedUserRepository,
-	service.NewUserService)
+	service.NewUserService,
+	handler.NewUserHandler)
+
+var interactiveSet = wire.NewSet(
+	service.NewInteractiveService,
+	repository.NewCachedInteractiveRepository,
+	dao.NewGORMInteractiveDao,
+	cache.NewRedisInteractiveCache,
+	events.NewKafkaProducer,
+)
+
+var articleSet = wire.NewSet(
+	handler.NewArticleHandler,
+	service.NewArticleService,
+	article.NewArticleRepository,
+	article2.NewGormArticleDao,
+	cache.NewRedisArticleCache,
+)
 
 func InitWebServer() *gin.Engine {
 	wire.Build(
 		thirdPartySet,
 		userSvcProvider,
-
-		// dao 部分
-		article2.NewGormArticleDao,
+		interactiveSet,
+		articleSet,
 
 		// cache 部分
 		cache.NewCodeCache,
 
 		// repo 部分
 		repository.NewCodeRepository,
-		article.NewArticleRepository,
 
 		// Service 部分
 		ioc.InitSMSService,
 		service.NewCodeService,
 		InitWechatService,
-		service.NewArticleService,
 
 		// handler 部分
-		handler.NewUserHandler,
 		handler.NewOAuth2WechatHandler,
 		ijwt.NewRedisJWTHandler,
-		handler.NewArticleHandler,
 
 		// 中间件，路由等？
 		//gin.Default,
@@ -61,12 +77,31 @@ func InitWebServer() *gin.Engine {
 	return new(gin.Engine)
 }
 
-func InitArticleHandler(dao article2.ArticleDao) *handler.ArticleHandler {
-	wire.Build(thirdPartySet,
+func InitArticleHandler(d article2.ArticleDao) *handler.ArticleHandler {
+	wire.Build(
+		thirdPartySet,
 		service.NewArticleService,
 		handler.NewArticleHandler,
 		article.NewArticleRepository,
 		//article2.NewGormArticleDao,
+		cache.NewRedisArticleCache,
+		dao.NewUserDao,
+		cache.NewUserCache,
+		repository.NewCachedUserRepository,
+		events.NewKafkaProducer,
+
+		cache.NewRedisInteractiveCache,
+		dao.NewGORMInteractiveDao,
+		repository.NewCachedInteractiveRepository,
+		service.NewInteractiveService,
 	)
 	return &handler.ArticleHandler{}
+}
+
+func InitInteractiveService() service.InteractiveService {
+	wire.Build(
+		thirdPartySet,
+		interactiveSet,
+	)
+	return service.NewInteractiveService(nil)
 }
