@@ -68,6 +68,7 @@ create table webook.user_collection_bizs
     biz_id bigint       null,
     biz    varchar(128) null,
     uid    bigint       null,
+    status tinyint unsigned null,
     ctime  bigint       null,
     utime  bigint       null,
     constraint biz_type_id_uid

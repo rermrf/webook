@@ -18,6 +18,7 @@ type InteractiveCache interface {
 	IncrLikeCntIfPresent(ctx context.Context, biz string, bizId int64) error
 	DecrLikeCntIfPresent(ctx context.Context, biz string, bizId int64) error
 	IncrCollectCntIfPresent(ctx context.Context, biz string, bizId int64) error
+	DecrCollectCntIfPresent(ctx context.Context, biz string, bizId int64) error
 	// Get 事实上，这里的 liked 和 collected 是不需要缓存的
 	Get(ctx context.Context, biz string, bizId int64) (domain.Interactive, error)
 	Set(ctx context.Context, biz string, bizId int64, intr domain.Interactive) error
@@ -75,6 +76,10 @@ func (r *RedisInteractiveCache) IncrCollectCntIfPresent(ctx context.Context, biz
 	return r.client.Eval(ctx, luaIncrCnt, []string{r.key(biz, bizId)}, "collect_cnt", 1).Err()
 }
 
+func (r *RedisInteractiveCache) DecrCollectCntIfPresent(ctx context.Context, biz string, bizId int64) error {
+	return r.client.Eval(ctx, luaIncrCnt, []string{r.key(biz, bizId)}, "collect_cnt", -1).Err()
+}
+
 func (r *RedisInteractiveCache) Get(ctx context.Context, biz string, bizId int64) (domain.Interactive, error) {
 	// 直接使用 HMGet，即便缓存中没有对应的 key，也不会返回 error
 	//r.client.HMGet(ctx, r.key(biz, bizId), "read_cnt", "like_cnt", "collect_cnt")
@@ -96,6 +101,8 @@ func (r *RedisInteractiveCache) Get(ctx context.Context, biz string, bizId int64
 	readCnt, _ := strconv.ParseInt(data["read_cnt"], 10, 64)
 
 	return domain.Interactive{
+		Biz:        biz,
+		BizId:      bizId,
 		CollectCnt: collectCnt,
 		LikeCnt:    likeCnt,
 		ReadCnt:    readCnt,

@@ -15,6 +15,7 @@ type InteractiveService interface {
 	// Collect 收藏夹，cid 为收藏夹 id
 	// cid 不一定有，或者是 0 对应的是该用户的默认收藏夹
 	Collect(ctx context.Context, biz string, bizId int64, cid, uid int64) error
+	CancelCollect(ctx context.Context, biz string, bizId int64, uid int64) error
 	Get(ctx context.Context, biz string, bizId int64, uid int64) (domain.Interactive, error)
 	GetByIds(ctx context.Context, biz string, bizIds []int64) (map[int64]domain.Interactive, error)
 }
@@ -30,8 +31,15 @@ func NewInteractiveService(repo repository.InteractiveRepository) InteractiveSer
 }
 
 func (i *interactiveService) GetByIds(ctx context.Context, biz string, bizIds []int64) (map[int64]domain.Interactive, error) {
-	//TODO implement me
-	panic("implement me")
+	intrs, err := i.repo.GetByIds(ctx, biz, bizIds)
+	if err != nil {
+		return nil, err
+	}
+	res := make(map[int64]domain.Interactive, len(intrs))
+	for _, intr := range intrs {
+		res[intr.BizId] = intr
+	}
+	return res, nil
 }
 
 func (i *interactiveService) IncrReadCnt(ctx context.Context, biz string, bizId int64) error {
@@ -50,6 +58,10 @@ func (i *interactiveService) CancelLike(ctx context.Context, biz string, bizId i
 func (i *interactiveService) Collect(ctx context.Context, biz string, bizId int64, cid, uid int64) error {
 	// service 层面上是收藏
 	return i.repo.AddCollectionItem(ctx, biz, bizId, cid, uid)
+}
+
+func (i *interactiveService) CancelCollect(ctx context.Context, biz string, bizId int64, uid int64) error {
+	return i.repo.RemoveCollectionItem(ctx, biz, bizId, uid)
 }
 
 func (i *interactiveService) Get(ctx context.Context, biz string, bizId int64, uid int64) (domain.Interactive, error) {

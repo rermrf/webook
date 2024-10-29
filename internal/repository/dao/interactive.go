@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"fmt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"time"
@@ -14,10 +15,13 @@ type InteractiveDao interface {
 	InsertLikeInfo(ctx context.Context, biz string, bizId int64, uid int64) error
 	DeleteLikeInfo(ctx context.Context, biz string, bizId int64, uid int64) error
 	InsertCollectionBiz(ctx context.Context, cb UserCollectionBiz) error
+	DeleteCollectionBiz(ctx context.Context, biz string, bizId int64, uid int64) error
 	GetCollectInfo(ctx context.Context, biz string, bizId int64, uid int64) (UserCollectionBiz, error)
 	GetLikeInfo(ctx context.Context, biz string, bizId int64, uid int64) (UserLikeBiz, error)
 	Get(ctx context.Context, biz string, bizId int64) (Interactive, error)
 	BatchIncrReadCnt(ctx context.Context, bizs []string, ids []int64) error
+	GetByIds(ctx context.Context, biz string, ids []int64) ([]Interactive, error)
+
 	//GetItems() ([]ColletctionItem, error)
 }
 
@@ -146,11 +150,17 @@ func (dao *GORMInteractiveDao) InsertCollectionBiz(ctx context.Context, cb UserC
 	cb.Utime = now
 	cb.Ctime = now
 	return dao.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// 插入收藏项
-		err := dao.db.WithContext(ctx).Create(&cb).Error
+		// 插入收藏项，有可能改文章之前收藏过，后取消了
+		err := tx.Clauses(clause.OnConflict{
+			DoUpdates: clause.Assignments(map[string]any{
+				"utime":  now,
+				"status": 1,
+			}),
+		}).Create(&cb).Error
 		if err != nil {
 			return err
 		}
+
 		// 更新数量
 		return tx.Clauses(clause.OnConflict{
 			DoUpdates: clause.Assignments(map[string]any{
@@ -167,6 +177,25 @@ func (dao *GORMInteractiveDao) InsertCollectionBiz(ctx context.Context, cb UserC
 	})
 }
 
+func (dao *GORMInteractiveDao) DeleteCollectionBiz(ctx context.Context, biz string, bizId int64, uid int64) error {
+	now := time.Now().UnixMilli()
+	return dao.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 1. 软删除收藏
+		// 2. 减少收藏数
+		err := tx.Model(&UserCollectionBiz{}).Where("biz = ? AND biz_id = ? AND uid = ?", biz, bizId, uid).Updates(map[string]any{
+			"utime":  now,
+			"Status": 0,
+		}).Error
+		if err != nil {
+			return err
+		}
+		return tx.Model(&Interactive{}).Where("biz = ? AND biz_id = ?", biz, bizId).Updates(map[string]any{
+			"utime":       now,
+			"collect_cnt": gorm.Expr("collect_cnt - ?", 1),
+		}).Error
+	})
+}
+
 func (dao *GORMInteractiveDao) GetCollectInfo(ctx context.Context, biz string, bizId int64, uid int64) (UserCollectionBiz, error) {
 	var res UserCollectionBiz
 	err := dao.db.WithContext(ctx).Where("biz = ? AND biz_id = ? AND uid = ?", biz, bizId, uid).First(&res).Error
@@ -175,13 +204,20 @@ func (dao *GORMInteractiveDao) GetCollectInfo(ctx context.Context, biz string, b
 
 func (dao *GORMInteractiveDao) GetLikeInfo(ctx context.Context, biz string, bizId int64, uid int64) (UserLikeBiz, error) {
 	var res UserLikeBiz
-	err := dao.db.WithContext(ctx).Where("biz = ? AND biz_id = ? AND uid = ? AND status = ?", biz, bizId, uid, 2).First(&res).Error
+	err := dao.db.WithContext(ctx).Where("biz = ? AND biz_id = ? AND uid = ? AND status = ?", biz, bizId, uid, 1).First(&res).Error
 	return res, err
 }
 
 func (dao *GORMInteractiveDao) Get(ctx context.Context, biz string, bizId int64) (Interactive, error) {
 	var res Interactive
 	err := dao.db.WithContext(ctx).Where("biz = ? AND biz_id = ?", biz, bizId).First(&res).Error
+	fmt.Println(res)
+	return res, err
+}
+
+func (dao *GORMInteractiveDao) GetByIds(ctx context.Context, biz string, ids []int64) ([]Interactive, error) {
+	var res []Interactive
+	err := dao.db.WithContext(ctx).Where("biz = > AND biz_id IN ?", biz, ids).Find(&res).Error
 	return res, err
 }
 
@@ -261,9 +297,11 @@ type UserCollectionBiz struct {
 	BizId int64  `gorm:"uniqueIndex:biz_type_id_uid"`
 	Biz   string `gorm:"type:varchar(128);uniqueIndex:biz_type_id_uid"`
 	// 这算是一个冗余，因为正常来说维持着 Uid 就可以
-	Uid   int64 `gorm:"uniqueIndex:biz_type_id_uid"`
-	Ctime int64
-	Utime int64
+	Uid int64 `gorm:"uniqueIndex:biz_type_id_uid"`
+	// 1 代表收藏，0 代表取消收藏
+	Status uint8
+	Ctime  int64
+	Utime  int64
 }
 
 // 假如我有一个需求，查询到收藏夹的信息，和收藏夹里面的资源

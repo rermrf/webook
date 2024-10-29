@@ -14,9 +14,11 @@ type InteractiveRepository interface {
 	IncrLike(ctx context.Context, biz string, bizId int64, uid int64) error
 	DecrLike(ctx context.Context, biz string, bizId int64, uid int64) error
 	AddCollectionItem(ctx context.Context, biz string, bizId int64, cid int64, uid int64) error
+	RemoveCollectionItem(ctx context.Context, biz string, bizId int64, uid int64) error
 	Get(ctx context.Context, biz string, bizId int64) (domain.Interactive, error)
 	Liked(ctx context.Context, biz string, bizId int64, uid int64) (bool, error)
 	Collected(ctx context.Context, biz string, bizId int64, uid int64) (bool, error)
+	GetByIds(ctx context.Context, biz string, ids []int64) ([]domain.Interactive, error)
 	//AddRecord(ctx context.Context, biz string, aid int64) error
 }
 
@@ -83,16 +85,25 @@ func (c *CachedInteractiveRepository) AddCollectionItem(ctx context.Context, biz
 	// 如果用户会频繁访问他的收藏夹，那么就应该缓存，不然就不需要
 	// 一个东西要不要缓存，就看用户会不会频繁访问（反复访问）
 	err := c.dao.InsertCollectionBiz(ctx, dao.UserCollectionBiz{
-		Cid:   cid,
-		Biz:   biz,
-		BizId: bizId,
-		Uid:   uid,
+		Cid:    cid,
+		Biz:    biz,
+		BizId:  bizId,
+		Uid:    uid,
+		Status: 1,
 	})
 	if err != nil {
 		return err
 	}
 	// 更新收藏个数 (有多少个人收藏了这个 biz + biz_id)
 	return c.cache.IncrCollectCntIfPresent(ctx, biz, bizId)
+}
+
+func (c *CachedInteractiveRepository) RemoveCollectionItem(ctx context.Context, biz string, bizId int64, uid int64) error {
+	err := c.dao.DeleteCollectionBiz(ctx, biz, bizId, uid)
+	if err != nil {
+		return err
+	}
+	return c.cache.DecrCollectCntIfPresent(ctx, biz, bizId)
 }
 
 func (c *CachedInteractiveRepository) Get(ctx context.Context, biz string, bizId int64) (domain.Interactive, error) {
@@ -144,6 +155,14 @@ func (c *CachedInteractiveRepository) Collected(ctx context.Context, biz string,
 	}
 }
 
+func (c *CachedInteractiveRepository) GetByIds(ctx context.Context, biz string, ids []int64) ([]domain.Interactive, error) {
+	intrs, err := c.dao.GetByIds(ctx, biz, ids)
+	if err != nil {
+		return nil, err
+	}
+	return c.toDomains(intrs), nil
+}
+
 //func (c *CachedInteractiveRepository) GetCollection() (domain.Collection, error) {
 //	items, err := c.dao.GetItems()
 //	if err != nil {
@@ -157,8 +176,24 @@ func (c *CachedInteractiveRepository) Collected(ctx context.Context, biz string,
 
 func (c *CachedInteractiveRepository) toDomain(intr dao.Interactive) domain.Interactive {
 	return domain.Interactive{
+		Biz:        intr.Biz,
+		BizId:      intr.BizId,
 		ReadCnt:    intr.ReadCnt,
 		LikeCnt:    intr.LikeCnt,
 		CollectCnt: intr.CollectCnt,
 	}
+}
+
+func (c *CachedInteractiveRepository) toDomains(intrs []dao.Interactive) []domain.Interactive {
+	result := make([]domain.Interactive, len(intrs))
+	for i, intr := range intrs {
+		result[i] = domain.Interactive{
+			Biz:        intr.Biz,
+			BizId:      intr.BizId,
+			ReadCnt:    intr.ReadCnt,
+			LikeCnt:    intr.LikeCnt,
+			CollectCnt: intr.CollectCnt,
+		}
+	}
+	return result
 }
