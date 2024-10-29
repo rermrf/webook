@@ -43,7 +43,7 @@ func (s *ArticleTestSuite) SetupSuite() {
 func (s *ArticleTestSuite) TearDownSuite() {
 	// 清空所有数据，并且自增主键恢复到 1
 	s.db.Exec("TRUNCATE TABLE articles")
-	s.db.Exec("TRUNCATE TABLE publish_articles")
+	s.db.Exec("TRUNCATE TABLE published_articles")
 }
 
 func (s *ArticleTestSuite) TestPublish() {
