@@ -16,6 +16,28 @@ import (
 	"webook/pkg/logger"
 )
 
+//type ArticleHandlerV2 struct {
+//	// 组合 ArticleHandlerV1，如果有变动直接重写方法
+//	ArticleHandlerV1
+//}
+//
+//func (h *ArticleHandlerV2) RegisterRoutes(server *gin.Engine) {
+//	v1 := server.Group("/v1")
+//	g := v1.Group("/articles")
+//	g.POST("/edit", ginx.WrapBodyAndToken(h.l, h.Edit))
+//}
+//
+//type ArticleHandlerV1 struct {
+//	// 组合 ArticleHandler，如果有变动直接重写方法
+//	ArticleHandler
+//}
+//
+//func (h *ArticleHandlerV1) RegisterRoutes(server *gin.Engine) {
+//	v1 := server.Group("/v1")
+//	g := v1.Group("/articles")
+//	g.POST("/edit", ginx.WrapBodyAndToken(h.l, h.Edit))
+//}
+
 type ArticleHandler struct {
 	svc     service.ArticleService
 	intrSvc service2.InteractiveService
