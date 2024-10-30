@@ -12,9 +12,9 @@ import (
 	"webook/internal/domain"
 	"webook/internal/errs"
 	ijwt "webook/internal/handler/jwt"
-	gin_pulgin "webook/internal/pkg/gin-pulgin"
-	"webook/internal/pkg/logger"
 	"webook/internal/service"
+	"webook/pkg/ginx"
+	"webook/pkg/logger"
 
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
@@ -53,12 +53,12 @@ func NewUserHandler(svc service.UserService, codeSvc service.CodeService, cmd re
 
 func (h *UserHandler) RegisterRoutes(server *gin.Engine) {
 	ug := server.Group("/users")
-	ug.POST("/signup", gin_pulgin.WrapBody(h.l, h.SignUp))
-	ug.POST("/login", gin_pulgin.WrapBody(h.l, h.LoginJWT))
-	ug.POST("/edit", gin_pulgin.WrapBody(h.l, h.Edit))
-	ug.GET("/profile", gin_pulgin.WrapClaims(h.l, h.Profile))
-	ug.POST("/login_sms/code/send", gin_pulgin.WrapBody(h.l, h.SendLoginSMSCode))
-	ug.POST("/login_sms", gin_pulgin.WrapBody(h.l, h.LoginSMS))
+	ug.POST("/signup", ginx.WrapBody(h.l, h.SignUp))
+	ug.POST("/login", ginx.WrapBody(h.l, h.LoginJWT))
+	ug.POST("/edit", ginx.WrapBody(h.l, h.Edit))
+	ug.GET("/profile", ginx.WrapClaims(h.l, h.Profile))
+	ug.POST("/login_sms/code/send", ginx.WrapBody(h.l, h.SendLoginSMSCode))
+	ug.POST("/login_sms", ginx.WrapBody(h.l, h.LoginSMS))
 	ug.POST("/logout", h.LogoutJWT)
 	ug.POST("/refresh_token", h.RefreshToken)
 }
@@ -66,14 +66,14 @@ func (h *UserHandler) RegisterRoutes(server *gin.Engine) {
 func (h *UserHandler) LogoutJWT(ctx *gin.Context) {
 	err := h.ClearToken(ctx)
 	if err != nil {
-		ctx.JSON(http.StatusOK, gin_pulgin.Result{
+		ctx.JSON(http.StatusOK, ginx.Result{
 			Code: 5,
 			Msg:  "退出登录失败",
 		})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin_pulgin.Result{
+	ctx.JSON(http.StatusOK, ginx.Result{
 		Msg: "退出登录OK",
 	})
 	return
@@ -110,7 +110,7 @@ func (h *UserHandler) RefreshToken(ctx *gin.Context) {
 			zap.String("Method", "UserHandler:RefreshToken"))
 		return
 	}
-	ctx.JSON(http.StatusOK, gin_pulgin.Result{Msg: "刷新成功"})
+	ctx.JSON(http.StatusOK, ginx.Result{Msg: "刷新成功"})
 }
 
 type LoginSMSReq struct {
@@ -118,19 +118,19 @@ type LoginSMSReq struct {
 	Code  string `json:"code"`
 }
 
-func (h *UserHandler) LoginSMS(ctx *gin.Context, req LoginSMSReq) (gin_pulgin.Result, error) {
+func (h *UserHandler) LoginSMS(ctx *gin.Context, req LoginSMSReq) (ginx.Result, error) {
 	// 验证手机号
 	ok, err := h.phoneExp.MatchString(req.Phone)
 	if err != nil {
-		return gin_pulgin.Result{Code: 5, Msg: "系统错误"}, err
+		return ginx.Result{Code: 5, Msg: "系统错误"}, err
 	}
 	if !ok {
-		return gin_pulgin.Result{Code: 4, Msg: "手机号格式不正确"}, errors.New("手机号码格式不正确")
+		return ginx.Result{Code: 4, Msg: "手机号格式不正确"}, errors.New("手机号码格式不正确")
 	}
 
 	ok, err = h.codeSvc.Verify(ctx, biz, req.Code, req.Phone)
 	if errors.Is(err, service.ErrCodeVerifyTooManyTimes) {
-		return gin_pulgin.Result{Code: 4, Msg: "重试次数过多，请重新发送"}, err
+		return ginx.Result{Code: 4, Msg: "重试次数过多，请重新发送"}, err
 	}
 	if err != nil {
 		//ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
@@ -141,47 +141,47 @@ func (h *UserHandler) LoginSMS(ctx *gin.Context, req LoginSMSReq) (gin_pulgin.Re
 		//zap.String("phone", req.Phone))
 		// 最多打印 Debug 级别，因为生产环境中并不开 Debug
 		//zap.L().Debug("", zap.String("手机号", req.Phone))
-		return gin_pulgin.Result{Code: 5, Msg: "系统错误"}, err
+		return ginx.Result{Code: 5, Msg: "系统错误"}, err
 	}
 	if !ok {
-		return gin_pulgin.Result{Code: 4, Msg: "验证码错误"}, nil
+		return ginx.Result{Code: 4, Msg: "验证码错误"}, nil
 	}
 
 	user, err := h.svc.FindOrCreate(ctx, req.Phone)
 	if err != nil {
-		return gin_pulgin.Result{Code: 5, Msg: "系统错误"}, fmt.Errorf("登录或注册用户失败 %w", err)
+		return ginx.Result{Code: 5, Msg: "系统错误"}, fmt.Errorf("登录或注册用户失败 %w", err)
 	}
 
 	if err = h.SetLoginToken(ctx, user.Id); err != nil {
-		ctx.JSON(http.StatusOK, gin_pulgin.Result{
+		ctx.JSON(http.StatusOK, ginx.Result{
 			Code: 5, Msg: "系统错误",
 		})
-		return gin_pulgin.Result{Code: 5, Msg: "系统错误"}, err
+		return ginx.Result{Code: 5, Msg: "系统错误"}, err
 	}
-	return gin_pulgin.Result{Code: 2, Msg: "验证码校验通过"}, nil
+	return ginx.Result{Code: 2, Msg: "验证码校验通过"}, nil
 }
 
 type SendLoginSMSCodeReq struct {
 	Phone string `json:"phone"`
 }
 
-func (h *UserHandler) SendLoginSMSCode(ctx *gin.Context, req SendLoginSMSCodeReq) (gin_pulgin.Result, error) {
+func (h *UserHandler) SendLoginSMSCode(ctx *gin.Context, req SendLoginSMSCodeReq) (ginx.Result, error) {
 	// 验证手机号
 	ok, err := h.phoneExp.MatchString(req.Phone)
 	if err != nil {
-		return gin_pulgin.Result{Code: 5, Msg: "系统错误"}, errors.New("匹配手机格式出错")
+		return ginx.Result{Code: 5, Msg: "系统错误"}, errors.New("匹配手机格式出错")
 	}
 	if !ok {
-		return gin_pulgin.Result{Code: 4, Msg: "手机号格式不正确"}, nil
+		return ginx.Result{Code: 4, Msg: "手机号格式不正确"}, nil
 	}
 	err = h.codeSvc.Send(ctx.Request.Context(), biz, req.Phone)
 	switch {
 	case err == nil:
-		return gin_pulgin.Result{Msg: "发送成功"}, nil
+		return ginx.Result{Msg: "发送成功"}, nil
 	case errors.Is(err, service.ErrCodeSendTooMany):
-		return gin_pulgin.Result{Code: 4, Msg: "发送次数过多"}, fmt.Errorf("发送太频繁：%w", err)
+		return ginx.Result{Code: 4, Msg: "发送次数过多"}, fmt.Errorf("发送太频繁：%w", err)
 	default:
-		return gin_pulgin.Result{Code: 5, Msg: "系统错误"}, fmt.Errorf("%w", err)
+		return ginx.Result{Code: 5, Msg: "系统错误"}, fmt.Errorf("%w", err)
 	}
 }
 
@@ -191,32 +191,32 @@ type SignUpRequest struct {
 	ConfirmPassword string `json:"confirmPassword"`
 }
 
-func (h *UserHandler) SignUp(ctx *gin.Context, req SignUpRequest) (gin_pulgin.Result, error) {
+func (h *UserHandler) SignUp(ctx *gin.Context, req SignUpRequest) (ginx.Result, error) {
 	ok, err := h.emailExp.MatchString(req.Email)
 	if err != nil {
 		// 邮箱匹配错误
 		ctx.String(http.StatusOK, "系统错误")
-		return gin_pulgin.Result{Msg: "系统错误"}, errors.New("匹配邮箱错误")
+		return ginx.Result{Msg: "系统错误"}, errors.New("匹配邮箱错误")
 	}
 
 	if !ok {
 		// 邮箱格式不正确
 		ctx.String(http.StatusOK, "邮箱格式不正确")
-		return gin_pulgin.Result{Msg: "邮箱格式不正确"}, nil
+		return ginx.Result{Msg: "邮箱格式不正确"}, nil
 	}
 
 	if req.Password != req.ConfirmPassword {
 		// 两次密码不一致
-		return gin_pulgin.Result{Msg: "两次密码不一致"}, nil
+		return ginx.Result{Msg: "两次密码不一致"}, nil
 	}
 
 	ok, err = h.passwordExp.MatchString(req.Password)
 	if err != nil {
-		return gin_pulgin.Result{Msg: "系统错误"}, errors.New("密码匹配错误")
+		return ginx.Result{Msg: "系统错误"}, errors.New("密码匹配错误")
 	}
 
 	if !ok {
-		return gin_pulgin.Result{Msg: "密码格式不正确"}, nil
+		return ginx.Result{Msg: "密码格式不正确"}, nil
 	}
 
 	// 调用一下 svc 的方法
@@ -226,12 +226,12 @@ func (h *UserHandler) SignUp(ctx *gin.Context, req SignUpRequest) (gin_pulgin.Re
 		// 复用
 		span := trace.SpanFromContext(ctx.Request.Context())
 		span.AddEvent("邮箱冲突")
-		return gin_pulgin.Result{Msg: "邮箱已注册"}, fmt.Errorf("%s 已被注册", req.Email)
+		return ginx.Result{Msg: "邮箱已注册"}, fmt.Errorf("%s 已被注册", req.Email)
 	}
 	if err != nil {
-		return gin_pulgin.Result{Msg: "系统错误"}, errors.New("插入数据错误")
+		return ginx.Result{Msg: "系统错误"}, errors.New("插入数据错误")
 	}
-	return gin_pulgin.Result{Msg: "注册成功"}, nil
+	return ginx.Result{Msg: "注册成功"}, nil
 }
 
 type LoginRequest struct {
@@ -239,16 +239,16 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
-func (h *UserHandler) LoginJWT(ctx *gin.Context, req LoginRequest) (gin_pulgin.Result, error) {
+func (h *UserHandler) LoginJWT(ctx *gin.Context, req LoginRequest) (ginx.Result, error) {
 	user, err := h.svc.Login(ctx, req.Email, req.Password)
 	if errors.Is(err, service.ErrInvalidUserOrPassword) {
-		return gin_pulgin.Result{
+		return ginx.Result{
 			Code: errs.UserInvalidOrPassword,
 			Msg:  "用户名或密码错误",
 		}, nil
 	}
 	if err != nil {
-		return gin_pulgin.Result{
+		return ginx.Result{
 			Code: errs.UserInternalServerError,
 			Msg:  "系统错误",
 		}, fmt.Errorf("登录错误 %w", err)
@@ -256,10 +256,10 @@ func (h *UserHandler) LoginJWT(ctx *gin.Context, req LoginRequest) (gin_pulgin.R
 
 	// 设置 token
 	if err = h.SetLoginToken(ctx, user.Id); err != nil {
-		return gin_pulgin.Result{Msg: "系统错误"}, fmt.Errorf("token 设置错误：%w", err)
+		return ginx.Result{Msg: "系统错误"}, fmt.Errorf("token 设置错误：%w", err)
 	}
 
-	return gin_pulgin.Result{Msg: "登录成功"}, nil
+	return ginx.Result{Msg: "登录成功"}, nil
 }
 
 type EditRequest struct {
@@ -268,21 +268,21 @@ type EditRequest struct {
 	Birthday string `json:"birthday"`
 }
 
-func (h *UserHandler) Edit(ctx *gin.Context, req EditRequest) (gin_pulgin.Result, error) {
+func (h *UserHandler) Edit(ctx *gin.Context, req EditRequest) (ginx.Result, error) {
 	// 校验参数
 	if req.Nickname == "" {
-		return gin_pulgin.Result{Code: 4, Msg: "昵称不能为空"}, nil
+		return ginx.Result{Code: 4, Msg: "昵称不能为空"}, nil
 	}
 	if len(req.AboutMe) > 1024 {
-		return gin_pulgin.Result{Code: 4, Msg: "关于我过长"}, nil
+		return ginx.Result{Code: 4, Msg: "关于我过长"}, nil
 	}
 	birthday, err := time.Parse(time.DateOnly, req.Birthday)
 	if err != nil {
-		return gin_pulgin.Result{Code: 4, Msg: "时间格式不对"}, nil
+		return ginx.Result{Code: 4, Msg: "时间格式不对"}, nil
 	}
 	uid, ok := ctx.Get("userId")
 	if !ok {
-		return gin_pulgin.Result{Code: 5, Msg: "系统错误"}, nil
+		return ginx.Result{Code: 5, Msg: "系统错误"}, nil
 	}
 	err = h.svc.EditNoSensitive(ctx, domain.User{
 		Id:       uid.(int64),
@@ -291,9 +291,9 @@ func (h *UserHandler) Edit(ctx *gin.Context, req EditRequest) (gin_pulgin.Result
 		Birthday: birthday,
 	})
 	if err != nil {
-		return gin_pulgin.Result{Code: 5, Msg: "系统错误"}, fmt.Errorf("修改个人信息出错 %d %w", uid.(int64), err)
+		return ginx.Result{Code: 5, Msg: "系统错误"}, fmt.Errorf("修改个人信息出错 %d %w", uid.(int64), err)
 	}
-	return gin_pulgin.Result{Msg: "修改成功"}, nil
+	return ginx.Result{Msg: "修改成功"}, nil
 }
 
 type Profile struct {
@@ -305,13 +305,13 @@ type Profile struct {
 	Ctime    string
 }
 
-func (h *UserHandler) Profile(ctx *gin.Context, uc ijwt.UserClaims) (gin_pulgin.Result, error) {
+func (h *UserHandler) Profile(ctx *gin.Context, uc ijwt.UserClaims) (ginx.Result, error) {
 	user, err := h.svc.Profile(ctx, uc.UserId)
 	if errors.Is(err, service.ErrUserNotFound) {
-		return gin_pulgin.Result{Msg: "用户不存在"}, nil
+		return ginx.Result{Msg: "用户不存在"}, nil
 	}
 	if err != nil {
-		return gin_pulgin.Result{Msg: "系统错误"}, nil
+		return ginx.Result{Msg: "系统错误"}, nil
 	}
 	profile := Profile{
 		Email:    user.Email,
@@ -321,5 +321,5 @@ func (h *UserHandler) Profile(ctx *gin.Context, uc ijwt.UserClaims) (gin_pulgin.
 		Birthday: user.Birthday.Format(time.DateOnly),
 		Ctime:    user.Ctime.Format(time.DateOnly),
 	}
-	return gin_pulgin.Result{Data: profile}, nil
+	return ginx.Result{Data: profile}, nil
 }

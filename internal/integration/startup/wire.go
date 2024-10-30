@@ -5,6 +5,10 @@ package startup
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
+	repository2 "webook/interactive/repository"
+	cache2 "webook/interactive/repository/cache"
+	dao2 "webook/interactive/repository/dao"
+	service2 "webook/interactive/service"
 	events "webook/internal/events/article"
 	"webook/internal/handler"
 	ijwt "webook/internal/handler/jwt"
@@ -20,7 +24,8 @@ import (
 var thirdPartySet = wire.NewSet(
 	NewSyncProducer,
 	InitKafka,
-	InitDB, InitRedis,
+	InitDB,
+	InitRedis,
 	InitLog,
 )
 
@@ -31,28 +36,28 @@ var userSvcProvider = wire.NewSet(
 	service.NewUserService,
 	handler.NewUserHandler)
 
-var interactiveSet = wire.NewSet(
-	service.NewInteractiveService,
-	repository.NewCachedInteractiveRepository,
-	dao.NewGORMInteractiveDao,
-	cache.NewRedisInteractiveCache,
-	events.NewKafkaProducer,
-)
-
 var articleSet = wire.NewSet(
 	handler.NewArticleHandler,
 	service.NewArticleService,
 	article.NewArticleRepository,
 	article2.NewGormArticleDao,
 	cache.NewRedisArticleCache,
+	events.NewKafkaProducer,
+)
+
+var interactiveSet = wire.NewSet(
+	service2.NewInteractiveService,
+	repository2.NewCachedInteractiveRepository,
+	dao2.NewGORMInteractiveDao,
+	cache2.NewRedisInteractiveCache,
 )
 
 func InitWebServer() *gin.Engine {
 	wire.Build(
 		thirdPartySet,
 		userSvcProvider,
-		interactiveSet,
 		articleSet,
+		interactiveSet,
 
 		// cache 部分
 		cache.NewCodeCache,
@@ -80,6 +85,7 @@ func InitWebServer() *gin.Engine {
 func InitArticleHandler(d article2.ArticleDao) *handler.ArticleHandler {
 	wire.Build(
 		thirdPartySet,
+		interactiveSet,
 		service.NewArticleService,
 		handler.NewArticleHandler,
 		article.NewArticleRepository,
@@ -89,19 +95,6 @@ func InitArticleHandler(d article2.ArticleDao) *handler.ArticleHandler {
 		cache.NewUserCache,
 		repository.NewCachedUserRepository,
 		events.NewKafkaProducer,
-
-		cache.NewRedisInteractiveCache,
-		dao.NewGORMInteractiveDao,
-		repository.NewCachedInteractiveRepository,
-		service.NewInteractiveService,
 	)
 	return &handler.ArticleHandler{}
-}
-
-func InitInteractiveService() service.InteractiveService {
-	wire.Build(
-		thirdPartySet,
-		interactiveSet,
-	)
-	return service.NewInteractiveService(nil)
 }

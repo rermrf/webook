@@ -5,8 +5,8 @@ import (
 	"time"
 	"webook/internal/domain"
 	"webook/internal/job"
-	"webook/internal/pkg/logger"
 	"webook/internal/service"
+	"webook/pkg/logger"
 )
 
 func InitScheduler(l logger.LoggerV1, svc service.JobService, local *job.LocalFuncExecutor) *job.Scheduler {

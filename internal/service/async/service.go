@@ -4,19 +4,19 @@ import (
 	"context"
 	"time"
 	"webook/internal/domain"
-	"webook/internal/pkg/logger"
 	"webook/internal/repository"
 	"webook/internal/service/sms"
+	logger2 "webook/pkg/logger"
 )
 
 type Service struct {
 	svc sms.Service
 	// 转异步，存储发送短信的请求
 	repo repository.AsyncSMSRepository
-	l    logger.LoggerV1
+	l    logger2.LoggerV1
 }
 
-func NewService(svc sms.Service, repo repository.AsyncSMSRepository, l logger.LoggerV1) *Service {
+func NewService(svc sms.Service, repo repository.AsyncSMSRepository, l logger2.LoggerV1) *Service {
 	res := &Service{
 		svc:  svc,
 		repo: repo,
@@ -53,17 +53,17 @@ func (s *Service) AsyncSend() {
 		if err != nil {
 			// 啥也不干
 			s.l.Error("执行异步发送短信失败",
-				logger.Error(err),
-				logger.Int64("id", as.Id))
+				logger2.Error(err),
+				logger2.Int64("id", as.Id))
 		}
 		res := err == nil
 		// 通知 repository 我这一次的执行结果
 		err = s.repo.ReportScheduleResult(ctx, as.Id, res)
 		if err != nil {
 			s.l.Error("执行异步发送短信成功，但是标记数据库失败",
-				logger.Error(err),
-				logger.Bool("res", res),
-				logger.Int64("id", as.Id))
+				logger2.Error(err),
+				logger2.Bool("res", res),
+				logger2.Int64("id", as.Id))
 		}
 	case repository.ErrWaitingSMSNotFound:
 		// 睡一秒
@@ -74,7 +74,7 @@ func (s *Service) AsyncSend() {
 		// 可以稍微睡眠，也可以不睡眠
 		// 睡眠的话可以帮你规避掉短时间的网络抖动问题
 		s.l.Error("抢占异步发送短信任务失败",
-			logger.Error(err))
+			logger2.Error(err))
 		time.Sleep(time.Second)
 	}
 

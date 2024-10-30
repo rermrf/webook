@@ -5,8 +5,8 @@ import (
 	rlock "github.com/gotomicro/redis-lock"
 	"sync"
 	"time"
-	"webook/internal/pkg/logger"
 	"webook/internal/service"
+	logger2 "webook/pkg/logger"
 )
 
 type RankingJob struct {
@@ -14,7 +14,7 @@ type RankingJob struct {
 	timeout   time.Duration
 	client    *rlock.Client
 	key       string
-	l         logger.LoggerV1
+	l         logger2.LoggerV1
 	lock      *rlock.Lock
 	localLock *sync.Mutex
 }
@@ -22,7 +22,7 @@ type RankingJob struct {
 func NewRankingJob(svc service.RankingService,
 	timeout time.Duration,
 	client *rlock.Client,
-	l logger.LoggerV1,
+	l logger2.LoggerV1,
 ) *RankingJob {
 	return &RankingJob{
 		svc: svc,
@@ -65,7 +65,7 @@ func (r *RankingJob) Run(ctx context.Context) error {
 			if er != nil {
 				// 不怎么办
 				// 争取下一次继续抢锁
-				r.l.Error("分布式锁续约失败", logger.Error(err))
+				r.l.Error("分布式锁续约失败", logger2.Error(err))
 			}
 			r.localLock.Lock()
 			r.lock = nil

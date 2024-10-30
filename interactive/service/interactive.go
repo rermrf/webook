@@ -3,11 +3,11 @@ package service
 import (
 	"context"
 	"golang.org/x/sync/errgroup"
-	"webook/internal/domain"
-	"webook/internal/repository"
+	"webook/interactive/domain"
+	"webook/interactive/repository"
 )
 
-//go:generate mockgen -source=./interactive.go -package=svcmocks -destination=mocks/interactive_mock.go InteractiveService
+//go:generate mockgen -source=./interactive.go -package=svcmocks -destination=../../internal/service/mocks/interactive_mock.go InteractiveService
 type InteractiveService interface {
 	IncrReadCnt(ctx context.Context, biz string, bizId int64) error
 	Like(ctx context.Context, biz string, bizId int64, uid int64) error

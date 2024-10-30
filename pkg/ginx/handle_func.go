@@ -1,4 +1,4 @@
-package gin_pulgin
+package ginx
 
 import (
 	"github.com/gin-gonic/gin"

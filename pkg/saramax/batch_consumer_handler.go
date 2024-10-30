@@ -5,19 +5,19 @@ import (
 	"encoding/json"
 	"github.com/IBM/sarama"
 	"time"
-	"webook/internal/pkg/logger"
+	logger2 "webook/pkg/logger"
 )
 
 // BatchHandler 批量消费接口
 type BatchHandler[T any] struct {
-	l  logger.LoggerV1
+	l  logger2.LoggerV1
 	fn func(msgs []*sarama.ConsumerMessage, t []T) error
 	// 用 option 模式来设置
 	batchSize     int
 	batchDuration time.Duration
 }
 
-func NewBatchHandler[T any](l logger.LoggerV1, fn func(msgs []*sarama.ConsumerMessage, t []T) error) *BatchHandler[T] {
+func NewBatchHandler[T any](l logger2.LoggerV1, fn func(msgs []*sarama.ConsumerMessage, t []T) error) *BatchHandler[T] {
 	return &BatchHandler[T]{
 		l:             l,
 		fn:            fn,
@@ -58,10 +58,10 @@ func (b *BatchHandler[T]) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 				err := json.Unmarshal(msg.Value, &t)
 				if err != nil {
 					b.l.Error("反序列化失败",
-						logger.Error(err),
-						logger.String("topic", msg.Topic),
-						logger.Int32("partition", msg.Partition),
-						logger.Int64("offset", msg.Offset))
+						logger2.Error(err),
+						logger2.String("topic", msg.Topic),
+						logger2.Int32("partition", msg.Partition),
+						logger2.Int64("offset", msg.Offset))
 					continue
 				}
 				msgs = append(msgs, msg)
@@ -75,7 +75,7 @@ func (b *BatchHandler[T]) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 		err := b.fn(msgs, ts)
 		if err != nil {
 			b.l.Error("调用业务批量接口失败",
-				logger.Error(err))
+				logger2.Error(err))
 
 			// 还要继续消费
 		}

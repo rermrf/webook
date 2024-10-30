@@ -2,10 +2,10 @@ package repository
 
 import (
 	"context"
-	"webook/internal/domain"
-	"webook/internal/pkg/logger"
-	"webook/internal/repository/cache"
-	"webook/internal/repository/dao"
+	"webook/interactive/domain"
+	"webook/interactive/repository/cache"
+	"webook/interactive/repository/dao"
+	"webook/pkg/logger"
 )
 
 type InteractiveRepository interface {

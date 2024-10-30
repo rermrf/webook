@@ -5,7 +5,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
-	"webook/internal/pkg/redisx"
+	"webook/pkg/redisx"
 )
 
 func InitRedis() redis.Cmdable {

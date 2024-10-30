@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"webook/internal/domain"
-	"webook/internal/pkg/logger"
+	logger2 "webook/pkg/logger"
 )
 
 var (
@@ -23,10 +23,10 @@ type service struct {
 	appId     string
 	appSecret string
 	//cmd       redis.Cmdable
-	l logger.LoggerV1
+	l logger2.LoggerV1
 }
 
-func NewService(appId string, appSecret string, l logger.LoggerV1) Service {
+func NewService(appId string, appSecret string, l logger2.LoggerV1) Service {
 	return &service{
 		appId:     appId,
 		appSecret: appSecret,
@@ -68,8 +68,8 @@ func (s *service) VerifyCode(ctx context.Context, code string, state string) (do
 	//	zap.String("unionID", res.UnionId),
 	//	zap.String("openID", res.OpenId))
 	s.l.Info("调用微信，拿到用户信息",
-		logger.String("unionID", res.UnionId),
-		logger.String("openID", res.OpenId),
+		logger2.String("unionID", res.UnionId),
+		logger2.String("openID", res.OpenId),
 	)
 
 	return domain.WechatInfo{

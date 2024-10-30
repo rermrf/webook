@@ -1,9 +1,9 @@
 package startup
 
 import (
-	"webook/internal/pkg/logger"
+	logger2 "webook/pkg/logger"
 )
 
-func InitLog() logger.LoggerV1 {
-	return &logger.NopLogger{}
+func InitLog() logger2.LoggerV1 {
+	return &logger2.NopLogger{}
 }

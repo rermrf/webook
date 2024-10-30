@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 	"webook/internal/domain"
-	"webook/internal/pkg/logger"
 	"webook/internal/repository"
+	logger2 "webook/pkg/logger"
 )
 
 // JobService 抢占式任务调度
@@ -22,7 +22,7 @@ type JobService interface {
 type cronJobService struct {
 	repo            repository.JobRepository
 	refreshInterval time.Duration
-	l               logger.LoggerV1
+	l               logger2.LoggerV1
 }
 
 func (p *cronJobService) Preempt(ctx context.Context) (domain.Job, error) {
@@ -72,7 +72,7 @@ func (p *cronJobService) refresh(id int64) {
 	err := p.repo.UpdateUtime(ctx, id)
 	if err != nil {
 		// 可以考虑重试
-		p.l.Error("续约失败", logger.Error(err), logger.Int64("jid", id))
+		p.l.Error("续约失败", logger2.Error(err), logger2.Int64("jid", id))
 	}
 }
 

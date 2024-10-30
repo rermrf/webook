@@ -7,7 +7,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"strconv"
 	"time"
-	"webook/internal/domain"
+	"webook/interactive/domain"
 )
 
 //go:embed lua/interactive_incr_cnt.lua

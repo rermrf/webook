@@ -12,13 +12,11 @@ import (
 	"webook/internal/handler"
 	ijwt "webook/internal/handler/jwt"
 	"webook/internal/handler/middleware"
-	gin_pulgin "webook/internal/pkg/gin-pulgin"
-	"webook/internal/pkg/gin-pulgin/middlewares/metric"
-	logger2 "webook/internal/pkg/logger"
-	"webook/internal/pkg/ratelimit"
-
-	//"webook/internal/pkg/gin-pulgin/middlewares/ratelimit"
-	limitbuilder "webook/internal/pkg/gin-pulgin/middlewares/ratelimit"
+	"webook/pkg/ginx"
+	"webook/pkg/ginx/middlewares/metric"
+	limitbuilder "webook/pkg/ginx/middlewares/ratelimit"
+	logger2 "webook/pkg/logger"
+	"webook/pkg/ratelimit"
 )
 
 func InitGin(mdls []gin.HandlerFunc, hdl *handler.UserHandler, oauth2WechatHdl *handler.OAuth2WechatHandler, articleHdl *handler.ArticleHandler) *gin.Engine {
@@ -42,7 +40,7 @@ func InitMiddlewares(redisClient redis.Cmdable, jwtHandler ijwt.Handler, l logge
 	//	bd.AllowReqBody(ok)
 	//})
 
-	gin_pulgin.InitCounter(prometheus.CounterOpts{
+	ginx.InitCounter(prometheus.CounterOpts{
 		Namespace: "emoji",
 		Subsystem: "webook",
 		Name:      "http_biz_code",

@@ -4,6 +4,11 @@ package main
 
 import (
 	"github.com/google/wire"
+	"webook/interactive/events"
+	repository2 "webook/interactive/repository"
+	cache2 "webook/interactive/repository/cache"
+	dao2 "webook/interactive/repository/dao"
+	service2 "webook/interactive/service"
 	article3 "webook/internal/events/article"
 	"webook/internal/handler"
 	ijwt "webook/internal/handler/jwt"
@@ -70,12 +75,12 @@ var ThirdPartySet = wire.NewSet(
 )
 
 var InteractiveSet = wire.NewSet(
-	service.NewInteractiveService,
-	repository.NewCachedInteractiveRepository,
-	dao.NewGORMInteractiveDao,
-	cache.NewRedisInteractiveCache,
+	service2.NewInteractiveService,
+	repository2.NewCachedInteractiveRepository,
+	dao2.NewGORMInteractiveDao,
+	cache2.NewRedisInteractiveCache,
 	//article3.NewInteractiveReadEventConsumer,
-	article3.NewInteractiveReadBatchConsumer,
+	events.NewInteractiveReadBatchConsumer,
 )
 
 var OAuth2Set = wire.NewSet(
@@ -94,6 +99,7 @@ var rankingServiceSet = wire.NewSet(
 	service.NewBatchRankingService,
 	repository.NewCachedRankingRepository,
 	cache.NewRankingRedisCache,
+	cache.NewRankingLocalCache,
 )
 
 func InitWebServer() *App {
@@ -117,6 +123,7 @@ func InitWebServer() *App {
 		rankingServiceSet,
 		ioc.InitRankingJob,
 		ioc.InitJob,
+		ioc.InitRLockClient,
 
 		wire.Struct(new(App), "*"),
 	)

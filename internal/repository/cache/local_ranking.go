@@ -19,7 +19,7 @@ type RankingLocalCache struct {
 	expiration time.Duration
 }
 
-func NewRankingLocalCache() RankingCache {
+func NewRankingLocalCache() *RankingLocalCache {
 	topN := &atomic.Value{}
 	ddl := &atomic.Value{}
 	topN.Store([]domain.Article{})

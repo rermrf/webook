@@ -1,4 +1,4 @@
-package gin_pulgin
+package ginx
 
 type Result struct {
 	Code int    `json:"code"`

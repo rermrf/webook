@@ -243,7 +243,13 @@ type Interactive struct {
 	BizId int64  `gorm:"uniqueIndex:biz_id_type"`
 	Biz   string `gorm:"uniqueIndex:biz_id_type;type:varchar(128)"`
 	// 阅读计数
-	ReadCnt    int64
+	ReadCnt int64
+	// 作业：就是直接在 LikeCnt上创建一个索引
+	// 解法1: 而后查询前 100 的，直接就命中索引，这样你前 100 次回表
+	// SELECT * FROM interactives ORDER BY like_cnt limit 0, 100
+	// 还有一种优化思路
+	// SELECT * FROM interactives WHERE like_cnt > 10000 ORDER BY like_cnt limit 0, 100
+	// 解法2: 如果你只需要 biz_id 和 biz_type，你就建立联合索引 <like_cnt, biz_id, biz>
 	LikeCnt    int64
 	CollectCnt int64
 	Ctime      int64

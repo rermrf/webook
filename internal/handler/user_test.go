@@ -13,9 +13,9 @@ import (
 	"net/http/httptest"
 	"testing"
 	"webook/internal/domain"
-	"webook/internal/pkg/logger"
 	"webook/internal/service"
 	svcmocks "webook/internal/service/mocks"
+	"webook/pkg/logger"
 )
 
 func TestEncrypt(t *testing.T) {

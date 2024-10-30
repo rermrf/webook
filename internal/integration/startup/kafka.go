@@ -2,8 +2,6 @@ package startup
 
 import (
 	"github.com/IBM/sarama"
-	"webook/internal/events"
-	"webook/internal/events/article"
 )
 
 func InitKafka() sarama.Client {
@@ -28,7 +26,3 @@ func NewSyncProducer(client sarama.Client) sarama.SyncProducer {
 //func NewConsumer(c1 *article.InteractiveReadEventConsumer) []events.Consumer {
 //	return []events.Consumer{c1}
 //}
-
-func NewConsumer(c1 *article.InteractiveReadBatchConsumer) []events.Consumer {
-	return []events.Consumer{c1}
-}

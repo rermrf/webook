@@ -7,21 +7,23 @@ import (
 	"golang.org/x/sync/errgroup"
 	"strconv"
 	"time"
+	domain2 "webook/interactive/domain"
+	service2 "webook/interactive/service"
 	"webook/internal/domain"
 	ijwt "webook/internal/handler/jwt"
-	"webook/internal/pkg/gin-pulgin"
-	"webook/internal/pkg/logger"
 	"webook/internal/service"
+	"webook/pkg/ginx"
+	"webook/pkg/logger"
 )
 
 type ArticleHandler struct {
 	svc     service.ArticleService
-	intrSvc service.InteractiveService
+	intrSvc service2.InteractiveService
 	l       logger.LoggerV1
 	biz     string
 }
 
-func NewArticleHandler(svc service.ArticleService, l logger.LoggerV1, intrSvc service.InteractiveService) *ArticleHandler {
+func NewArticleHandler(svc service.ArticleService, l logger.LoggerV1, intrSvc service2.InteractiveService) *ArticleHandler {
 	return &ArticleHandler{
 		svc:     svc,
 		intrSvc: intrSvc,
@@ -32,18 +34,18 @@ func NewArticleHandler(svc service.ArticleService, l logger.LoggerV1, intrSvc se
 
 func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 	g := server.Group("/articles")
-	g.POST("/edit", gin_pulgin.WrapBodyAndToken(h.l, h.Edit))
-	g.POST("/publish", gin_pulgin.WrapBodyAndToken(h.l, h.Publish))
-	g.POST("/withdraw", gin_pulgin.WrapBodyAndToken(h.l, h.Withdraw))
+	g.POST("/edit", ginx.WrapBodyAndToken(h.l, h.Edit))
+	g.POST("/publish", ginx.WrapBodyAndToken(h.l, h.Publish))
+	g.POST("/withdraw", ginx.WrapBodyAndToken(h.l, h.Withdraw))
 	// 创作者的查询接口
-	g.POST("/list", gin_pulgin.WrapBodyAndToken[ListReq, ijwt.UserClaims](h.l, h.List))
-	g.GET("/detail/:id", gin_pulgin.WrapClaims(h.l, h.Detail))
+	g.POST("/list", ginx.WrapBodyAndToken[ListReq, ijwt.UserClaims](h.l, h.List))
+	g.GET("/detail/:id", ginx.WrapClaims(h.l, h.Detail))
 
 	pub := g.Group("/pub")
-	pub.GET("/:id", gin_pulgin.WrapClaims(h.l, h.PubDetail))
+	pub.GET("/:id", ginx.WrapClaims(h.l, h.PubDetail))
 
-	pub.POST("/like", gin_pulgin.WrapBodyAndToken(h.l, h.Like))
-	pub.POST("/collect", gin_pulgin.WrapBodyAndToken[LikeReq, ijwt.UserClaims](h.l, h.Like))
+	pub.POST("/like", ginx.WrapBodyAndToken(h.l, h.Like))
+	pub.POST("/collect", ginx.WrapBodyAndToken[LikeReq, ijwt.UserClaims](h.l, h.Like))
 }
 
 //type ReaderHandler struct {
@@ -51,7 +53,7 @@ func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 //	pub.GET("/:id")
 //}
 
-func (h *ArticleHandler) Like(ctx *gin.Context, req LikeReq, uc ijwt.UserClaims) (gin_pulgin.Result, error) {
+func (h *ArticleHandler) Like(ctx *gin.Context, req LikeReq, uc ijwt.UserClaims) (ginx.Result, error) {
 	var err error
 	if req.Like {
 		err = h.intrSvc.Like(ctx, h.biz, req.Id, uc.UserId)
@@ -60,19 +62,19 @@ func (h *ArticleHandler) Like(ctx *gin.Context, req LikeReq, uc ijwt.UserClaims)
 	}
 
 	if err != nil {
-		return gin_pulgin.Result{
+		return ginx.Result{
 			Code: 5,
 			Msg:  "系统错误",
 		}, err
 	}
-	return gin_pulgin.Result{Msg: "OK"}, nil
+	return ginx.Result{Msg: "OK"}, nil
 }
 
-func (h *ArticleHandler) PubDetail(ctx *gin.Context, uc ijwt.UserClaims) (gin_pulgin.Result, error) {
+func (h *ArticleHandler) PubDetail(ctx *gin.Context, uc ijwt.UserClaims) (ginx.Result, error) {
 	idStr := ctx.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		return gin_pulgin.Result{
+		return ginx.Result{
 			Code: 4,
 			Msg:  "参数错误",
 		}, errors.New("前端输入的 ID 不对")
@@ -88,7 +90,7 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context, uc ijwt.UserClaims) (gin_pu
 
 	// 要在这里获得这篇文章的全部计数
 	// 可以容忍这个错误
-	var intr domain.Interactive
+	var intr domain2.Interactive
 	eg.Go(func() error {
 		intr, err = h.intrSvc.Get(ctx, h.biz, id, uc.UserId)
 		if err != nil {
@@ -103,7 +105,7 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context, uc ijwt.UserClaims) (gin_pu
 	err = eg.Wait()
 	if err != nil {
 		// 代表查询出错了
-		return gin_pulgin.Result{
+		return ginx.Result{
 			Code: 5,
 			Msg:  "系统错误",
 		}, errors.New("获得文章信息失败")
@@ -118,7 +120,7 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context, uc ijwt.UserClaims) (gin_pu
 	//}()
 
 	// 这个功能是不是可以让前端，主动发一个 HTTP 请求，来增加一个计数？
-	return gin_pulgin.Result{
+	return ginx.Result{
 		Data: ArticleVO{
 			Id:      art.Id,
 			Title:   art.Title,
@@ -138,31 +140,31 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context, uc ijwt.UserClaims) (gin_pu
 	}, nil
 }
 
-func (h *ArticleHandler) Detail(ctx *gin.Context, uc ijwt.UserClaims) (gin_pulgin.Result, error) {
+func (h *ArticleHandler) Detail(ctx *gin.Context, uc ijwt.UserClaims) (ginx.Result, error) {
 	idStr := ctx.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
 		h.l.Error("前端输入的 ID 不对", logger.Error(err))
-		return gin_pulgin.Result{
+		return ginx.Result{
 			Code: 4,
 			Msg:  "参数错误",
 		}, err
 	}
 	art, err := h.svc.GetById(ctx, int64(id))
 	if err != nil {
-		return gin_pulgin.Result{
+		return ginx.Result{
 			Code: 5,
 			Msg:  "系统错误",
 		}, err
 	}
 	if art.Author.Id != uc.UserId {
-		return gin_pulgin.Result{
+		return ginx.Result{
 			Code: 4,
 			// 不需要告诉前端究竟发生了什么
 			Msg: "输入有误",
 		}, fmt.Errorf("非法访问文章，创作者 ID 不匹配 %d", uc.UserId)
 	}
-	return gin_pulgin.Result{
+	return ginx.Result{
 		Data: ArticleVO{
 			Id:    art.Id,
 			Title: art.Title,
@@ -179,7 +181,7 @@ func (h *ArticleHandler) Detail(ctx *gin.Context, uc ijwt.UserClaims) (gin_pulgi
 	}, nil
 }
 
-func (h *ArticleHandler) Withdraw(ctx *gin.Context, req WithdrawReq, uc ijwt.UserClaims) (gin_pulgin.Result, error) {
+func (h *ArticleHandler) Withdraw(ctx *gin.Context, req WithdrawReq, uc ijwt.UserClaims) (ginx.Result, error) {
 	err := h.svc.WithDraw(ctx, domain.Article{
 		Id: req.Id,
 		Author: domain.Author{
@@ -187,38 +189,38 @@ func (h *ArticleHandler) Withdraw(ctx *gin.Context, req WithdrawReq, uc ijwt.Use
 		},
 	})
 	if err != nil {
-		return gin_pulgin.Result{Code: 5, Msg: "系统错误"}, fmt.Errorf("撤回帖子失败 %w", err)
+		return ginx.Result{Code: 5, Msg: "系统错误"}, fmt.Errorf("撤回帖子失败 %w", err)
 	}
-	return gin_pulgin.Result{Msg: "OK", Data: req.Id}, nil
+	return ginx.Result{Msg: "OK", Data: req.Id}, nil
 }
 
-func (h *ArticleHandler) Publish(ctx *gin.Context, req ArticleReq, uc ijwt.UserClaims) (gin_pulgin.Result, error) {
+func (h *ArticleHandler) Publish(ctx *gin.Context, req ArticleReq, uc ijwt.UserClaims) (ginx.Result, error) {
 	id, err := h.svc.Publish(ctx, req.toDomain(req, &uc))
 	if err != nil {
-		return gin_pulgin.Result{Code: 5, Msg: "系统错误"}, fmt.Errorf("发表帖子失败 %w", err)
+		return ginx.Result{Code: 5, Msg: "系统错误"}, fmt.Errorf("发表帖子失败 %w", err)
 	}
-	return gin_pulgin.Result{Msg: "OK", Data: id}, nil
+	return ginx.Result{Msg: "OK", Data: id}, nil
 }
 
-func (h *ArticleHandler) Edit(ctx *gin.Context, req ArticleReq, uc ijwt.UserClaims) (gin_pulgin.Result, error) {
+func (h *ArticleHandler) Edit(ctx *gin.Context, req ArticleReq, uc ijwt.UserClaims) (ginx.Result, error) {
 	// TODO: 检测输入
 	// 调用 service 的代码
 	id, err := h.svc.Save(ctx, req.toDomain(req, &uc))
 	if err != nil {
-		return gin_pulgin.Result{Code: 5, Msg: "系统错误"}, fmt.Errorf("保存帖子失败 %w", err)
+		return ginx.Result{Code: 5, Msg: "系统错误"}, fmt.Errorf("保存帖子失败 %w", err)
 	}
-	return gin_pulgin.Result{Msg: "OK", Data: id}, nil
+	return ginx.Result{Msg: "OK", Data: id}, nil
 }
 
-func (h *ArticleHandler) List(ctx *gin.Context, req ListReq, uc ijwt.UserClaims) (gin_pulgin.Result, error) {
+func (h *ArticleHandler) List(ctx *gin.Context, req ListReq, uc ijwt.UserClaims) (ginx.Result, error) {
 	res, err := h.svc.List(ctx, uc.UserId, req.Offset, req.Limit)
 	if err != nil {
-		return gin_pulgin.Result{Code: 5, Msg: "系统错误"}, nil
+		return ginx.Result{Code: 5, Msg: "系统错误"}, nil
 	}
 	// 在列表页，不显示全文，只显示一个"摘要"
 	// 比如说，简单的摘要就是前几句话
 	// 强大的摘要是 AI 帮你生成的
-	return gin_pulgin.Result{
+	return ginx.Result{
 		Data: req.articlesToVO(res),
 	}, err
 }

@@ -9,9 +9,9 @@ import (
 	"log"
 	"testing"
 	"webook/internal/domain"
-	"webook/internal/pkg/logger"
 	"webook/internal/repository"
 	repomocks "webook/internal/repository/mocks"
+	"webook/pkg/logger"
 )
 
 func TestUserServiceImpl_SignUp(t *testing.T) {

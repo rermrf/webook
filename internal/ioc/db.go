@@ -9,11 +9,12 @@ import (
 	"gorm.io/plugin/opentelemetry/tracing"
 	"gorm.io/plugin/prometheus"
 	"time"
-	"webook/internal/pkg/logger"
+	dao2 "webook/interactive/repository/dao"
 	"webook/internal/repository/dao"
+	logger2 "webook/pkg/logger"
 )
 
-func InitDB(l logger.LoggerV1) *gorm.DB {
+func InitDB(l logger2.LoggerV1) *gorm.DB {
 	type Config struct {
 		DSN string `yaml:"dsn"`
 	}
@@ -69,7 +70,7 @@ func InitDB(l logger.LoggerV1) *gorm.DB {
 	db.Use(tracing.NewPlugin(tracing.WithDBName("webook"),
 		tracing.WithQueryFormatter(
 			func(query string) string {
-				l.Debug("", logger.String("query", query))
+				l.Debug("", logger2.String("query", query))
 				return query
 			}),
 		// 不要记录 metrics 部分
@@ -79,6 +80,11 @@ func InitDB(l logger.LoggerV1) *gorm.DB {
 	))
 
 	err = dao.InitTables(db)
+	if err != nil {
+		panic(err)
+	}
+
+	err = dao2.InitTables(db)
 	if err != nil {
 		panic(err)
 	}
@@ -208,10 +214,10 @@ func (c *Callbacks) after(typ string) func(db *gorm.DB) {
 	}
 }
 
-type gormLoggerFunc func(msg string, fields ...logger.Field)
+type gormLoggerFunc func(msg string, fields ...logger2.Field)
 
 func (g gormLoggerFunc) Printf(msg string, args ...interface{}) {
-	g(msg, logger.Field{Key: "args", Value: args})
+	g(msg, logger2.Field{Key: "args", Value: args})
 }
 
 // 只有单方法的接口可以这样用

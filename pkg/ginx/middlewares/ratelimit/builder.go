@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"webook/internal/pkg/ratelimit"
+	"webook/pkg/ratelimit"
 
 	"github.com/gin-gonic/gin"
 )

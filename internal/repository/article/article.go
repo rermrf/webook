@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 	"webook/internal/domain"
-	"webook/internal/pkg/logger"
 	"webook/internal/repository"
 	"webook/internal/repository/cache"
 	dao "webook/internal/repository/dao/article"
+	logger2 "webook/pkg/logger"
 )
 
 type ArticleRepository interface {
@@ -27,10 +27,10 @@ type CachedArticleRepository struct {
 	dao      dao.ArticleDao
 	userRepo repository.UserRepository
 	cache    cache.ArticleCache
-	l        logger.LoggerV1
+	l        logger2.LoggerV1
 }
 
-func NewArticleRepository(dao dao.ArticleDao, cache cache.ArticleCache, l logger.LoggerV1, userRepo repository.UserRepository) ArticleRepository {
+func NewArticleRepository(dao dao.ArticleDao, cache cache.ArticleCache, l logger2.LoggerV1, userRepo repository.UserRepository) ArticleRepository {
 	return &CachedArticleRepository{
 		dao:      dao,
 		userRepo: userRepo,
@@ -88,7 +88,7 @@ func (r *CachedArticleRepository) GetById(ctx context.Context, id int64) (domain
 		er := r.cache.Set(ctx, id, res)
 		if er != nil {
 			// 记录日志
-			r.l.Error("缓存设置错误", logger.Error(err))
+			r.l.Error("缓存设置错误", logger2.Error(err))
 		}
 	}()
 	return res, nil
@@ -116,7 +116,7 @@ func (r *CachedArticleRepository) List(ctx context.Context, uid int64, offset in
 	// 回写缓存的时候，可以同步，也可以异步
 	go func() {
 		err := r.cache.SetFirstPage(ctx, uid, data)
-		r.l.Error("回写缓存失败", logger.Error(err))
+		r.l.Error("回写缓存失败", logger2.Error(err))
 		// 缓存预加载
 		// 用户在查看自己的文章列表时大概率会查看自己的最新发布或修改的文章
 		r.preCache(ctx, data)
@@ -129,7 +129,7 @@ func (r *CachedArticleRepository) SyncStatus(ctx context.Context, id int64, auth
 		// 清空缓存
 		err := r.cache.DelFirstPage(ctx, author)
 		if err != nil {
-			r.l.Error("清除缓存失败", logger.Error(err))
+			r.l.Error("清除缓存失败", logger2.Error(err))
 		}
 	}()
 	return r.dao.SyncStatus(ctx, id, author, status.ToUint8())
@@ -159,7 +159,7 @@ func (r *CachedArticleRepository) Create(ctx context.Context, art domain.Article
 		// 清空缓存
 		err := r.cache.DelFirstPage(ctx, art.Author.Id)
 		if err != nil {
-			r.l.Error("清除缓存失败", logger.Error(err))
+			r.l.Error("清除缓存失败", logger2.Error(err))
 		}
 	}()
 	return r.dao.Insert(ctx, r.toEntity(art))
@@ -170,7 +170,7 @@ func (r *CachedArticleRepository) Update(ctx context.Context, art domain.Article
 		// 清空缓存
 		err := r.cache.DelFirstPage(ctx, art.Author.Id)
 		if err != nil {
-			r.l.Error("清除缓存失败", logger.Error(err))
+			r.l.Error("清除缓存失败", logger2.Error(err))
 		}
 	}()
 	return r.dao.UpdateById(ctx, r.toEntity(art))
@@ -190,7 +190,7 @@ func (r *CachedArticleRepository) preCache(ctx context.Context, data []domain.Ar
 	if len(data) > 0 && len(data[0].Content) < 1024*1024 {
 		err := r.cache.Set(ctx, data[0].Id, data[0])
 		if err != nil {
-			r.l.Error("提前预加载缓存失败", logger.Error(err))
+			r.l.Error("提前预加载缓存失败", logger2.Error(err))
 		}
 	}
 }

@@ -7,9 +7,9 @@ import (
 	"go.uber.org/mock/gomock"
 	"testing"
 	"webook/internal/domain"
-	"webook/internal/pkg/logger"
 	"webook/internal/repository/article"
 	artrepomocks "webook/internal/repository/article/mocks"
+	"webook/pkg/logger"
 )
 
 func Test_articleService_Publish(t *testing.T) {

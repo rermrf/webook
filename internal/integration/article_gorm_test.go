@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -15,6 +16,7 @@ import (
 	ijwt "webook/internal/handler/jwt"
 	"webook/internal/integration/startup"
 	"webook/internal/repository/dao/article"
+	"webook/pkg/ginx"
 )
 
 // ArticleTestSuite 测试套件
@@ -27,6 +29,14 @@ type ArticleTestSuite struct {
 func (s *ArticleTestSuite) SetupSuite() {
 	//s.server = startup.InitWebServer()
 	s.server = gin.Default()
+
+	ginx.InitCounter(prometheus.CounterOpts{
+		Namespace: "emoji",
+		Subsystem: "webook",
+		Name:      "http_biz_code",
+		Help:      "HTTP 的业务错误码",
+	})
+
 	// 模拟用户登录
 	s.server.Use(func(ctx *gin.Context) {
 		ctx.Set("claims", &ijwt.UserClaims{

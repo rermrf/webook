@@ -5,8 +5,8 @@ import (
 	"errors"
 	"go.uber.org/zap"
 	"webook/internal/domain"
-	"webook/internal/pkg/logger"
 	"webook/internal/repository"
+	logger2 "webook/pkg/logger"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -26,10 +26,10 @@ type UserService interface {
 
 type UserServiceImpl struct {
 	repo repository.UserRepository
-	l    logger.LoggerV1
+	l    logger2.LoggerV1
 }
 
-func NewUserService(repo repository.UserRepository, l logger.LoggerV1) UserService {
+func NewUserService(repo repository.UserRepository, l logger2.LoggerV1) UserService {
 	return &UserServiceImpl{
 		repo: repo,
 		l:    l,
@@ -96,7 +96,7 @@ func (svc *UserServiceImpl) FindOrCreate(ctx context.Context, phone string) (dom
 	// phone 脱敏后拿出来
 	//zap.L().Info("手机用户未注册", zap.String("phone", phone))
 	//svc.logger.Info("手机用户未注册", zap.String("phone", phone))
-	svc.l.Info("用户未注册", logger.String("phone", phone))
+	svc.l.Info("用户未注册", logger2.String("phone", phone))
 
 	// 在系统资源不足，触发降级之后，不执行慢路径了，优先服务已经注册的用户，防止系统崩溃
 	//if ctx.Value("降级") == true {

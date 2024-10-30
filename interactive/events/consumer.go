@@ -1,12 +1,12 @@
-package article
+package events
 
 import (
 	"context"
 	"github.com/IBM/sarama"
 	"time"
-	"webook/internal/pkg/logger"
-	"webook/internal/pkg/saramax"
-	"webook/internal/repository"
+	"webook/interactive/repository"
+	"webook/pkg/logger"
+	"webook/pkg/saramax"
 )
 
 type InteractiveReadEventConsumer struct {

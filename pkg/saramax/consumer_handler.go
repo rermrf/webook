@@ -3,15 +3,15 @@ package saramax
 import (
 	"encoding/json"
 	"github.com/IBM/sarama"
-	"webook/internal/pkg/logger"
+	logger2 "webook/pkg/logger"
 )
 
 type Handler[T any] struct {
-	l  logger.LoggerV1
+	l  logger2.LoggerV1
 	fn func(msg *sarama.ConsumerMessage, t T) error
 }
 
-func NewHandler[T any](l logger.LoggerV1, fn func(msg *sarama.ConsumerMessage, t T) error) *Handler[T] {
+func NewHandler[T any](l logger2.LoggerV1, fn func(msg *sarama.ConsumerMessage, t T) error) *Handler[T] {
 	return &Handler[T]{
 		l:  l,
 		fn: fn,
@@ -34,10 +34,10 @@ func (h Handler[T]) ConsumeClaim(session sarama.ConsumerGroupSession, claim sara
 		if err != nil {
 			// 打日志
 			h.l.Error("反序列化消息失败",
-				logger.Error(err),
-				logger.String("topic", msg.Topic),
-				logger.Int32("partition", msg.Partition),
-				logger.Int64("offset", msg.Offset),
+				logger2.Error(err),
+				logger2.String("topic", msg.Topic),
+				logger2.Int32("partition", msg.Partition),
+				logger2.Int64("offset", msg.Offset),
 			)
 			continue
 		}
@@ -50,19 +50,19 @@ func (h Handler[T]) ConsumeClaim(session sarama.ConsumerGroupSession, claim sara
 				break
 			}
 			h.l.Error("处理消息失败",
-				logger.Error(err),
-				logger.String("topic", msg.Topic),
-				logger.Int32("partition", msg.Partition),
-				logger.Int64("offset", msg.Offset),
+				logger2.Error(err),
+				logger2.String("topic", msg.Topic),
+				logger2.Int32("partition", msg.Partition),
+				logger2.Int64("offset", msg.Offset),
 			)
 		}
 
 		if err != nil {
 			h.l.Error("处理消息失败-重试次数上限",
-				logger.Error(err),
-				logger.String("topic", msg.Topic),
-				logger.Int32("partition", msg.Partition),
-				logger.Int64("offset", msg.Offset),
+				logger2.Error(err),
+				logger2.String("topic", msg.Topic),
+				logger2.Int32("partition", msg.Partition),
+				logger2.Int64("offset", msg.Offset),
 			)
 		} else {
 			session.MarkMessage(msg, "")

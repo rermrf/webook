@@ -3,8 +3,8 @@ package ratelimit
 import (
 	"context"
 	"fmt"
-	"webook/internal/pkg/ratelimit"
 	"webook/internal/service/sms"
+	"webook/pkg/ratelimit"
 )
 
 var errLimited = fmt.Errorf("触发了限流")

@@ -2,8 +2,8 @@ package ioc
 
 import (
 	"os"
-	"webook/internal/pkg/logger"
 	"webook/internal/service/oauth2/wechat"
+	"webook/pkg/logger"
 )
 
 func InitOAuth2WechatService(l logger.LoggerV1) wechat.Service {

@@ -9,6 +9,10 @@ package startup
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
+	repository2 "webook/interactive/repository"
+	cache2 "webook/interactive/repository/cache"
+	dao2 "webook/interactive/repository/dao"
+	service2 "webook/interactive/service"
 	article3 "webook/internal/events/article"
 	"webook/internal/handler"
 	"webook/internal/handler/jwt"
@@ -47,10 +51,10 @@ func InitWebServer() *gin.Engine {
 	syncProducer := NewSyncProducer(client)
 	producer := article3.NewKafkaProducer(syncProducer)
 	articleService := service.NewArticleService(articleRepository, loggerV1, producer)
-	interactiveDao := dao.NewGORMInteractiveDao(db)
-	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
-	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDao, interactiveCache, loggerV1)
-	interactiveService := service.NewInteractiveService(interactiveRepository)
+	interactiveDao := dao2.NewGORMInteractiveDao(db)
+	interactiveCache := cache2.NewRedisInteractiveCache(cmdable)
+	interactiveRepository := repository2.NewCachedInteractiveRepository(interactiveDao, interactiveCache, loggerV1)
+	interactiveService := service2.NewInteractiveService(interactiveRepository)
 	articleHandler := handler.NewArticleHandler(articleService, loggerV1, interactiveService)
 	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler)
 	return engine
@@ -69,23 +73,12 @@ func InitArticleHandler(d article.ArticleDao) *handler.ArticleHandler {
 	syncProducer := NewSyncProducer(client)
 	producer := article3.NewKafkaProducer(syncProducer)
 	articleService := service.NewArticleService(articleRepository, loggerV1, producer)
-	interactiveDao := dao.NewGORMInteractiveDao(db)
-	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
-	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDao, interactiveCache, loggerV1)
-	interactiveService := service.NewInteractiveService(interactiveRepository)
+	interactiveDao := dao2.NewGORMInteractiveDao(db)
+	interactiveCache := cache2.NewRedisInteractiveCache(cmdable)
+	interactiveRepository := repository2.NewCachedInteractiveRepository(interactiveDao, interactiveCache, loggerV1)
+	interactiveService := service2.NewInteractiveService(interactiveRepository)
 	articleHandler := handler.NewArticleHandler(articleService, loggerV1, interactiveService)
 	return articleHandler
-}
-
-func InitInteractiveService() service.InteractiveService {
-	db := InitDB()
-	interactiveDao := dao.NewGORMInteractiveDao(db)
-	cmdable := InitRedis()
-	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
-	loggerV1 := InitLog()
-	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDao, interactiveCache, loggerV1)
-	interactiveService := service.NewInteractiveService(interactiveRepository)
-	return interactiveService
 }
 
 // wire.go:
@@ -93,12 +86,13 @@ func InitInteractiveService() service.InteractiveService {
 var thirdPartySet = wire.NewSet(
 	NewSyncProducer,
 	InitKafka,
-	InitDB, InitRedis,
+	InitDB,
+	InitRedis,
 	InitLog,
 )
 
 var userSvcProvider = wire.NewSet(dao.NewUserDao, cache.NewUserCache, repository.NewCachedUserRepository, service.NewUserService, handler.NewUserHandler)
 
-var interactiveSet = wire.NewSet(service.NewInteractiveService, repository.NewCachedInteractiveRepository, dao.NewGORMInteractiveDao, cache.NewRedisInteractiveCache, article3.NewKafkaProducer)
+var articleSet = wire.NewSet(handler.NewArticleHandler, service.NewArticleService, article2.NewArticleRepository, article.NewGormArticleDao, cache.NewRedisArticleCache, article3.NewKafkaProducer)
 
-var articleSet = wire.NewSet(handler.NewArticleHandler, service.NewArticleService, article2.NewArticleRepository, article.NewGormArticleDao, cache.NewRedisArticleCache)
+var interactiveSet = wire.NewSet(service2.NewInteractiveService, repository2.NewCachedInteractiveRepository, dao2.NewGORMInteractiveDao, cache2.NewRedisInteractiveCache)

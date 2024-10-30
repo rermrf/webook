@@ -1,4 +1,4 @@
-package gin_pulgin
+package ginx
 
 import (
 	"github.com/gin-gonic/gin"
@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	ijwt "webook/internal/handler/jwt"
-	"webook/internal/pkg/logger"
+	"webook/pkg/logger"
 )
 
 // L 使用包变量

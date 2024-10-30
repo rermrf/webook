@@ -8,17 +8,17 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"strconv"
 	"time"
-	"webook/internal/pkg/logger"
+	logger2 "webook/pkg/logger"
 )
 
 // CronJobBuilder 使用summaryVec对不同的job进行监控
 type CronJobBuilder struct {
-	l      logger.LoggerV1
+	l      logger2.LoggerV1
 	p      *prometheus.SummaryVec
 	tracer trace.Tracer
 }
 
-func NewCronJobBuilder(l logger.LoggerV1) *CronJobBuilder {
+func NewCronJobBuilder(l logger2.LoggerV1) *CronJobBuilder {
 	opt := prometheus.SummaryOpts{
 		Namespace: "emoji",
 		Subsystem: "webook",
@@ -40,10 +40,10 @@ func (b *CronJobBuilder) Build(job Job) cron.Job {
 		ctx, span := b.tracer.Start(context.Background(), name)
 		defer span.End()
 		start := time.Now()
-		b.l.Info("任务开始", logger.String("job", name))
+		b.l.Info("任务开始", logger2.String("job", name))
 		var success bool
 		defer func() {
-			b.l.Info("任务结束", logger.String("job", name))
+			b.l.Info("任务结束", logger2.String("job", name))
 			duration := time.Since(start)
 			b.p.WithLabelValues(name, strconv.FormatBool(success)).Observe(float64(duration))
 		}()
@@ -51,7 +51,7 @@ func (b *CronJobBuilder) Build(job Job) cron.Job {
 		success = err == nil
 		if err != nil {
 			span.RecordError(err)
-			b.l.Error("运行任务失败", logger.String("job", job.Name()), logger.Error(err))
+			b.l.Error("运行任务失败", logger2.String("job", job.Name()), logger2.Error(err))
 		}
 		return nil
 	})

@@ -5,8 +5,8 @@ import (
 	"time"
 	"webook/internal/domain"
 	events "webook/internal/events/article"
-	"webook/internal/pkg/logger"
 	"webook/internal/repository/article"
+	logger2 "webook/pkg/logger"
 )
 
 //go:generate mockgen -source=./article.go -package=svcmocks -destination=mocks/article_mock.go ArticleService
@@ -28,7 +28,7 @@ type articleService struct {
 	// v1 依靠两个不同的 repository 来解决这种跨表，或者夸库的问题
 	author   article.ArticleAuthorRepository
 	reader   article.ArticleReaderRepository
-	l        logger.LoggerV1
+	l        logger2.LoggerV1
 	producer events.Producer
 
 	ch chan readInfo
@@ -39,7 +39,7 @@ type readInfo struct {
 	aid int64
 }
 
-func NewArticleService(repo article.ArticleRepository, l logger.LoggerV1, producer events.Producer) ArticleService {
+func NewArticleService(repo article.ArticleRepository, l logger2.LoggerV1, producer events.Producer) ArticleService {
 	return &articleService{
 		repo:     repo,
 		l:        l,
@@ -48,7 +48,7 @@ func NewArticleService(repo article.ArticleRepository, l logger.LoggerV1, produc
 	}
 }
 
-func NewArticleServiceV2(repo article.ArticleRepository, l logger.LoggerV1, producer events.Producer) ArticleService {
+func NewArticleServiceV2(repo article.ArticleRepository, l logger2.LoggerV1, producer events.Producer) ArticleService {
 	ch := make(chan readInfo, 10)
 	go func() {
 		uids := make([]int64, 0, 10)
@@ -83,7 +83,7 @@ func NewArticleServiceV2(repo article.ArticleRepository, l logger.LoggerV1, prod
 	}
 }
 
-func NewArticleServiceV1(author article.ArticleAuthorRepository, reader article.ArticleReaderRepository, l logger.LoggerV1) ArticleService {
+func NewArticleServiceV1(author article.ArticleAuthorRepository, reader article.ArticleReaderRepository, l logger2.LoggerV1) ArticleService {
 	return &articleService{
 		author: author,
 		reader: reader,
@@ -107,7 +107,7 @@ func (s *articleService) GetPublishedById(ctx context.Context, id, uid int64) (d
 				Aid: art.Id,
 			})
 			if er != nil {
-				s.l.Error("发送读者阅读时间失败", logger.Error(err), logger.Int64("uid", uid), logger.Int64("artId", art.Id))
+				s.l.Error("发送读者阅读时间失败", logger2.Error(err), logger2.Int64("uid", uid), logger2.Int64("artId", art.Id))
 				return
 			}
 		}()
@@ -167,10 +167,10 @@ func (s *articleService) PublishV1(ctx context.Context, article domain.Article) 
 		if err == nil {
 			break
 		}
-		s.l.Error("部分失败，保存到线上库失败", logger.Int64("art_id", id), logger.Error(err))
+		s.l.Error("部分失败，保存到线上库失败", logger2.Int64("art_id", id), logger2.Error(err))
 	}
 	if err != nil {
-		s.l.Error("部分失败，重试彻底失败", logger.Int64("art_id", id), logger.Error(err))
+		s.l.Error("部分失败，重试彻底失败", logger2.Int64("art_id", id), logger2.Error(err))
 		// 接入告警系统，手工处理一下
 		// 走异步，直接保存到本地文件
 		// 走 canal
