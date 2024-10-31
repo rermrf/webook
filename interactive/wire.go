@@ -1,10 +1,12 @@
 //go:build wireinject
 
-package startup
+package main
 
 import (
 	"github.com/google/wire"
+	"webook/interactive/events"
 	"webook/interactive/grpc"
+	"webook/interactive/ioc"
 	"webook/interactive/repository"
 	"webook/interactive/repository/cache"
 	"webook/interactive/repository/dao"
@@ -12,32 +14,28 @@ import (
 )
 
 var thirdPartySet = wire.NewSet(
-	InitDB,
-	InitRedis,
-	InitLog,
+	ioc.InitDB,
+	ioc.InitLogger,
+	ioc.InitKafka,
+	ioc.InitRedis,
 )
 
 var interactiveSet = wire.NewSet(
+	grpc.NewInteractiveServiceServer,
 	service.NewInteractiveService,
 	repository.NewCachedInteractiveRepository,
 	dao.NewGORMInteractiveDao,
 	cache.NewRedisInteractiveCache,
 )
 
-func InitInteractiveService() service.InteractiveService {
+func InitApp() *App {
 	wire.Build(
-		thirdPartySet,
 		interactiveSet,
-	)
-	return service.NewInteractiveService(nil)
-}
-
-// 测试 server
-func InitInteractiveGRPCServer() *grpc.InteractiveServiceServer {
-	wire.Build(
 		thirdPartySet,
-		interactiveSet,
-		grpc.NewInteractiveServiceServer,
+		ioc.NewConsumers,
+		ioc.InitGRPCServer,
+		events.NewInteractiveReadEventConsumer,
+		wire.Struct(new(App), "*"),
 	)
-	return new(grpc.InteractiveServiceServer)
+	return new(App)
 }

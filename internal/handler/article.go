@@ -7,8 +7,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"strconv"
 	"time"
-	domain2 "webook/interactive/domain"
-	service2 "webook/interactive/service"
+	intrv1 "webook/api/proto/gen/intr/v1"
 	"webook/internal/domain"
 	ijwt "webook/internal/handler/jwt"
 	"webook/internal/service"
@@ -40,12 +39,12 @@ import (
 
 type ArticleHandler struct {
 	svc     service.ArticleService
-	intrSvc service2.InteractiveService
+	intrSvc intrv1.InteractiveServiceClient
 	l       logger.LoggerV1
 	biz     string
 }
 
-func NewArticleHandler(svc service.ArticleService, l logger.LoggerV1, intrSvc service2.InteractiveService) *ArticleHandler {
+func NewArticleHandler(svc service.ArticleService, l logger.LoggerV1, intrSvc intrv1.InteractiveServiceClient) *ArticleHandler {
 	return &ArticleHandler{
 		svc:     svc,
 		intrSvc: intrSvc,
@@ -78,9 +77,17 @@ func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 func (h *ArticleHandler) Like(ctx *gin.Context, req LikeReq, uc ijwt.UserClaims) (ginx.Result, error) {
 	var err error
 	if req.Like {
-		err = h.intrSvc.Like(ctx, h.biz, req.Id, uc.UserId)
+		_, err = h.intrSvc.Like(ctx.Request.Context(), &intrv1.LikeRequest{
+			Biz:   h.biz,
+			BizId: req.Id,
+			Uid:   uc.UserId,
+		})
 	} else {
-		err = h.intrSvc.CancelLike(ctx, h.biz, req.Id, uc.UserId)
+		_, err = h.intrSvc.CancelLike(ctx.Request.Context(), &intrv1.CancelLikeRequest{
+			Biz:   h.biz,
+			BizId: req.Id,
+			Uid:   uc.UserId,
+		})
 	}
 
 	if err != nil {
@@ -112,15 +119,18 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context, uc ijwt.UserClaims) (ginx.R
 
 	// 要在这里获得这篇文章的全部计数
 	// 可以容忍这个错误
-	var intr domain2.Interactive
+	var getResp *intrv1.GetResponse
 	eg.Go(func() error {
-		intr, err = h.intrSvc.Get(ctx, h.biz, id, uc.UserId)
+		getResp, err = h.intrSvc.Get(ctx.Request.Context(), &intrv1.GetRequest{
+			Biz:   h.biz,
+			BizId: id,
+			Uid:   uc.UserId,
+		})
 		if err != nil {
 			// 几率日志
 			h.l.Error("查询文章相关数据失败", logger.Error(err))
 		}
 		return nil
-		//return err
 	})
 
 	// 等待
@@ -140,6 +150,8 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context, uc ijwt.UserClaims) (ginx.R
 	//		h.l.Error("增加阅读计数失败", logger.Int64("artId", art.Id), logger.Error(er))
 	//	}
 	//}()
+
+	intr := getResp.Intr
 
 	// 这个功能是不是可以让前端，主动发一个 HTTP 请求，来增加一个计数？
 	return ginx.Result{

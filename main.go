@@ -72,6 +72,7 @@ func initPrometheus() {
 	}()
 }
 
+// 不使用依赖注入的时候使用
 func initLogger() {
 	logger, err := zap.NewDevelopment()
 	if err != nil {

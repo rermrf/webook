@@ -8,6 +8,7 @@ package startup
 
 import (
 	"github.com/google/wire"
+	"webook/interactive/grpc"
 	"webook/interactive/repository"
 	"webook/interactive/repository/cache"
 	"webook/interactive/repository/dao"
@@ -25,6 +26,19 @@ func InitInteractiveService() service.InteractiveService {
 	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDao, interactiveCache, loggerV1)
 	interactiveService := service.NewInteractiveService(interactiveRepository)
 	return interactiveService
+}
+
+// 测试 server
+func InitInteractiveGRPCServer() *grpc.InteractiveServiceServer {
+	db := InitDB()
+	interactiveDao := dao.NewGORMInteractiveDao(db)
+	cmdable := InitRedis()
+	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
+	loggerV1 := InitLog()
+	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDao, interactiveCache, loggerV1)
+	interactiveService := service.NewInteractiveService(interactiveRepository)
+	interactiveServiceServer := grpc.NewInteractiveServiceServer(interactiveService)
+	return interactiveServiceServer
 }
 
 // wire.go:

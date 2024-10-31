@@ -7,7 +7,7 @@ import (
 	"github.com/ecodeclub/ekit/slice"
 	"math"
 	"time"
-	service2 "webook/interactive/service"
+	intrv1 "webook/api/proto/gen/intr/v1"
 	"webook/internal/domain"
 	"webook/internal/repository"
 )
@@ -18,7 +18,7 @@ type RankingService interface {
 
 type BatchRankingService struct {
 	artSvc    ArticleService
-	intrSvc   service2.InteractiveService
+	intrSvc   intrv1.InteractiveServiceClient
 	repo      repository.RankingRepository
 	batchSize int
 	n         int
@@ -26,7 +26,7 @@ type BatchRankingService struct {
 	scoreFunc func(t time.Time, likeCnt int64) float64
 }
 
-func NewBatchRankingService(artSvc ArticleService, intrSvc service2.InteractiveService, repo repository.RankingRepository) RankingService {
+func NewBatchRankingService(artSvc ArticleService, intrSvc intrv1.InteractiveServiceClient, repo repository.RankingRepository) RankingService {
 	return &BatchRankingService{
 		artSvc:    artSvc,
 		intrSvc:   intrSvc,
@@ -77,14 +77,17 @@ func (svc *BatchRankingService) topN(ctx context.Context) ([]domain.Article, err
 			return src.Id
 		})
 		// 要去拿对应的点赞数据
-		intrs, err := svc.intrSvc.GetByIds(ctx, "article", ids)
+		intrs, err := svc.intrSvc.GetByIds(ctx, &intrv1.GetByIdsRequest{
+			Biz:    "artile",
+			BizIds: ids,
+		})
 		if err != nil {
 			return nil, err
 		}
 		// 合并计算 score
 		// 排序
 		for _, art := range arts {
-			intr := intrs[art.Id]
+			intr := intrs.Intrs[art.Id]
 			//intr, ok := intrs[art.Id]
 			//if !ok {
 			//	continue

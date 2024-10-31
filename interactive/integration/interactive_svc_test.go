@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 	"testing"
 	"time"
-	"webook/interactive/domain"
+	intrv1 "webook/api/proto/gen/intr/v1"
 	"webook/interactive/integration/startup"
 	"webook/interactive/repository/dao"
 )
@@ -42,7 +42,8 @@ func (s *InteractiveSvcTestSuite) TestIncrReadCnt() {
 		biz   string
 		bizId int64
 
-		wantErr error
+		wantErr  error
+		wantResp *intrv1.IncrReadCntResponse
 	}{
 		{
 			name: "增加成功，db和redis中有数据",
@@ -89,8 +90,9 @@ func (s *InteractiveSvcTestSuite) TestIncrReadCnt() {
 				err = s.rdb.Del(ctx, "interactive:test:2").Err()
 				assert.NoError(s.T(), err)
 			},
-			biz:   "test",
-			bizId: 2,
+			biz:      "test",
+			bizId:    2,
+			wantResp: &intrv1.IncrReadCntResponse{},
 		},
 		{
 			name: "增加成功，db中有数据",
@@ -135,8 +137,9 @@ func (s *InteractiveSvcTestSuite) TestIncrReadCnt() {
 				assert.NoError(s.T(), err)
 
 			},
-			biz:   "test",
-			bizId: 3,
+			biz:      "test",
+			bizId:    3,
+			wantResp: &intrv1.IncrReadCntResponse{},
 		},
 		{
 			name: "增加成功，都没有数据",
@@ -164,19 +167,25 @@ func (s *InteractiveSvcTestSuite) TestIncrReadCnt() {
 				assert.NoError(s.T(), err)
 				assert.Equal(s.T(), int64(0), cnt)
 			},
-			biz:   "test",
-			bizId: 4,
+			biz:      "test",
+			bizId:    4,
+			wantResp: &intrv1.IncrReadCntResponse{},
 		},
 	}
 
-	// 交互服务没有 http 请求，所以不需要每次循环都初始化
-	svc := startup.InitInteractiveService()
+	// 理论上来说，你可以考虑用 grpc 的客户端来调用，但是犯不着
+	// 因为你作为服务开发者，你只需要确保自己的服务本身没有问题
+	svc := startup.InitInteractiveGRPCServer()
 	for _, tc := range testCases {
 		s.T().Run(tc.name, func(t *testing.T) {
 			tc.before(t)
-			err := svc.IncrReadCnt(context.Background(), tc.biz, tc.bizId)
+			resp, err := svc.IncrReadCnt(context.Background(), &intrv1.IncrReadCntRequest{
+				Biz:   tc.biz,
+				BizId: tc.bizId,
+			})
 			assert.NoError(t, err)
 			assert.Equal(t, tc.wantErr, err)
+			assert.Equal(t, tc.wantResp, resp)
 			tc.after(t)
 		})
 	}
@@ -192,7 +201,8 @@ func (s *InteractiveSvcTestSuite) TestLike() {
 		bizId int64
 		uid   int64
 
-		wantErr error
+		wantErr  error
+		wantResp *intrv1.LikeResponse
 	}{
 		{
 			name: "点赞成功，数据库和缓存中都有数据",
@@ -254,9 +264,10 @@ func (s *InteractiveSvcTestSuite) TestLike() {
 				err = s.rdb.Del(ctx, "interactive:test:20").Err()
 				assert.NoError(s.T(), err)
 			},
-			biz:   "test",
-			bizId: 20,
-			uid:   10,
+			biz:      "test",
+			bizId:    20,
+			uid:      10,
+			wantResp: &intrv1.LikeResponse{},
 		},
 		{
 			name: "点赞成功，只有数据库有数据",
@@ -314,9 +325,10 @@ func (s *InteractiveSvcTestSuite) TestLike() {
 				assert.NoError(s.T(), err)
 				assert.Equal(s.T(), int64(0), cnt)
 			},
-			biz:   "test",
-			bizId: 30,
-			uid:   10,
+			biz:      "test",
+			bizId:    30,
+			uid:      10,
+			wantResp: &intrv1.LikeResponse{},
 		},
 		{
 			name: "点赞成功，数据库和缓存中都没有数据",
@@ -361,19 +373,25 @@ func (s *InteractiveSvcTestSuite) TestLike() {
 				assert.NoError(s.T(), err)
 				assert.Equal(s.T(), int64(0), cnt)
 			},
-			biz:   "test",
-			bizId: 40,
-			uid:   10,
+			biz:      "test",
+			bizId:    40,
+			uid:      10,
+			wantResp: &intrv1.LikeResponse{},
 		},
 	}
 
-	svc := startup.InitInteractiveService()
+	svc := startup.InitInteractiveGRPCServer()
 	for _, tc := range testCases {
 		s.T().Run(tc.name, func(t *testing.T) {
 			tc.before(t)
-			err := svc.Like(context.Background(), tc.biz, tc.bizId, tc.uid)
+			resp, err := svc.Like(context.Background(), &intrv1.LikeRequest{
+				Biz:   tc.biz,
+				BizId: tc.bizId,
+				Uid:   tc.uid,
+			})
 			assert.NoError(t, err)
 			assert.Equal(t, tc.wantErr, err)
+			assert.Equal(t, tc.wantResp, resp)
 			tc.after(t)
 		})
 	}
@@ -381,13 +399,14 @@ func (s *InteractiveSvcTestSuite) TestLike() {
 
 func (s *InteractiveSvcTestSuite) TestCancelLike() {
 	testCases := []struct {
-		name    string
-		before  func(t *testing.T)
-		after   func(t *testing.T)
-		biz     string
-		bizId   int64
-		uid     int64
-		wantErr error
+		name     string
+		before   func(t *testing.T)
+		after    func(t *testing.T)
+		biz      string
+		bizId    int64
+		uid      int64
+		wantErr  error
+		wantResp *intrv1.CancelLikeResponse
 	}{
 		{
 			name: "取消点赞成功，db和cache中都有数据",
@@ -450,33 +469,40 @@ func (s *InteractiveSvcTestSuite) TestCancelLike() {
 				err = s.rdb.HDel(ctx, "interactive:test:200", "like_cnt").Err()
 				assert.NoError(s.T(), err)
 			},
-			biz:   "test",
-			bizId: 200,
-			uid:   100,
+			biz:      "test",
+			bizId:    200,
+			uid:      100,
+			wantResp: &intrv1.CancelLikeResponse{},
 		},
 	}
 
-	svc := startup.InitInteractiveService()
+	svc := startup.InitInteractiveGRPCServer()
 	for _, tc := range testCases {
 		s.T().Run(tc.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
-			err := svc.CancelLike(ctx, tc.biz, tc.bizId, tc.uid)
+			resp, err := svc.CancelLike(ctx, &intrv1.CancelLikeRequest{
+				Biz:   tc.biz,
+				BizId: tc.bizId,
+				Uid:   tc.uid,
+			})
 			assert.Equal(t, tc.wantErr, err)
+			assert.Equal(t, tc.wantResp, resp)
 		})
 	}
 }
 
 func (s *InteractiveSvcTestSuite) TestCollect() {
 	testCases := []struct {
-		name    string
-		before  func(t *testing.T)
-		after   func(t *testing.T)
-		biz     string
-		bizId   int64
-		cid     int64
-		uid     int64
-		wantErr error
+		name     string
+		before   func(t *testing.T)
+		after    func(t *testing.T)
+		biz      string
+		bizId    int64
+		cid      int64
+		uid      int64
+		wantErr  error
+		wantResp *intrv1.CollectResponse
 	}{
 		{
 			name: "收藏成功，第一次收藏，db和cache都有数据",
@@ -539,10 +565,11 @@ func (s *InteractiveSvcTestSuite) TestCollect() {
 				err = s.rdb.HDel(ctx, "interactive:test:1002", "collect_cnt").Err()
 				assert.NoError(s.T(), err)
 			},
-			biz:   "test",
-			bizId: 1002,
-			uid:   100,
-			cid:   111,
+			biz:      "test",
+			bizId:    1002,
+			uid:      100,
+			cid:      111,
+			wantResp: &intrv1.CollectResponse{},
 		},
 		{
 			name: "收藏成功，再次收藏，db和cache都有数据",
@@ -616,19 +643,26 @@ func (s *InteractiveSvcTestSuite) TestCollect() {
 				err = s.rdb.HDel(ctx, "interactive:test:1012", "collect_cnt").Err()
 				assert.NoError(s.T(), err)
 			},
-			biz:   "test",
-			bizId: 1012,
-			uid:   100,
-			cid:   111,
+			biz:      "test",
+			bizId:    1012,
+			uid:      100,
+			cid:      111,
+			wantResp: &intrv1.CollectResponse{},
 		},
 	}
 
-	svc := startup.InitInteractiveService()
+	svc := startup.InitInteractiveGRPCServer()
 	for _, tc := range testCases {
 		s.T().Run(tc.name, func(t *testing.T) {
 			tc.before(t)
-			err := svc.Collect(context.Background(), tc.biz, tc.bizId, tc.cid, tc.uid)
+			resp, err := svc.Collect(context.Background(), &intrv1.CollectRequest{
+				Biz:   tc.biz,
+				BizId: tc.bizId,
+				Cid:   tc.cid,
+				Uid:   tc.uid,
+			})
 			assert.Equal(t, tc.wantErr, err)
+			assert.Equal(t, tc.wantResp, resp)
 			tc.after(t)
 		})
 	}
@@ -636,13 +670,14 @@ func (s *InteractiveSvcTestSuite) TestCollect() {
 
 func (s *InteractiveSvcTestSuite) TestCancelCollect() {
 	testCases := []struct {
-		name    string
-		before  func(t *testing.T)
-		after   func(t *testing.T)
-		biz     string
-		bizId   int64
-		uid     int64
-		wantErr error
+		name     string
+		before   func(t *testing.T)
+		after    func(t *testing.T)
+		biz      string
+		bizId    int64
+		uid      int64
+		wantErr  error
+		wantResp *intrv1.CancelCollectResponse
 	}{
 		{
 			name: "取消收藏成功，db和cache都有数据",
@@ -716,18 +751,24 @@ func (s *InteractiveSvcTestSuite) TestCancelCollect() {
 				err = s.rdb.HDel(ctx, "interactive:test:10001", "collect_cnt").Err()
 				assert.NoError(s.T(), err)
 			},
-			biz:   "test",
-			bizId: 10001,
-			uid:   100,
+			biz:      "test",
+			bizId:    10001,
+			uid:      100,
+			wantResp: &intrv1.CancelCollectResponse{},
 		},
 	}
 
-	svc := startup.InitInteractiveService()
+	svc := startup.InitInteractiveGRPCServer()
 	for _, tc := range testCases {
 		s.T().Run(tc.name, func(t *testing.T) {
 			tc.before(t)
-			err := svc.CancelCollect(context.Background(), tc.biz, tc.bizId, tc.uid)
+			resp, err := svc.CancelCollect(context.Background(), &intrv1.CancelCollectRequest{
+				Biz:   tc.biz,
+				BizId: tc.bizId,
+				Uid:   tc.uid,
+			})
 			assert.Equal(t, tc.wantErr, err)
+			assert.Equal(t, tc.wantResp, resp)
 			tc.after(t)
 		})
 	}
@@ -735,14 +776,14 @@ func (s *InteractiveSvcTestSuite) TestCancelCollect() {
 
 func (s *InteractiveSvcTestSuite) TestGet() {
 	testCases := []struct {
-		name    string
-		before  func(t *testing.T)
-		after   func(t *testing.T)
-		biz     string
-		bizId   int64
-		uid     int64
-		wantRes domain.Interactive
-		wantErr error
+		name     string
+		before   func(t *testing.T)
+		after    func(t *testing.T)
+		biz      string
+		bizId    int64
+		uid      int64
+		wantErr  error
+		wantResp *intrv1.GetResponse
 	}{
 		{
 			name: "获取到交互信息，已点赞，已收藏，db和cache中都有数据",
@@ -793,19 +834,21 @@ func (s *InteractiveSvcTestSuite) TestGet() {
 				defer cancel()
 				s.rdb.Del(ctx, "interactive:test:1101")
 			},
-			biz:   "test",
-			bizId: 1101,
-			uid:   577,
-			wantRes: domain.Interactive{
-				Biz:        "test",
-				BizId:      1101,
-				ReadCnt:    1000,
-				LikeCnt:    1001,
-				CollectCnt: 1002,
-				Liked:      true,
-				Collected:  true,
-			},
+			biz:     "test",
+			bizId:   1101,
+			uid:     577,
 			wantErr: nil,
+			wantResp: &intrv1.GetResponse{
+				Intr: &intrv1.Interactive{
+					Biz:        "test",
+					BizId:      1101,
+					ReadCnt:    1000,
+					LikeCnt:    1001,
+					CollectCnt: 1002,
+					Liked:      true,
+					Collected:  true,
+				},
+			},
 		},
 		{
 			name: "获取到交互信息，已点赞，已收藏，只有db中都有数据",
@@ -852,26 +895,32 @@ func (s *InteractiveSvcTestSuite) TestGet() {
 			biz:   "test",
 			bizId: 1102,
 			uid:   577,
-			wantRes: domain.Interactive{
-				Biz:        "test",
-				BizId:      1102,
-				ReadCnt:    1000,
-				LikeCnt:    1001,
-				CollectCnt: 1002,
-				Liked:      true,
-				Collected:  true,
+			wantResp: &intrv1.GetResponse{
+				Intr: &intrv1.Interactive{
+					Biz:        "test",
+					BizId:      1102,
+					ReadCnt:    1000,
+					LikeCnt:    1001,
+					CollectCnt: 1002,
+					Liked:      true,
+					Collected:  true,
+				},
 			},
 			wantErr: nil,
 		},
 	}
 
-	svc := startup.InitInteractiveService()
+	svc := startup.InitInteractiveGRPCServer()
 	for _, tc := range testCases {
 		s.T().Run(tc.name, func(t *testing.T) {
 			tc.before(t)
-			res, err := svc.Get(context.Background(), tc.biz, tc.bizId, tc.uid)
+			resp, err := svc.Get(context.Background(), &intrv1.GetRequest{
+				Biz:   tc.biz,
+				BizId: tc.bizId,
+				Uid:   tc.uid,
+			})
 			assert.Equal(t, tc.wantErr, err)
-			assert.Equal(t, tc.wantRes, res)
+			assert.Equal(t, tc.wantResp, resp)
 			tc.after(t)
 		})
 	}
