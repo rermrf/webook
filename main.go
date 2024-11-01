@@ -23,7 +23,7 @@ func main() {
 	//u := initUser(db, rdb)
 	//u.RegisterRoutes(server)
 
-	initViperV1()
+	initViperV2Watch()
 	initLogger()
 
 	closeFunc := ioc.InitOTEL()

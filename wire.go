@@ -114,6 +114,7 @@ func InitWebServer() *App {
 		ThirdPartySet,
 		OAuth2Set,
 		InteractiveSet,
+		ioc.InitIntrGRPCClient,
 		KafkaSet,
 		GormArticleSet,
 		//MongoArticleSet,
