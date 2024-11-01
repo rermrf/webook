@@ -8,11 +8,11 @@ import (
 	"golang.org/x/net/context"
 	"testing"
 	"time"
-	"webook/internal/domain"
-	"webook/internal/repository/cache"
-	cachemocks "webook/internal/repository/cache/mocks"
-	"webook/internal/repository/dao"
-	daomocks "webook/internal/repository/dao/mocks"
+	"webook/user/domain"
+	"webook/user/repository/cache"
+	cachemocks "webook/user/repository/cache/mocks"
+	"webook/user/repository/dao"
+	daomocks "webook/user/repository/dao/mocks"
 )
 
 func TestCachedUserRepository_FindById(t *testing.T) {

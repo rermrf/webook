@@ -129,10 +129,10 @@ func TestUserhandler_SendLoginSMSCode(t *testing.T) {
 			reqBody: `{
 				"phone": `,
 			wantCode: 200,
-			//wantBody: handler.Result{
-			//	Code: 4,
-			//	Msg:  "手机号格式不正确",
-			//},
+			wantBody: ginx.Result{
+				Code: 4,
+				Msg:  "手机号格式不正确",
+			},
 		},
 	}
 

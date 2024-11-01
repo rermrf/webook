@@ -8,10 +8,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"log"
 	"testing"
-	"webook/internal/domain"
-	"webook/internal/repository"
-	repomocks "webook/internal/repository/mocks"
 	"webook/pkg/logger"
+	"webook/user/domain"
+	"webook/user/repository"
+	repomocks "webook/user/repository/mocks"
 )
 
 func TestUserServiceImpl_SignUp(t *testing.T) {

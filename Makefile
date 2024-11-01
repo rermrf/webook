@@ -33,4 +33,4 @@ mock:
 
 .PHONY: grpc
 grpc:
-	@buf generate api/proto
+	@buf generate ./api/proto

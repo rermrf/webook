@@ -9,12 +9,13 @@ import (
 	"go.uber.org/zap"
 	"net/http"
 	"time"
-	"webook/internal/domain"
 	"webook/internal/errs"
 	ijwt "webook/internal/handler/jwt"
 	"webook/internal/service"
 	"webook/pkg/ginx"
 	"webook/pkg/logger"
+	"webook/user/domain"
+	service2 "webook/user/service"
 
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
@@ -23,7 +24,7 @@ import (
 const biz = "login"
 
 type UserHandler struct {
-	svc         service.UserService
+	svc         service2.UserService
 	codeSvc     service.CodeService
 	emailExp    *regexp.Regexp
 	passwordExp *regexp.Regexp
@@ -33,7 +34,7 @@ type UserHandler struct {
 	l   logger.LoggerV1
 }
 
-func NewUserHandler(svc service.UserService, codeSvc service.CodeService, cmd redis.Cmdable, handler ijwt.Handler, l logger.LoggerV1) *UserHandler {
+func NewUserHandler(svc service2.UserService, codeSvc service.CodeService, cmd redis.Cmdable, handler ijwt.Handler, l logger.LoggerV1) *UserHandler {
 	const (
 		emailRegexPattern    = `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
 		passwordRegexPattern = `^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&.])[A-Za-z\d@$!%*?&.]{8,72}$`
@@ -222,7 +223,7 @@ func (h *UserHandler) SignUp(ctx *gin.Context, req SignUpRequest) (ginx.Result, 
 	// 调用一下 svc 的方法
 	// 直接传入 ctx 在 opentelemetry 中无效，需要传入ctx.Request.Context()
 	err = h.svc.SignUp(ctx.Request.Context(), domain.User{Email: req.Email, Password: req.Password})
-	if errors.Is(err, service.ErrUserDuplicate) {
+	if errors.Is(err, service2.ErrUserDuplicate) {
 		// 复用
 		span := trace.SpanFromContext(ctx.Request.Context())
 		span.AddEvent("邮箱冲突")
@@ -241,7 +242,7 @@ type LoginRequest struct {
 
 func (h *UserHandler) LoginJWT(ctx *gin.Context, req LoginRequest) (ginx.Result, error) {
 	user, err := h.svc.Login(ctx, req.Email, req.Password)
-	if errors.Is(err, service.ErrInvalidUserOrPassword) {
+	if errors.Is(err, service2.ErrInvalidUserOrPassword) {
 		return ginx.Result{
 			Code: errs.UserInvalidOrPassword,
 			Msg:  "用户名或密码错误",
@@ -307,7 +308,7 @@ type Profile struct {
 
 func (h *UserHandler) Profile(ctx *gin.Context, uc ijwt.UserClaims) (ginx.Result, error) {
 	user, err := h.svc.Profile(ctx, uc.UserId)
-	if errors.Is(err, service.ErrUserNotFound) {
+	if errors.Is(err, service2.ErrUserNotFound) {
 		return ginx.Result{Msg: "用户不存在"}, nil
 	}
 	if err != nil {

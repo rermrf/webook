@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"github.com/redis/go-redis/v9"
 	"time"
-	"webook/internal/domain"
+	"webook/user/domain"
 )
 
 var ErrKeyNotExist = redis.Nil
 
+//go:generate mockgen -source=./user.go -package=cachemocks -destination=mocks/user_cache_mock.go
 type UserCache interface {
 	Get(ctx context.Context, id int64) (domain.User, error)
 	Set(ctx context.Context, user domain.User) error

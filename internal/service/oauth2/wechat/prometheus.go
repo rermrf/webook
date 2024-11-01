@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/prometheus/client_golang/prometheus"
 	"time"
-	"webook/internal/domain"
+	"webook/user/domain"
 )
 
 // PrometheusDecorator 对微信的登录响应时间进行监控

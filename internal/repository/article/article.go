@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 	"webook/internal/domain"
-	"webook/internal/repository"
 	"webook/internal/repository/cache"
 	dao "webook/internal/repository/dao/article"
 	logger2 "webook/pkg/logger"
+	"webook/user/repository"
 )
 
 type ArticleRepository interface {

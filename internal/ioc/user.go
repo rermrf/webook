@@ -3,8 +3,8 @@ package ioc
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
-	"webook/internal/repository/cache"
 	"webook/pkg/redisx"
+	"webook/user/repository/cache"
 )
 
 //func InitUserHandler(repo repository.UserRepository) service.UserService {

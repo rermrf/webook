@@ -16,18 +16,21 @@ import (
 	"webook/internal/repository"
 	"webook/internal/repository/article"
 	"webook/internal/repository/cache"
-	"webook/internal/repository/dao"
 	article2 "webook/internal/repository/dao/article"
 	"webook/internal/service"
+	repository3 "webook/user/repository"
+	cache3 "webook/user/repository/cache"
+	"webook/user/repository/dao"
+	service3 "webook/user/service"
 )
 
 // User 相关依赖
 var UserSet = wire.NewSet(
 	handler.NewUserHandler,
-	service.NewUserService,
+	service3.NewUserService,
 	dao.NewUserDao,
-	cache.NewUserCache,
-	repository.NewCachedUserRepository,
+	cache3.NewUserCache,
+	repository3.NewCachedUserRepository,
 )
 
 // Gorm 文章相关依赖

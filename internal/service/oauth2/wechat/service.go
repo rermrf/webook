@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"webook/internal/domain"
 	logger2 "webook/pkg/logger"
+	"webook/user/domain"
 )
 
 var (

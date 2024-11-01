@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"time"
 	ijwt "webook/internal/handler/jwt"
-	"webook/internal/service"
 	"webook/internal/service/oauth2/wechat"
 	"webook/pkg/ginx"
+	"webook/user/service"
 )
 
 type OAuth2WechatHandler struct {

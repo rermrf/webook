@@ -20,9 +20,12 @@ import (
 	"webook/internal/repository"
 	article2 "webook/internal/repository/article"
 	"webook/internal/repository/cache"
-	"webook/internal/repository/dao"
 	"webook/internal/repository/dao/article"
 	"webook/internal/service"
+	repository3 "webook/user/repository"
+	cache3 "webook/user/repository/cache"
+	"webook/user/repository/dao"
+	service3 "webook/user/service"
 )
 
 import (
@@ -38,9 +41,9 @@ func InitWebServer() *App {
 	v := ioc.InitMiddlewares(cmdable, jwtHandler, loggerV1)
 	db := ioc.InitDB(loggerV1)
 	userDao := dao.NewUserDao(db)
-	userCache := cache.NewUserCache(cmdable)
-	userRepository := repository.NewCachedUserRepository(userDao, userCache)
-	userService := service.NewUserService(userRepository, loggerV1)
+	userCache := cache3.NewUserCache(cmdable)
+	userRepository := repository3.NewCachedUserRepository(userDao, userCache)
+	userService := service3.NewUserService(userRepository, loggerV1)
 	codeCache := cache.NewCodeCache(cmdable)
 	codeRepository := repository.NewCodeRepository(codeCache)
 	smsService := ioc.InitSMSService()
@@ -82,7 +85,7 @@ func InitWebServer() *App {
 // wire.go:
 
 // User 相关依赖
-var UserSet = wire.NewSet(handler.NewUserHandler, service.NewUserService, dao.NewUserDao, cache.NewUserCache, repository.NewCachedUserRepository)
+var UserSet = wire.NewSet(handler.NewUserHandler, service3.NewUserService, dao.NewUserDao, cache3.NewUserCache, repository3.NewCachedUserRepository)
 
 // Gorm 文章相关依赖
 var GormArticleSet = wire.NewSet(handler.NewArticleHandler, service.NewArticleService, article2.NewArticleRepository, article.NewGormArticleDao, article.InitCollections, cache.NewRedisArticleCache)

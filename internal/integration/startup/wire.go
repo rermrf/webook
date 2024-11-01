@@ -16,9 +16,12 @@ import (
 	"webook/internal/repository"
 	"webook/internal/repository/article"
 	"webook/internal/repository/cache"
-	"webook/internal/repository/dao"
 	article2 "webook/internal/repository/dao/article"
 	"webook/internal/service"
+	repository3 "webook/user/repository"
+	cache3 "webook/user/repository/cache"
+	"webook/user/repository/dao"
+	service3 "webook/user/service"
 )
 
 var thirdPartySet = wire.NewSet(
@@ -31,9 +34,9 @@ var thirdPartySet = wire.NewSet(
 
 var userSvcProvider = wire.NewSet(
 	dao.NewUserDao,
-	cache.NewUserCache,
-	repository.NewCachedUserRepository,
-	service.NewUserService,
+	cache3.NewUserCache,
+	repository3.NewCachedUserRepository,
+	service3.NewUserService,
 	handler.NewUserHandler)
 
 var articleSet = wire.NewSet(
@@ -73,6 +76,7 @@ func InitWebServer() *gin.Engine {
 		// handler 部分
 		handler.NewOAuth2WechatHandler,
 		ijwt.NewRedisJWTHandler,
+		InitIntrGRPCClient,
 
 		// 中间件，路由等？
 		//gin.Default,
@@ -92,9 +96,10 @@ func InitArticleHandler(d article2.ArticleDao) *handler.ArticleHandler {
 		//article2.NewGormArticleDao,
 		cache.NewRedisArticleCache,
 		dao.NewUserDao,
-		cache.NewUserCache,
-		repository.NewCachedUserRepository,
+		cache3.NewUserCache,
+		repository3.NewCachedUserRepository,
 		events.NewKafkaProducer,
+		InitIntrGRPCClient,
 	)
 	return &handler.ArticleHandler{}
 }

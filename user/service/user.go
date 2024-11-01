@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"go.uber.org/zap"
-	"webook/internal/domain"
-	"webook/internal/repository"
 	logger2 "webook/pkg/logger"
+	domain2 "webook/user/domain"
+	"webook/user/repository"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -15,13 +15,14 @@ var ErrUserDuplicate = repository.ErrUserDuplicate
 var ErrInvalidUserOrPassword = errors.New("账号/邮箱或密码不对")
 var ErrUserNotFound = repository.ErrUserNotFound
 
+//go:generate mockgen -source=./user.go -package=svcmocks -destination=mocks/user_mock.go
 type UserService interface {
-	SignUp(ctx context.Context, u domain.User) error
-	Login(ctx context.Context, email string, password string) (domain.User, error)
-	Profile(ctx context.Context, id int64) (domain.User, error)
-	EditNoSensitive(ctx context.Context, user domain.User) error
-	FindOrCreate(ctx context.Context, phone string) (domain.User, error)
-	FindOrCreateByWechat(ctx context.Context, wechatInfo domain.WechatInfo) (domain.User, error)
+	SignUp(ctx context.Context, u domain2.User) error
+	Login(ctx context.Context, email string, password string) (domain2.User, error)
+	Profile(ctx context.Context, id int64) (domain2.User, error)
+	EditNoSensitive(ctx context.Context, user domain2.User) error
+	FindOrCreate(ctx context.Context, phone string) (domain2.User, error)
+	FindOrCreateByWechat(ctx context.Context, wechatInfo domain2.WechatInfo) (domain2.User, error)
 }
 
 type UserServiceImpl struct {
@@ -44,7 +45,7 @@ func NewUserServiceV1(repo repository.UserRepository, l *zap.Logger) UserService
 	}
 }
 
-func (svc *UserServiceImpl) SignUp(ctx context.Context, u domain.User) error {
+func (svc *UserServiceImpl) SignUp(ctx context.Context, u domain2.User) error {
 	// 你要考虑加密放在哪
 	hash, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -55,34 +56,34 @@ func (svc *UserServiceImpl) SignUp(ctx context.Context, u domain.User) error {
 	return svc.repo.Create(ctx, u)
 }
 
-func (svc *UserServiceImpl) Login(ctx context.Context, email string, password string) (domain.User, error) {
+func (svc *UserServiceImpl) Login(ctx context.Context, email string, password string) (domain2.User, error) {
 	// 先找用户
 	u, err := svc.repo.FindByEmail(ctx, email)
 	if errors.Is(err, repository.ErrUserNotFound) {
-		return domain.User{}, ErrInvalidUserOrPassword
+		return domain2.User{}, ErrInvalidUserOrPassword
 	}
 	if err != nil {
-		return domain.User{}, err
+		return domain2.User{}, err
 	}
 	// 然后比对密码
 	err = bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
 	if err != nil {
 		// DEBUG日志
-		return domain.User{}, ErrInvalidUserOrPassword
+		return domain2.User{}, ErrInvalidUserOrPassword
 	}
 	return u, nil
 }
 
-func (svc *UserServiceImpl) Profile(ctx context.Context, id int64) (domain.User, error) {
+func (svc *UserServiceImpl) Profile(ctx context.Context, id int64) (domain2.User, error) {
 	u, err := svc.repo.FindById(ctx, id)
 	return u, err
 }
 
-func (svc *UserServiceImpl) EditNoSensitive(ctx context.Context, user domain.User) error {
+func (svc *UserServiceImpl) EditNoSensitive(ctx context.Context, user domain2.User) error {
 	return svc.repo.UpdateNoSensitiveById(ctx, user)
 }
 
-func (svc *UserServiceImpl) FindOrCreate(ctx context.Context, phone string) (domain.User, error) {
+func (svc *UserServiceImpl) FindOrCreate(ctx context.Context, phone string) (domain2.User, error) {
 	user, err := svc.repo.FindByPhone(ctx, phone)
 	// 判断有没有这个用户
 	// 快路径
@@ -104,23 +105,23 @@ func (svc *UserServiceImpl) FindOrCreate(ctx context.Context, phone string) (dom
 	//}
 	// 慢路径
 	// 用户不存在注册
-	err = svc.repo.Create(ctx, domain.User{
+	err = svc.repo.Create(ctx, domain2.User{
 		Phone: phone,
 	})
 	if err != nil && !errors.Is(err, repository.ErrUserDuplicate) {
-		return domain.User{Phone: phone}, err
+		return domain2.User{Phone: phone}, err
 	}
 	// 主从延迟问题
 	return svc.repo.FindByPhone(ctx, phone)
 }
 
-func (svc *UserServiceImpl) FindOrCreateByWechat(ctx context.Context, info domain.WechatInfo) (domain.User, error) {
+func (svc *UserServiceImpl) FindOrCreateByWechat(ctx context.Context, info domain2.WechatInfo) (domain2.User, error) {
 	user, err := svc.repo.FindByWechat(ctx, info.OpenId)
 	if !errors.Is(err, repository.ErrUserNotFound) {
 		return user, err
 	}
 
-	err = svc.repo.Create(ctx, domain.User{
+	err = svc.repo.Create(ctx, domain2.User{
 		WechatInfo: info,
 	})
 	if err != nil && !errors.Is(err, repository.ErrUserDuplicate) {

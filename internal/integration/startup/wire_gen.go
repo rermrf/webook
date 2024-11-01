@@ -9,20 +9,23 @@ package startup
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
-	repository2 "webook/interactive/repository"
-	cache2 "webook/interactive/repository/cache"
+	repository3 "webook/interactive/repository"
+	cache3 "webook/interactive/repository/cache"
 	dao2 "webook/interactive/repository/dao"
-	service2 "webook/interactive/service"
+	service3 "webook/interactive/service"
 	article3 "webook/internal/events/article"
 	"webook/internal/handler"
 	"webook/internal/handler/jwt"
 	"webook/internal/ioc"
-	"webook/internal/repository"
+	repository2 "webook/internal/repository"
 	article2 "webook/internal/repository/article"
-	"webook/internal/repository/cache"
-	"webook/internal/repository/dao"
+	cache2 "webook/internal/repository/cache"
 	"webook/internal/repository/dao/article"
-	"webook/internal/service"
+	service2 "webook/internal/service"
+	"webook/user/repository"
+	"webook/user/repository/cache"
+	"webook/user/repository/dao"
+	"webook/user/service"
 )
 
 // Injectors from wire.go:
@@ -37,32 +40,33 @@ func InitWebServer() *gin.Engine {
 	userCache := cache.NewUserCache(cmdable)
 	userRepository := repository.NewCachedUserRepository(userDao, userCache)
 	userService := service.NewUserService(userRepository, loggerV1)
-	codeCache := cache.NewCodeCache(cmdable)
-	codeRepository := repository.NewCodeRepository(codeCache)
+	codeCache := cache2.NewCodeCache(cmdable)
+	codeRepository := repository2.NewCodeRepository(codeCache)
 	smsService := ioc.InitSMSService()
-	codeService := service.NewCodeService(codeRepository, smsService)
+	codeService := service2.NewCodeService(codeRepository, smsService)
 	userHandler := handler.NewUserHandler(userService, codeService, cmdable, jwtHandler, loggerV1)
 	wechatService := InitWechatService(loggerV1)
 	oAuth2WechatHandler := handler.NewOAuth2WechatHandler(wechatService, userService, jwtHandler)
 	articleDao := article.NewGormArticleDao(db)
-	articleCache := cache.NewRedisArticleCache(cmdable)
+	articleCache := cache2.NewRedisArticleCache(cmdable)
 	articleRepository := article2.NewArticleRepository(articleDao, articleCache, loggerV1, userRepository)
 	client := InitKafka()
 	syncProducer := NewSyncProducer(client)
 	producer := article3.NewKafkaProducer(syncProducer)
-	articleService := service.NewArticleService(articleRepository, loggerV1, producer)
+	articleService := service2.NewArticleService(articleRepository, loggerV1, producer)
 	interactiveDao := dao2.NewGORMInteractiveDao(db)
-	interactiveCache := cache2.NewRedisInteractiveCache(cmdable)
-	interactiveRepository := repository2.NewCachedInteractiveRepository(interactiveDao, interactiveCache, loggerV1)
-	interactiveService := service2.NewInteractiveService(interactiveRepository)
-	articleHandler := handler.NewArticleHandler(articleService, loggerV1, interactiveService)
+	interactiveCache := cache3.NewRedisInteractiveCache(cmdable)
+	interactiveRepository := repository3.NewCachedInteractiveRepository(interactiveDao, interactiveCache, loggerV1)
+	interactiveService := service3.NewInteractiveService(interactiveRepository)
+	interactiveServiceClient := InitIntrGRPCClient(interactiveService)
+	articleHandler := handler.NewArticleHandler(articleService, loggerV1, interactiveServiceClient)
 	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler)
 	return engine
 }
 
 func InitArticleHandler(d article.ArticleDao) *handler.ArticleHandler {
 	cmdable := InitRedis()
-	articleCache := cache.NewRedisArticleCache(cmdable)
+	articleCache := cache2.NewRedisArticleCache(cmdable)
 	loggerV1 := InitLog()
 	db := InitDB()
 	userDao := dao.NewUserDao(db)
@@ -72,12 +76,13 @@ func InitArticleHandler(d article.ArticleDao) *handler.ArticleHandler {
 	client := InitKafka()
 	syncProducer := NewSyncProducer(client)
 	producer := article3.NewKafkaProducer(syncProducer)
-	articleService := service.NewArticleService(articleRepository, loggerV1, producer)
+	articleService := service2.NewArticleService(articleRepository, loggerV1, producer)
 	interactiveDao := dao2.NewGORMInteractiveDao(db)
-	interactiveCache := cache2.NewRedisInteractiveCache(cmdable)
-	interactiveRepository := repository2.NewCachedInteractiveRepository(interactiveDao, interactiveCache, loggerV1)
-	interactiveService := service2.NewInteractiveService(interactiveRepository)
-	articleHandler := handler.NewArticleHandler(articleService, loggerV1, interactiveService)
+	interactiveCache := cache3.NewRedisInteractiveCache(cmdable)
+	interactiveRepository := repository3.NewCachedInteractiveRepository(interactiveDao, interactiveCache, loggerV1)
+	interactiveService := service3.NewInteractiveService(interactiveRepository)
+	interactiveServiceClient := InitIntrGRPCClient(interactiveService)
+	articleHandler := handler.NewArticleHandler(articleService, loggerV1, interactiveServiceClient)
 	return articleHandler
 }
 
@@ -93,6 +98,6 @@ var thirdPartySet = wire.NewSet(
 
 var userSvcProvider = wire.NewSet(dao.NewUserDao, cache.NewUserCache, repository.NewCachedUserRepository, service.NewUserService, handler.NewUserHandler)
 
-var articleSet = wire.NewSet(handler.NewArticleHandler, service.NewArticleService, article2.NewArticleRepository, article.NewGormArticleDao, cache.NewRedisArticleCache, article3.NewKafkaProducer)
+var articleSet = wire.NewSet(handler.NewArticleHandler, service2.NewArticleService, article2.NewArticleRepository, article.NewGormArticleDao, cache2.NewRedisArticleCache, article3.NewKafkaProducer)
 
-var interactiveSet = wire.NewSet(service2.NewInteractiveService, repository2.NewCachedInteractiveRepository, dao2.NewGORMInteractiveDao, cache2.NewRedisInteractiveCache)
+var interactiveSet = wire.NewSet(service3.NewInteractiveService, repository3.NewCachedInteractiveRepository, dao2.NewGORMInteractiveDao, cache3.NewRedisInteractiveCache)
