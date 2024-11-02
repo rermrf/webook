@@ -8,24 +8,22 @@ package main
 
 import (
 	"github.com/google/wire"
+	events2 "webook/article/events"
+	repository3 "webook/article/repository"
+	cache3 "webook/article/repository/cache"
+	dao2 "webook/article/repository/dao"
+	service3 "webook/article/service"
 	"webook/interactive/events"
 	repository2 "webook/interactive/repository"
 	cache2 "webook/interactive/repository/cache"
-	dao2 "webook/interactive/repository/dao"
+	"webook/interactive/repository/dao"
 	service2 "webook/interactive/service"
-	article3 "webook/internal/events/article"
 	"webook/internal/handler"
 	"webook/internal/handler/jwt"
 	"webook/internal/ioc"
 	"webook/internal/repository"
-	article2 "webook/internal/repository/article"
 	"webook/internal/repository/cache"
-	"webook/internal/repository/dao/article"
 	"webook/internal/service"
-	repository3 "webook/user/repository"
-	cache3 "webook/user/repository/cache"
-	"webook/user/repository/dao"
-	service3 "webook/user/service"
 )
 
 import (
@@ -39,34 +37,32 @@ func InitWebServer() *App {
 	jwtHandler := jwt.NewRedisJWTHandler(cmdable)
 	loggerV1 := ioc.InitLogger()
 	v := ioc.InitMiddlewares(cmdable, jwtHandler, loggerV1)
-	db := ioc.InitDB(loggerV1)
-	userDao := dao.NewUserDao(db)
-	userCache := cache3.NewUserCache(cmdable)
-	userRepository := repository3.NewCachedUserRepository(userDao, userCache)
-	userService := service3.NewUserService(userRepository, loggerV1)
+	userServiceClient := ioc.InitUserGRPCClient()
 	codeCache := cache.NewCodeCache(cmdable)
 	codeRepository := repository.NewCodeRepository(codeCache)
 	smsService := ioc.InitSMSService()
 	codeService := service.NewCodeService(codeRepository, smsService)
-	userHandler := handler.NewUserHandler(userService, codeService, cmdable, jwtHandler, loggerV1)
+	userHandler := handler.NewUserHandler(userServiceClient, codeService, cmdable, jwtHandler, loggerV1)
 	wechatService := ioc.InitOAuth2WechatService(loggerV1)
-	oAuth2WechatHandler := handler.NewOAuth2WechatHandler(wechatService, userService, jwtHandler)
-	articleDao := article.NewGormArticleDao(db)
-	articleCache := cache.NewRedisArticleCache(cmdable)
-	articleRepository := article2.NewArticleRepository(articleDao, articleCache, loggerV1, userRepository)
-	client := ioc.InitKafka()
-	syncProducer := ioc.NewSyncProducer(client)
-	producer := article3.NewKafkaProducer(syncProducer)
-	articleService := service.NewArticleService(articleRepository, loggerV1, producer)
-	interactiveDao := dao2.NewGORMInteractiveDao(db)
+	oAuth2WechatHandler := handler.NewOAuth2WechatHandler(wechatService, userServiceClient, jwtHandler)
+	articleServiceClient := ioc.InitArticleGRPCClient()
+	db := ioc.InitDB(loggerV1)
+	interactiveDao := dao.NewGORMInteractiveDao(db)
 	interactiveCache := cache2.NewRedisInteractiveCache(cmdable)
 	interactiveRepository := repository2.NewCachedInteractiveRepository(interactiveDao, interactiveCache, loggerV1)
 	interactiveService := service2.NewInteractiveService(interactiveRepository)
 	interactiveServiceClient := ioc.InitIntrGRPCClient(interactiveService)
-	articleHandler := handler.NewArticleHandler(articleService, loggerV1, interactiveServiceClient)
+	articleHandler := handler.NewArticleHandler(articleServiceClient, loggerV1, interactiveServiceClient)
 	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler)
+	client := ioc.InitKafka()
 	interactiveReadBatchConsumer := events.NewInteractiveReadBatchConsumer(client, loggerV1, interactiveRepository)
 	v2 := ioc.NewConsumer(interactiveReadBatchConsumer)
+	articleDao := dao2.NewGormArticleDao(db)
+	articleCache := cache3.NewRedisArticleCache(cmdable)
+	articleRepository := repository3.NewArticleRepository(articleDao, articleCache, loggerV1)
+	syncProducer := ioc.NewSyncProducer(client)
+	producer := events2.NewKafkaProducer(syncProducer)
+	articleService := service3.NewArticleService(articleRepository, loggerV1, producer)
 	rankingRedisCache := cache.NewRankingRedisCache(cmdable)
 	rankingLocalCache := cache.NewRankingLocalCache()
 	rankingRepository := repository.NewCachedRankingRepository(rankingRedisCache, rankingLocalCache)
@@ -85,26 +81,22 @@ func InitWebServer() *App {
 // wire.go:
 
 // User 相关依赖
-var UserSet = wire.NewSet(handler.NewUserHandler, service3.NewUserService, dao.NewUserDao, cache3.NewUserCache, repository3.NewCachedUserRepository)
+var UserSet = wire.NewSet(handler.NewUserHandler)
 
 // Gorm 文章相关依赖
-var GormArticleSet = wire.NewSet(handler.NewArticleHandler, service.NewArticleService, article2.NewArticleRepository, article.NewGormArticleDao, article.InitCollections, cache.NewRedisArticleCache)
-
-// Mongo 文章相关依赖
-var MongoArticleSet = wire.NewSet(ioc.InitMongoDB, ioc.InitSnowflakeNode, handler.NewArticleHandler, service.NewArticleService, article2.NewArticleRepository, article.NewMongoArticleDao)
-
-// S3 文章相关依赖：将制作库存储所有信息，线上库存储除文章以外的信息，oss存储文章
-var S3ArticleSet = wire.NewSet(handler.NewArticleHandler, service.NewArticleService, article2.NewArticleRepository, article.NewOssDAO, ioc.InitOss)
+var GormArticleSet = wire.NewSet(handler.NewArticleHandler, service3.NewArticleService, repository3.NewArticleRepository, dao2.NewGormArticleDao, dao2.InitCollections, cache3.NewRedisArticleCache)
 
 // 短信相关依赖
 var CodeSet = wire.NewSet(ioc.InitSMSService, service.NewCodeService, cache.NewCodeCache, repository.NewCodeRepository)
 
 var ThirdPartySet = wire.NewSet(ioc.InitRedis, ioc.InitDB, ioc.InitLogger, jwt.NewRedisJWTHandler)
 
-var InteractiveSet = wire.NewSet(service2.NewInteractiveService, repository2.NewCachedInteractiveRepository, dao2.NewGORMInteractiveDao, cache2.NewRedisInteractiveCache, events.NewInteractiveReadBatchConsumer)
+var InteractiveSet = wire.NewSet(service2.NewInteractiveService, repository2.NewCachedInteractiveRepository, dao.NewGORMInteractiveDao, cache2.NewRedisInteractiveCache, events.NewInteractiveReadBatchConsumer)
 
 var OAuth2Set = wire.NewSet(handler.NewOAuth2WechatHandler, ioc.InitOAuth2WechatService)
 
-var KafkaSet = wire.NewSet(ioc.InitKafka, ioc.NewConsumer, ioc.NewSyncProducer, article3.NewKafkaProducer)
+var KafkaSet = wire.NewSet(ioc.InitKafka, ioc.NewConsumer, ioc.NewSyncProducer, events2.NewKafkaProducer)
 
 var rankingServiceSet = wire.NewSet(service.NewBatchRankingService, repository.NewCachedRankingRepository, cache.NewRankingRedisCache, cache.NewRankingLocalCache)
+
+var grpcClientSet = wire.NewSet(ioc.InitIntrGRPCClient, ioc.InitUserGRPCClient, ioc.InitArticleGRPCClient)

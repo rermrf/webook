@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"time"
-	domain2 "webook/user/domain"
+	"webook/user/domain"
 	"webook/user/repository/cache"
 	"webook/user/repository/dao"
 )
@@ -16,12 +16,12 @@ var (
 
 //go:generate mockgen -source=./user.go -package=repomocks -destination=mocks/user_mock.go
 type UserRepository interface {
-	FindById(ctx context.Context, id int64) (domain2.User, error)
-	FindByEmail(ctx context.Context, email string) (domain2.User, error)
-	FindByPhone(ctx context.Context, phone string) (domain2.User, error)
-	Create(ctx context.Context, u domain2.User) error
-	UpdateNoSensitiveById(ctx context.Context, u domain2.User) error
-	FindByWechat(ctx context.Context, openID string) (domain2.User, error)
+	FindById(ctx context.Context, id int64) (domain.User, error)
+	FindByEmail(ctx context.Context, email string) (domain.User, error)
+	FindByPhone(ctx context.Context, phone string) (domain.User, error)
+	Create(ctx context.Context, u domain.User) error
+	UpdateNoSensitiveById(ctx context.Context, u domain.User) error
+	FindByWechat(ctx context.Context, openID string) (domain.User, error)
 }
 
 type CachedUserRepository struct {
@@ -36,15 +36,15 @@ func NewCachedUserRepository(dao dao.UserDao, c cache.UserCache) UserRepository 
 	}
 }
 
-func (repo *CachedUserRepository) FindByWechat(ctx context.Context, openID string) (domain2.User, error) {
+func (repo *CachedUserRepository) FindByWechat(ctx context.Context, openID string) (domain.User, error) {
 	u, err := repo.dao.FindByWechat(ctx, openID)
 	if err != nil {
-		return domain2.User{}, err
+		return domain.User{}, err
 	}
 	return repo.entityToDomain(u), nil
 }
 
-func (repo *CachedUserRepository) FindById(ctx context.Context, id int64) (domain2.User, error) {
+func (repo *CachedUserRepository) FindById(ctx context.Context, id int64) (domain.User, error) {
 	// 先从 cache 查找
 	// 再从 dao 里面找
 	// 找到了回写到 cache
@@ -71,7 +71,7 @@ func (repo *CachedUserRepository) FindById(ctx context.Context, id int64) (domai
 
 	u, err := repo.dao.FindById(ctx, id)
 	if err != nil {
-		return domain2.User{}, err
+		return domain.User{}, err
 	}
 	user = repo.entityToDomain(u)
 
@@ -99,11 +99,11 @@ func (repo *CachedUserRepository) FindById(ctx context.Context, id int64) (domai
 	// - 选不加载 -- 用户体验差一点
 }
 
-func (repo *CachedUserRepository) FindByEmail(ctx context.Context, email string) (domain2.User, error) {
+func (repo *CachedUserRepository) FindByEmail(ctx context.Context, email string) (domain.User, error) {
 	// SELECT * FROM `users` WHERE email = ?
 	u, err := repo.dao.FindByEmail(ctx, email)
 	if err != nil {
-		return domain2.User{}, err
+		return domain.User{}, err
 	}
 
 	user := repo.entityToDomain(u)
@@ -111,11 +111,11 @@ func (repo *CachedUserRepository) FindByEmail(ctx context.Context, email string)
 	return user, nil
 }
 
-func (repo *CachedUserRepository) FindByPhone(ctx context.Context, phone string) (domain2.User, error) {
+func (repo *CachedUserRepository) FindByPhone(ctx context.Context, phone string) (domain.User, error) {
 	// SELECT * FROM `users` WHERE phone = ?
 	u, err := repo.dao.FindByPhone(ctx, phone)
 	if err != nil {
-		return domain2.User{}, err
+		return domain.User{}, err
 	}
 
 	user := repo.entityToDomain(u)
@@ -123,7 +123,7 @@ func (repo *CachedUserRepository) FindByPhone(ctx context.Context, phone string)
 	return user, nil
 }
 
-func (repo *CachedUserRepository) UpdateNoSensitiveById(ctx context.Context, u domain2.User) error {
+func (repo *CachedUserRepository) UpdateNoSensitiveById(ctx context.Context, u domain.User) error {
 	// 修改数据
 	err := repo.dao.UpdateNonZeroFields(ctx, repo.domainToEntity(u))
 	if err != nil {
@@ -133,12 +133,12 @@ func (repo *CachedUserRepository) UpdateNoSensitiveById(ctx context.Context, u d
 	return repo.cache.Delete(ctx, u.Id)
 }
 
-func (repo *CachedUserRepository) Create(ctx context.Context, u domain2.User) error {
+func (repo *CachedUserRepository) Create(ctx context.Context, u domain.User) error {
 	return repo.dao.Insert(ctx, repo.domainToEntity(u))
 	// 在这里操作缓存
 }
 
-func (repo *CachedUserRepository) domainToEntity(u domain2.User) dao.User {
+func (repo *CachedUserRepository) domainToEntity(u domain.User) dao.User {
 	return dao.User{
 		Id: u.Id,
 		Email: sql.NullString{
@@ -164,12 +164,12 @@ func (repo *CachedUserRepository) domainToEntity(u domain2.User) dao.User {
 	}
 }
 
-func (repo *CachedUserRepository) entityToDomain(u dao.User) domain2.User {
-	return domain2.User{
+func (repo *CachedUserRepository) entityToDomain(u dao.User) domain.User {
+	return domain.User{
 		Id:    u.Id,
 		Email: u.Email.String,
 		Phone: u.Phone.String,
-		WechatInfo: domain2.WechatInfo{
+		WechatInfo: domain.WechatInfo{
 			OpenId:  u.WechatOpenID.String,
 			UnionId: u.WechatUnionID.String,
 		},

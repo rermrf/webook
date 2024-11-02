@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-	"webook/internal/domain"
+	"webook/article/domain"
 	"webook/internal/repository/cache"
 )
 

@@ -2,6 +2,7 @@ package grpcx
 
 import (
 	"google.golang.org/grpc"
+	"log"
 	"net"
 )
 
@@ -12,6 +13,7 @@ type Server struct {
 
 func (s *Server) Serve() error {
 	l, err := net.Listen("tcp", s.Addr)
+	log.Println("server worked on：", s.Addr)
 	if err != nil {
 		return err
 	}

@@ -8,8 +8,8 @@ import (
 	"gorm.io/plugin/opentelemetry/tracing"
 	"gorm.io/plugin/prometheus"
 	"time"
-	"webook/interactive/repository/dao"
 	"webook/pkg/logger"
+	"webook/user/repository/dao"
 )
 
 func InitDB(l logger.LoggerV1) *gorm.DB {

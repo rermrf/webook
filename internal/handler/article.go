@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"strconv"
 	"time"
+	articlev1 "webook/api/proto/gen/article/v1"
 	intrv1 "webook/api/proto/gen/intr/v1"
-	"webook/internal/domain"
+	"webook/article/domain"
 	ijwt "webook/internal/handler/jwt"
-	"webook/internal/service"
 	"webook/pkg/ginx"
 	"webook/pkg/logger"
 )
@@ -38,13 +39,13 @@ import (
 //}
 
 type ArticleHandler struct {
-	svc     service.ArticleService
+	svc     articlev1.ArticleServiceClient
 	intrSvc intrv1.InteractiveServiceClient
 	l       logger.LoggerV1
 	biz     string
 }
 
-func NewArticleHandler(svc service.ArticleService, l logger.LoggerV1, intrSvc intrv1.InteractiveServiceClient) *ArticleHandler {
+func NewArticleHandler(svc articlev1.ArticleServiceClient, l logger.LoggerV1, intrSvc intrv1.InteractiveServiceClient) *ArticleHandler {
 	return &ArticleHandler{
 		svc:     svc,
 		intrSvc: intrSvc,
@@ -113,7 +114,23 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context, uc ijwt.UserClaims) (ginx.R
 	var art domain.Article
 	eg.Go(func() error {
 		// 读文章本体
-		art, err = h.svc.GetPublishedById(ctx, id, uc.UserId)
+		resp, err := h.svc.GetPublishedById(ctx.Request.Context(), &articlev1.GetPublishedByIdRequest{
+			Id:  id,
+			Uid: uc.UserId,
+		})
+		// TODO 处理空错误
+		art = domain.Article{
+			Id:      resp.GetArticle().GetId(),
+			Title:   resp.GetArticle().GetTitle(),
+			Content: resp.GetArticle().GetContent(),
+			Author: domain.Author{
+				Id:   resp.GetArticle().GetAuthor().GetId(),
+				Name: resp.GetArticle().GetAuthor().GetName(),
+			},
+			Status: domain.ArticleStatus(resp.GetArticle().GetStatus()),
+			Ctime:  resp.GetArticle().GetCtime().AsTime(),
+			Utime:  resp.GetArticle().GetUtime().AsTime(),
+		}
 		return err
 	})
 
@@ -184,13 +201,16 @@ func (h *ArticleHandler) Detail(ctx *gin.Context, uc ijwt.UserClaims) (ginx.Resu
 			Msg:  "参数错误",
 		}, err
 	}
-	art, err := h.svc.GetById(ctx, int64(id))
+	resp, err := h.svc.GetById(ctx.Request.Context(), &articlev1.GetByIdRequest{
+		Id: int64(id),
+	})
 	if err != nil {
 		return ginx.Result{
 			Code: 5,
 			Msg:  "系统错误",
 		}, err
 	}
+	art := resp.GetArticle()
 	if art.Author.Id != uc.UserId {
 		return ginx.Result{
 			Code: 4,
@@ -204,22 +224,24 @@ func (h *ArticleHandler) Detail(ctx *gin.Context, uc ijwt.UserClaims) (ginx.Resu
 			Title: art.Title,
 			// 不需要摘要详细信息
 			//Abstract: art.Abstract(),
-			Status:  art.Status.ToUint8(),
+			Status:  uint8(art.Status),
 			Content: art.Content,
 			// 这个接口是创作者看自己的文章，不需要这个字段
 			//AuthorId:   art.Author.Id,
 			//AuthorName: art.Author.Name,
-			Ctime: art.Ctime.Format(time.DateTime),
-			Utime: art.Utime.Format(time.DateTime),
+			Ctime: art.Ctime.AsTime().Format(time.DateTime),
+			Utime: art.Utime.AsTime().Format(time.DateTime),
 		},
 	}, nil
 }
 
 func (h *ArticleHandler) Withdraw(ctx *gin.Context, req WithdrawReq, uc ijwt.UserClaims) (ginx.Result, error) {
-	err := h.svc.WithDraw(ctx, domain.Article{
-		Id: req.Id,
-		Author: domain.Author{
-			Id: uc.UserId,
+	_, err := h.svc.WithDraw(ctx.Request.Context(), &articlev1.WithDrawRequest{
+		Article: &articlev1.Article{
+			Id: req.Id,
+			Author: &articlev1.Author{
+				Id: uc.UserId,
+			},
 		},
 	})
 	if err != nil {
@@ -229,17 +251,44 @@ func (h *ArticleHandler) Withdraw(ctx *gin.Context, req WithdrawReq, uc ijwt.Use
 }
 
 func (h *ArticleHandler) Publish(ctx *gin.Context, req ArticleReq, uc ijwt.UserClaims) (ginx.Result, error) {
-	id, err := h.svc.Publish(ctx, req.toDomain(req, &uc))
+	art := req.toDomain(req, &uc)
+	resp, err := h.svc.Publish(ctx.Request.Context(), &articlev1.PublishRequest{
+		Article: &articlev1.Article{
+			Id:      art.Id,
+			Title:   art.Title,
+			Content: art.Content,
+			Author: &articlev1.Author{
+				Id:   art.Author.Id,
+				Name: art.Author.Name,
+			},
+			Status: int32(art.Status),
+			Ctime:  timestamppb.New(art.Ctime),
+			Utime:  timestamppb.New(art.Utime),
+		},
+	})
 	if err != nil {
 		return ginx.Result{Code: 5, Msg: "系统错误"}, fmt.Errorf("发表帖子失败 %w", err)
 	}
+	id := resp.GetId()
 	return ginx.Result{Msg: "OK", Data: id}, nil
 }
 
 func (h *ArticleHandler) Edit(ctx *gin.Context, req ArticleReq, uc ijwt.UserClaims) (ginx.Result, error) {
 	// TODO: 检测输入
 	// 调用 service 的代码
-	id, err := h.svc.Save(ctx, req.toDomain(req, &uc))
+	art := req.toDomain(req, &uc)
+	id, err := h.svc.Save(ctx.Request.Context(), &articlev1.SaveRequest{Article: &articlev1.Article{
+		Id:      art.Id,
+		Title:   art.Title,
+		Content: art.Content,
+		Author: &articlev1.Author{
+			Id:   art.Author.Id,
+			Name: art.Author.Name,
+		},
+		Status: int32(art.Status),
+		Ctime:  timestamppb.New(art.Ctime),
+		Utime:  timestamppb.New(art.Utime),
+	}})
 	if err != nil {
 		return ginx.Result{Code: 5, Msg: "系统错误"}, fmt.Errorf("保存帖子失败 %w", err)
 	}
@@ -247,15 +296,37 @@ func (h *ArticleHandler) Edit(ctx *gin.Context, req ArticleReq, uc ijwt.UserClai
 }
 
 func (h *ArticleHandler) List(ctx *gin.Context, req ListReq, uc ijwt.UserClaims) (ginx.Result, error) {
-	res, err := h.svc.List(ctx, uc.UserId, req.Offset, req.Limit)
+	resp, err := h.svc.List(ctx.Request.Context(), &articlev1.ListRequest{
+		Uid:    uc.UserId,
+		Offset: int32(req.Offset),
+		Limit:  int32(req.Limit),
+	})
 	if err != nil {
 		return ginx.Result{Code: 5, Msg: "系统错误"}, nil
 	}
+
+	res := resp.GetArticles()
+	arts := make([]domain.Article, 0, len(res))
+	for i, art := range res {
+		arts[i] = domain.Article{
+			Id:      art.Id,
+			Title:   art.Title,
+			Content: art.Content,
+			Author: domain.Author{
+				Id:   art.Author.Id,
+				Name: art.Author.Name,
+			},
+			Status: domain.ArticleStatus(art.Status),
+			Ctime:  art.Ctime.AsTime(),
+			Utime:  art.Utime.AsTime(),
+		}
+	}
+
 	// 在列表页，不显示全文，只显示一个"摘要"
 	// 比如说，简单的摘要就是前几句话
 	// 强大的摘要是 AI 帮你生成的
 	return ginx.Result{
-		Data: req.articlesToVO(res),
+		Data: req.articlesToVO(arts),
 	}, err
 }
 

@@ -11,10 +11,9 @@ package repomocks
 
 import (
 	context "context"
-	reflect "reflect"
-	domain "webook/internal/domain"
-
 	gomock "go.uber.org/mock/gomock"
+	reflect "reflect"
+	"webook/article/domain"
 )
 
 // MockRankingRepository is a mock of RankingRepository interface.

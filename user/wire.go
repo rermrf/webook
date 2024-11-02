@@ -4,6 +4,7 @@ package main
 
 import (
 	"github.com/google/wire"
+	"webook/pkg/grpcx"
 	"webook/user/grpc"
 	"webook/user/ioc"
 	"webook/user/repository"
@@ -26,10 +27,11 @@ var thirdPartySet = wire.NewSet(
 	ioc.InitRedis,
 )
 
-func InitUserGRPCServer() *grpc.UserGRPCServer {
+func InitUserGRPCServer() *grpcx.Server {
 	wire.Build(
 		thirdPartySet,
 		userSet,
+		ioc.InitGRPCServer,
 	)
-	return new(grpc.UserGRPCServer)
+	return new(grpcx.Server)
 }

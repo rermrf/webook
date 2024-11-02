@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	userv1 "webook/api/proto/gen/user/v1"
 	"webook/user/domain"
@@ -15,6 +16,10 @@ type UserGRPCServer struct {
 
 func NewUserGRPCServer(svc service.UserService) *UserGRPCServer {
 	return &UserGRPCServer{svc: svc}
+}
+
+func (u *UserGRPCServer) Register(server *grpc.Server) {
+	userv1.RegisterUserServiceServer(server, u)
 }
 
 func (u *UserGRPCServer) Signup(ctx context.Context, request *userv1.SignUpRequest) (*userv1.SignUpResponse, error) {

@@ -4,62 +4,37 @@ package main
 
 import (
 	"github.com/google/wire"
+	article3 "webook/article/events"
+	repository4 "webook/article/repository"
+	cache4 "webook/article/repository/cache"
+	dao3 "webook/article/repository/dao"
+	service3 "webook/article/service"
 	"webook/interactive/events"
 	repository2 "webook/interactive/repository"
 	cache2 "webook/interactive/repository/cache"
 	dao2 "webook/interactive/repository/dao"
 	service2 "webook/interactive/service"
-	article3 "webook/internal/events/article"
 	"webook/internal/handler"
 	ijwt "webook/internal/handler/jwt"
 	"webook/internal/ioc"
 	"webook/internal/repository"
-	"webook/internal/repository/article"
 	"webook/internal/repository/cache"
-	article2 "webook/internal/repository/dao/article"
 	"webook/internal/service"
-	repository3 "webook/user/repository"
-	cache3 "webook/user/repository/cache"
-	"webook/user/repository/dao"
-	service3 "webook/user/service"
 )
 
 // User 相关依赖
 var UserSet = wire.NewSet(
 	handler.NewUserHandler,
-	service3.NewUserService,
-	dao.NewUserDao,
-	cache3.NewUserCache,
-	repository3.NewCachedUserRepository,
 )
 
 // Gorm 文章相关依赖
 var GormArticleSet = wire.NewSet(
 	handler.NewArticleHandler,
-	service.NewArticleService,
-	article.NewArticleRepository,
-	article2.NewGormArticleDao,
-	article2.InitCollections,
-	cache.NewRedisArticleCache,
-)
-
-// Mongo 文章相关依赖
-var MongoArticleSet = wire.NewSet(
-	ioc.InitMongoDB,
-	ioc.InitSnowflakeNode,
-	handler.NewArticleHandler,
-	service.NewArticleService,
-	article.NewArticleRepository,
-	article2.NewMongoArticleDao,
-)
-
-// S3 文章相关依赖：将制作库存储所有信息，线上库存储除文章以外的信息，oss存储文章
-var S3ArticleSet = wire.NewSet(
-	handler.NewArticleHandler,
-	service.NewArticleService,
-	article.NewArticleRepository,
-	article2.NewOssDAO,
-	ioc.InitOss,
+	service3.NewArticleService,
+	repository4.NewArticleRepository,
+	dao3.NewGormArticleDao,
+	dao3.InitCollections,
+	cache4.NewRedisArticleCache,
 )
 
 // 短信相关依赖
@@ -105,6 +80,12 @@ var rankingServiceSet = wire.NewSet(
 	cache.NewRankingLocalCache,
 )
 
+var grpcClientSet = wire.NewSet(
+	ioc.InitIntrGRPCClient,
+	ioc.InitUserGRPCClient,
+	ioc.InitArticleGRPCClient,
+)
+
 func InitWebServer() *App {
 	wire.Build(
 		// 中间件，路由等？
@@ -117,7 +98,7 @@ func InitWebServer() *App {
 		ThirdPartySet,
 		OAuth2Set,
 		InteractiveSet,
-		ioc.InitIntrGRPCClient,
+		grpcClientSet,
 		KafkaSet,
 		GormArticleSet,
 		//MongoArticleSet,

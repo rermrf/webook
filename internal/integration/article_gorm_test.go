@@ -12,10 +12,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"webook/internal/domain"
+	"webook/article/domain"
+	"webook/article/repository/dao"
 	ijwt "webook/internal/handler/jwt"
 	"webook/internal/integration/startup"
-	"webook/internal/repository/dao/article"
 	"webook/pkg/ginx"
 )
 
@@ -45,7 +45,7 @@ func (s *ArticleTestSuite) SetupSuite() {
 	})
 	s.db = startup.InitDB()
 	// 使用 wire 注入
-	artHdl := startup.InitArticleHandler(article.NewGormArticleDao(s.db))
+	artHdl := startup.InitArticleHandler(dao.NewGormArticleDao(s.db))
 	artHdl.RegisterRoutes(s.server)
 }
 
@@ -82,7 +82,7 @@ func (s *ArticleTestSuite) TestPublish() {
 				// 新建发布
 			},
 			after: func(t *testing.T) {
-				var art article.Article
+				var art dao.Article
 				err := s.db.Where("id = ?", 1).First(&art).Error
 				assert.NoError(s.T(), err)
 				assert.True(t, art.Id > 0)
@@ -91,7 +91,7 @@ func (s *ArticleTestSuite) TestPublish() {
 				art.Id = 0
 				art.Ctime = 0
 				art.Utime = 0
-				assert.Equal(t, art, article.Article{
+				assert.Equal(t, art, dao.Article{
 					Title:    "我的标题",
 					Content:  "我的内容",
 					Status:   domain.ArticleStatusPublished.ToUint8(),
@@ -114,7 +114,7 @@ func (s *ArticleTestSuite) TestPublish() {
 			},
 			before: func(t *testing.T) {
 				// 模拟已经存在的数据
-				err := s.db.Create(&article.Article{
+				err := s.db.Create(&dao.Article{
 					Id:       2,
 					Title:    "已经存在的标题",
 					Content:  "已经存在的内容",
@@ -126,12 +126,12 @@ func (s *ArticleTestSuite) TestPublish() {
 				assert.NoError(s.T(), err)
 			},
 			after: func(t *testing.T) {
-				var art article.Article
+				var art dao.Article
 				err := s.db.Where("id = ?", 2).First(&art).Error
 				assert.NoError(s.T(), err)
 				assert.True(t, art.Utime > 5678)
 				art.Utime = 0
-				assert.Equal(t, art, article.Article{
+				assert.Equal(t, art, dao.Article{
 					Id:       2,
 					Title:    "新的标题",
 					Content:  "新的内容",
@@ -154,7 +154,7 @@ func (s *ArticleTestSuite) TestPublish() {
 				Content: "新的内容",
 			},
 			before: func(t *testing.T) {
-				err := s.db.Create(&article.Article{
+				err := s.db.Create(&dao.Article{
 					Id:       3,
 					Title:    "旧的标题",
 					Content:  "旧的内容",
@@ -166,7 +166,7 @@ func (s *ArticleTestSuite) TestPublish() {
 				assert.NoError(s.T(), err)
 			},
 			after: func(t *testing.T) {
-				var art article.Article
+				var art dao.Article
 				err := s.db.Where("id = ?", 3).First(&art).Error
 				assert.NoError(s.T(), err)
 				assert.True(t, art.Id > 0)
@@ -175,7 +175,7 @@ func (s *ArticleTestSuite) TestPublish() {
 				art.Id = 0
 				art.Ctime = 0
 				art.Utime = 0
-				assert.Equal(t, art, article.Article{
+				assert.Equal(t, art, dao.Article{
 					Title:    "新的标题",
 					Content:  "新的内容",
 					Status:   domain.ArticleStatusPublished.ToUint8(),
@@ -243,14 +243,14 @@ func (s *ArticleTestSuite) TestEdit() {
 			before: func(t *testing.T) {},
 			after: func(t *testing.T) {
 				// 验证数据库
-				var art article.Article
+				var art dao.Article
 				err := s.db.Where("id=?", 1).First(&art).Error
 				assert.NoError(t, err)
 				assert.True(t, art.Ctime > 0)
 				assert.True(t, art.Utime > 0)
 				art.Ctime = 0
 				art.Utime = 0
-				assert.Equal(t, article.Article{
+				assert.Equal(t, dao.Article{
 					Id:       1,
 					Title:    "我的标题",
 					Content:  "我的内容",
@@ -274,7 +274,7 @@ func (s *ArticleTestSuite) TestEdit() {
 			},
 			before: func(t *testing.T) {
 				// 修改已有帖子，必须先在数据库中预有数据
-				err := s.db.Create(article.Article{
+				err := s.db.Create(dao.Article{
 					Id:       2,
 					Title:    "我的标题",
 					Content:  "我的内容",
@@ -290,13 +290,13 @@ func (s *ArticleTestSuite) TestEdit() {
 			},
 			after: func(t *testing.T) {
 				// 验证数据库
-				var art article.Article
+				var art dao.Article
 				err := s.db.Where("id=?", 2).First(&art).Error
 				assert.NoError(t, err)
 				// 是为了确保我更新了更新时间
 				assert.True(t, art.Utime > 1234)
 				art.Utime = 0
-				assert.Equal(t, article.Article{
+				assert.Equal(t, dao.Article{
 					Id:       2,
 					Title:    "新的标题",
 					Content:  "新的内容",
@@ -321,7 +321,7 @@ func (s *ArticleTestSuite) TestEdit() {
 			},
 			before: func(t *testing.T) {
 				// 修改已有帖子，必须先在数据库中预有数据
-				err := s.db.Create(article.Article{
+				err := s.db.Create(dao.Article{
 					Id:      3,
 					Title:   "我的标题",
 					Content: "我的内容",
@@ -339,10 +339,10 @@ func (s *ArticleTestSuite) TestEdit() {
 			},
 			after: func(t *testing.T) {
 				// 验证数据库
-				var art article.Article
+				var art dao.Article
 				err := s.db.Where("id=?", 3).First(&art).Error
 				assert.NoError(t, err)
-				assert.Equal(t, article.Article{
+				assert.Equal(t, dao.Article{
 					Id:       3,
 					Title:    "我的标题",
 					Content:  "我的内容",

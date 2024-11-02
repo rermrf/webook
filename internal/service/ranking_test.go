@@ -9,8 +9,9 @@ import (
 	"testing"
 	"time"
 	intrv1 "webook/api/proto/gen/intr/v1"
+	"webook/article/domain"
+	service2 "webook/article/service"
 	domain2 "webook/interactive/domain"
-	"webook/internal/domain"
 	"webook/internal/repository"
 	repomocks "webook/internal/repository/mocks"
 	svcmocks "webook/internal/service/mocks"
@@ -20,13 +21,13 @@ func TestRankingTopN(t *testing.T) {
 	now := time.Now()
 	testcases := []struct {
 		name     string
-		mock     func(ctrl *gomock.Controller) (ArticleService, intrv1.InteractiveServiceClient, repository.RankingRepository)
+		mock     func(ctrl *gomock.Controller) (service2.ArticleService, intrv1.InteractiveServiceClient, repository.RankingRepository)
 		wantErr  error
 		wantArts []domain.Article
 	}{
 		{
 			name: "计算成功",
-			mock: func(ctrl *gomock.Controller) (ArticleService, intrv1.InteractiveServiceClient, repository.RankingRepository) {
+			mock: func(ctrl *gomock.Controller) (service2.ArticleService, intrv1.InteractiveServiceClient, repository.RankingRepository) {
 				artSvc := svcmocks.NewMockArticleService(ctrl)
 				// 最简单的，一批搞完
 				artSvc.EXPECT().ListPub(gomock.Any(), gomock.Any(), 0, 3).Return([]domain.Article{

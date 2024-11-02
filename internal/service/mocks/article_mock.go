@@ -11,11 +11,10 @@ package svcmocks
 
 import (
 	context "context"
+	gomock "go.uber.org/mock/gomock"
 	reflect "reflect"
 	time "time"
-	domain "webook/internal/domain"
-
-	gomock "go.uber.org/mock/gomock"
+	"webook/article/domain"
 )
 
 // MockArticleService is a mock of ArticleService interface.

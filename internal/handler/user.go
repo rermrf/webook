@@ -3,28 +3,26 @@ package handler
 import (
 	"errors"
 	"fmt"
+	regexp "github.com/dlclark/regexp2"
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
-	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"net/http"
 	"time"
+	userv1 "webook/api/proto/gen/user/v1"
 	"webook/internal/errs"
 	ijwt "webook/internal/handler/jwt"
 	"webook/internal/service"
 	"webook/pkg/ginx"
 	"webook/pkg/logger"
-	"webook/user/domain"
-	service2 "webook/user/service"
-
-	regexp "github.com/dlclark/regexp2"
-	"github.com/gin-gonic/gin"
 )
 
 const biz = "login"
 
 type UserHandler struct {
-	svc         service2.UserService
+	svc         userv1.UserServiceClient
 	codeSvc     service.CodeService
 	emailExp    *regexp.Regexp
 	passwordExp *regexp.Regexp
@@ -34,7 +32,7 @@ type UserHandler struct {
 	l   logger.LoggerV1
 }
 
-func NewUserHandler(svc service2.UserService, codeSvc service.CodeService, cmd redis.Cmdable, handler ijwt.Handler, l logger.LoggerV1) *UserHandler {
+func NewUserHandler(svc userv1.UserServiceClient, codeSvc service.CodeService, cmd redis.Cmdable, handler ijwt.Handler, l logger.LoggerV1) *UserHandler {
 	const (
 		emailRegexPattern    = `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
 		passwordRegexPattern = `^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&.])[A-Za-z\d@$!%*?&.]{8,72}$`
@@ -148,12 +146,14 @@ func (h *UserHandler) LoginSMS(ctx *gin.Context, req LoginSMSReq) (ginx.Result, 
 		return ginx.Result{Code: 4, Msg: "验证码错误"}, nil
 	}
 
-	user, err := h.svc.FindOrCreate(ctx, req.Phone)
+	resp, err := h.svc.FindOrCreate(ctx, &userv1.FindOrCreateRequest{Phone: req.Phone})
 	if err != nil {
 		return ginx.Result{Code: 5, Msg: "系统错误"}, fmt.Errorf("登录或注册用户失败 %w", err)
 	}
 
-	if err = h.SetLoginToken(ctx, user.Id); err != nil {
+	user := resp.GetUser()
+
+	if err = h.SetLoginToken(ctx, user.GetId()); err != nil {
 		ctx.JSON(http.StatusOK, ginx.Result{
 			Code: 5, Msg: "系统错误",
 		})
@@ -222,13 +222,15 @@ func (h *UserHandler) SignUp(ctx *gin.Context, req SignUpRequest) (ginx.Result, 
 
 	// 调用一下 svc 的方法
 	// 直接传入 ctx 在 opentelemetry 中无效，需要传入ctx.Request.Context()
-	err = h.svc.SignUp(ctx.Request.Context(), domain.User{Email: req.Email, Password: req.Password})
-	if errors.Is(err, service2.ErrUserDuplicate) {
-		// 复用
-		span := trace.SpanFromContext(ctx.Request.Context())
-		span.AddEvent("邮箱冲突")
-		return ginx.Result{Msg: "邮箱已注册"}, fmt.Errorf("%s 已被注册", req.Email)
-	}
+	_, err = h.svc.Signup(ctx.Request.Context(), &userv1.SignUpRequest{
+		User: &userv1.User{Email: req.Email, Password: req.Password},
+	})
+	//if errors.Is(err, service2.ErrUserDuplicate) {
+	//	// 复用
+	//	span := trace.SpanFromContext(ctx.Request.Context())
+	//	span.AddEvent("邮箱冲突")
+	//	return ginx.Result{Msg: "邮箱已注册"}, fmt.Errorf("%s 已被注册", req.Email)
+	//}
 	if err != nil {
 		return ginx.Result{Msg: "系统错误"}, errors.New("插入数据错误")
 	}
@@ -241,19 +243,24 @@ type LoginRequest struct {
 }
 
 func (h *UserHandler) LoginJWT(ctx *gin.Context, req LoginRequest) (ginx.Result, error) {
-	user, err := h.svc.Login(ctx, req.Email, req.Password)
-	if errors.Is(err, service2.ErrInvalidUserOrPassword) {
-		return ginx.Result{
-			Code: errs.UserInvalidOrPassword,
-			Msg:  "用户名或密码错误",
-		}, nil
-	}
+	resp, err := h.svc.Login(ctx, &userv1.LoginRequest{Email: req.Email, Password: req.Password})
+
+	// TODO 利用 grpc 来传递错误码
+	//if errors.Is(err, service2.ErrInvalidUserOrPassword) {
+	//	return ginx.Result{
+	//		Code: errs.UserInvalidOrPassword,
+	//		Msg:  "用户名或密码错误",
+	//	}, nil
+	//}
+
 	if err != nil {
 		return ginx.Result{
 			Code: errs.UserInternalServerError,
 			Msg:  "系统错误",
 		}, fmt.Errorf("登录错误 %w", err)
 	}
+
+	user := resp.GetUser()
 
 	// 设置 token
 	if err = h.SetLoginToken(ctx, user.Id); err != nil {
@@ -285,11 +292,13 @@ func (h *UserHandler) Edit(ctx *gin.Context, req EditRequest) (ginx.Result, erro
 	if !ok {
 		return ginx.Result{Code: 5, Msg: "系统错误"}, nil
 	}
-	err = h.svc.EditNoSensitive(ctx, domain.User{
-		Id:       uid.(int64),
-		Nickname: req.Nickname,
-		AboutMe:  req.AboutMe,
-		Birthday: birthday,
+	_, err = h.svc.EditNoSensitive(ctx, &userv1.EditNoSensitiveRequest{
+		User: &userv1.User{
+			Id:       uid.(int64),
+			NickName: req.Nickname,
+			AboutMe:  req.AboutMe,
+			Birthday: timestamppb.New(birthday),
+		},
 	})
 	if err != nil {
 		return ginx.Result{Code: 5, Msg: "系统错误"}, fmt.Errorf("修改个人信息出错 %d %w", uid.(int64), err)
@@ -307,20 +316,18 @@ type Profile struct {
 }
 
 func (h *UserHandler) Profile(ctx *gin.Context, uc ijwt.UserClaims) (ginx.Result, error) {
-	user, err := h.svc.Profile(ctx, uc.UserId)
-	if errors.Is(err, service2.ErrUserNotFound) {
-		return ginx.Result{Msg: "用户不存在"}, nil
-	}
+	resp, err := h.svc.Profile(ctx, &userv1.ProfileRequest{Id: uc.UserId})
 	if err != nil {
 		return ginx.Result{Msg: "系统错误"}, nil
 	}
+	user := resp.GetUser()
 	profile := Profile{
-		Email:    user.Email,
-		Phone:    user.Phone,
-		Nickname: user.Nickname,
-		AboutMe:  user.AboutMe,
-		Birthday: user.Birthday.Format(time.DateOnly),
-		Ctime:    user.Ctime.Format(time.DateOnly),
+		Email:    user.GetEmail(),
+		Phone:    user.GetPhone(),
+		Nickname: user.GetNickName(),
+		AboutMe:  user.GetAboutMe(),
+		Birthday: user.GetBirthday().AsTime().Format(time.DateOnly),
+		Ctime:    user.GetCtime().AsTime().Format(time.DateOnly),
 	}
 	return ginx.Result{Data: profile}, nil
 }

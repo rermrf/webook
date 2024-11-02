@@ -6,24 +6,25 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 	"testing"
-	"webook/internal/domain"
-	"webook/internal/repository/article"
-	artrepomocks "webook/internal/repository/article/mocks"
+	"webook/article/domain"
+	"webook/article/repository"
+	"webook/article/repository/mocks"
+	service2 "webook/article/service"
 	"webook/pkg/logger"
 )
 
 func Test_articleService_Publish(t *testing.T) {
 	testCases := []struct {
 		name    string
-		mock    func(ctrl *gomock.Controller) (article.ArticleAuthorRepository, article.ArticleReaderRepository)
+		mock    func(ctrl *gomock.Controller) (repository.ArticleAuthorRepository, repository.ArticleReaderRepository)
 		art     domain.Article
 		wantErr error
 		wantId  int64
 	}{
 		{
 			name: "新建发表成功",
-			mock: func(ctrl *gomock.Controller) (article.ArticleAuthorRepository, article.ArticleReaderRepository) {
-				author := artrepomocks.NewMockArticleAuthorRepository(ctrl)
+			mock: func(ctrl *gomock.Controller) (repository.ArticleAuthorRepository, repository.ArticleReaderRepository) {
+				author := mocks.NewMockArticleAuthorRepository(ctrl)
 				author.EXPECT().Create(gomock.Any(), domain.Article{
 					Title:   "我的标题",
 					Content: "我的内容",
@@ -31,7 +32,7 @@ func Test_articleService_Publish(t *testing.T) {
 						Id: 123,
 					},
 				}).Return(int64(1), nil)
-				reader := artrepomocks.NewMockArticleReaderRepository(ctrl)
+				reader := mocks.NewMockArticleReaderRepository(ctrl)
 				reader.EXPECT().Save(gomock.Any(), domain.Article{
 					// 确保使用制作库id
 					Id:      1,
@@ -58,8 +59,8 @@ func Test_articleService_Publish(t *testing.T) {
 		},
 		{
 			name: "修改并发表成功",
-			mock: func(ctrl *gomock.Controller) (article.ArticleAuthorRepository, article.ArticleReaderRepository) {
-				author := artrepomocks.NewMockArticleAuthorRepository(ctrl)
+			mock: func(ctrl *gomock.Controller) (repository.ArticleAuthorRepository, repository.ArticleReaderRepository) {
+				author := mocks.NewMockArticleAuthorRepository(ctrl)
 				author.EXPECT().Update(gomock.Any(), domain.Article{
 					Id:      2,
 					Title:   "我的标题",
@@ -68,7 +69,7 @@ func Test_articleService_Publish(t *testing.T) {
 						Id: 123,
 					},
 				}).Return(nil)
-				reader := artrepomocks.NewMockArticleReaderRepository(ctrl)
+				reader := mocks.NewMockArticleReaderRepository(ctrl)
 				reader.EXPECT().Save(gomock.Any(), domain.Article{
 					// 确保使用制作库id
 					Id:      2,
@@ -95,8 +96,8 @@ func Test_articleService_Publish(t *testing.T) {
 		},
 		{
 			name: "新建保存到制作库失败",
-			mock: func(ctrl *gomock.Controller) (article.ArticleAuthorRepository, article.ArticleReaderRepository) {
-				author := artrepomocks.NewMockArticleAuthorRepository(ctrl)
+			mock: func(ctrl *gomock.Controller) (repository.ArticleAuthorRepository, repository.ArticleReaderRepository) {
+				author := mocks.NewMockArticleAuthorRepository(ctrl)
 				author.EXPECT().Create(gomock.Any(), domain.Article{
 					Title:   "我的标题",
 					Content: "我的内容",
@@ -104,7 +105,7 @@ func Test_articleService_Publish(t *testing.T) {
 						Id: 123,
 					},
 				}).Return(int64(0), errors.New("保存到制作库失败"))
-				reader := artrepomocks.NewMockArticleReaderRepository(ctrl)
+				reader := mocks.NewMockArticleReaderRepository(ctrl)
 				return author, reader
 			},
 
@@ -122,8 +123,8 @@ func Test_articleService_Publish(t *testing.T) {
 		},
 		{
 			name: "修改保存到制作库失败",
-			mock: func(ctrl *gomock.Controller) (article.ArticleAuthorRepository, article.ArticleReaderRepository) {
-				author := artrepomocks.NewMockArticleAuthorRepository(ctrl)
+			mock: func(ctrl *gomock.Controller) (repository.ArticleAuthorRepository, repository.ArticleReaderRepository) {
+				author := mocks.NewMockArticleAuthorRepository(ctrl)
 				author.EXPECT().Update(gomock.Any(), domain.Article{
 					Id:      2,
 					Title:   "我的标题",
@@ -132,7 +133,7 @@ func Test_articleService_Publish(t *testing.T) {
 						Id: 123,
 					},
 				}).Return(errors.New("保存到制作库失败"))
-				reader := artrepomocks.NewMockArticleReaderRepository(ctrl)
+				reader := mocks.NewMockArticleReaderRepository(ctrl)
 				return author, reader
 			},
 
@@ -150,8 +151,8 @@ func Test_articleService_Publish(t *testing.T) {
 		},
 		{
 			name: "新建保存到制作库成功，保存到线上库重试成功",
-			mock: func(ctrl *gomock.Controller) (article.ArticleAuthorRepository, article.ArticleReaderRepository) {
-				author := artrepomocks.NewMockArticleAuthorRepository(ctrl)
+			mock: func(ctrl *gomock.Controller) (repository.ArticleAuthorRepository, repository.ArticleReaderRepository) {
+				author := mocks.NewMockArticleAuthorRepository(ctrl)
 				author.EXPECT().Create(gomock.Any(), domain.Article{
 					Title:   "我的标题",
 					Content: "我的内容",
@@ -159,7 +160,7 @@ func Test_articleService_Publish(t *testing.T) {
 						Id: 123,
 					},
 				}).Return(int64(1), nil)
-				reader := artrepomocks.NewMockArticleReaderRepository(ctrl)
+				reader := mocks.NewMockArticleReaderRepository(ctrl)
 				reader.EXPECT().Save(gomock.Any(), domain.Article{
 					// 确保使用制作库id
 					Id:      1,
@@ -200,8 +201,8 @@ func Test_articleService_Publish(t *testing.T) {
 			// 2. 使用了非关系型数据库
 			// 3. service 这一层既不适合开事物，也不一定就能开事物
 			name: "修改保存到制作库成功，保存到线上库重试成功",
-			mock: func(ctrl *gomock.Controller) (article.ArticleAuthorRepository, article.ArticleReaderRepository) {
-				author := artrepomocks.NewMockArticleAuthorRepository(ctrl)
+			mock: func(ctrl *gomock.Controller) (repository.ArticleAuthorRepository, repository.ArticleReaderRepository) {
+				author := mocks.NewMockArticleAuthorRepository(ctrl)
 				author.EXPECT().Update(gomock.Any(), domain.Article{
 					Id:      2,
 					Title:   "我的标题",
@@ -210,7 +211,7 @@ func Test_articleService_Publish(t *testing.T) {
 						Id: 123,
 					},
 				}).Return(nil)
-				reader := artrepomocks.NewMockArticleReaderRepository(ctrl)
+				reader := mocks.NewMockArticleReaderRepository(ctrl)
 				reader.EXPECT().Save(gomock.Any(), domain.Article{
 					// 确保使用制作库id
 					Id:      2,
@@ -246,8 +247,8 @@ func Test_articleService_Publish(t *testing.T) {
 		},
 		{
 			name: "新建保存到制作库成功，保存到线上库重试全部失败",
-			mock: func(ctrl *gomock.Controller) (article.ArticleAuthorRepository, article.ArticleReaderRepository) {
-				author := artrepomocks.NewMockArticleAuthorRepository(ctrl)
+			mock: func(ctrl *gomock.Controller) (repository.ArticleAuthorRepository, repository.ArticleReaderRepository) {
+				author := mocks.NewMockArticleAuthorRepository(ctrl)
 				author.EXPECT().Create(gomock.Any(), domain.Article{
 					Title:   "我的标题",
 					Content: "我的内容",
@@ -255,7 +256,7 @@ func Test_articleService_Publish(t *testing.T) {
 						Id: 123,
 					},
 				}).Return(int64(1), nil)
-				reader := artrepomocks.NewMockArticleReaderRepository(ctrl)
+				reader := mocks.NewMockArticleReaderRepository(ctrl)
 				reader.EXPECT().Save(gomock.Any(), domain.Article{
 					// 确保使用制作库id
 					Id:      1,
@@ -286,8 +287,8 @@ func Test_articleService_Publish(t *testing.T) {
 			// 2. 使用了非关系型数据库
 			// 3. service 这一层既不适合开事物，也不一定就能开事物
 			name: "修改保存到制作库成功，但是保存到线上库重试失败",
-			mock: func(ctrl *gomock.Controller) (article.ArticleAuthorRepository, article.ArticleReaderRepository) {
-				author := artrepomocks.NewMockArticleAuthorRepository(ctrl)
+			mock: func(ctrl *gomock.Controller) (repository.ArticleAuthorRepository, repository.ArticleReaderRepository) {
+				author := mocks.NewMockArticleAuthorRepository(ctrl)
 				author.EXPECT().Update(gomock.Any(), domain.Article{
 					Id:      2,
 					Title:   "我的标题",
@@ -296,7 +297,7 @@ func Test_articleService_Publish(t *testing.T) {
 						Id: 123,
 					},
 				}).Return(nil)
-				reader := artrepomocks.NewMockArticleReaderRepository(ctrl)
+				reader := mocks.NewMockArticleReaderRepository(ctrl)
 				reader.EXPECT().Save(gomock.Any(), domain.Article{
 					// 确保使用制作库id
 					Id:      2,
@@ -328,7 +329,7 @@ func Test_articleService_Publish(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			author, reader := tc.mock(ctrl)
-			svc := NewArticleServiceV1(author, reader, logger.NopLogger{})
+			svc := service2.NewArticleServiceV1(author, reader, logger.NopLogger{})
 			id, err := svc.PublishV1(context.Background(), tc.art)
 			assert.Equal(t, tc.wantErr, err)
 			assert.Equal(t, tc.wantId, id)

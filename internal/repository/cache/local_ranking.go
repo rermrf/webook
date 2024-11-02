@@ -5,7 +5,7 @@ import (
 	"errors"
 	"go.uber.org/atomic"
 	"time"
-	"webook/internal/domain"
+	"webook/article/domain"
 )
 
 // 强制使用本地缓存的漏洞：

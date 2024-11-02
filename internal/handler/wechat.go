@@ -6,16 +6,16 @@ import (
 	"github.com/lithammer/shortuuid"
 	"net/http"
 	"time"
+	userv1 "webook/api/proto/gen/user/v1"
 	ijwt "webook/internal/handler/jwt"
 	"webook/internal/service/oauth2/wechat"
 	"webook/pkg/ginx"
-	"webook/user/service"
 )
 
 type OAuth2WechatHandler struct {
 	svc wechat.Service
 	ijwt.Handler
-	userSvc  service.UserService
+	userSvc  userv1.UserServiceClient
 	stateKey []byte
 	cfg      Config
 }
@@ -25,7 +25,7 @@ type Config struct {
 	//StateKey string
 }
 
-func NewOAuth2WechatHandler(svc wechat.Service, userSvc service.UserService, jwtHandler ijwt.Handler) *OAuth2WechatHandler {
+func NewOAuth2WechatHandler(svc wechat.Service, userSvc userv1.UserServiceClient, jwtHandler ijwt.Handler) *OAuth2WechatHandler {
 	return &OAuth2WechatHandler{
 		svc:      svc,
 		userSvc:  userSvc,
@@ -94,7 +94,12 @@ func (h *OAuth2WechatHandler) Callback(ctx *gin.Context) {
 		})
 		return
 	}
-	user, err := h.userSvc.FindOrCreateByWechat(ctx, info)
+	resp, err := h.userSvc.FindOrCreateByWechat(ctx, &userv1.FindOrCreateByWechatRequest{
+		Info: &userv1.WechatInfo{
+			OpenId:  info.OpenId,
+			UnionId: info.UnionId,
+		},
+	})
 	if err != nil {
 		ctx.JSON(http.StatusOK, ginx.Result{
 			Code: 5,
@@ -102,6 +107,8 @@ func (h *OAuth2WechatHandler) Callback(ctx *gin.Context) {
 		})
 		return
 	}
+
+	user := resp.GetUser()
 
 	// 从userService中获取id
 	if err = h.SetLoginToken(ctx, user.Id); err != nil {

@@ -5,23 +5,24 @@ package startup
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
+	"webook/article/events"
+	repository4 "webook/article/repository"
+	cache4 "webook/article/repository/cache"
+	article2 "webook/article/repository/dao"
+	service3 "webook/article/service"
 	repository2 "webook/interactive/repository"
 	cache2 "webook/interactive/repository/cache"
 	dao2 "webook/interactive/repository/dao"
 	service2 "webook/interactive/service"
-	events "webook/internal/events/article"
 	"webook/internal/handler"
 	ijwt "webook/internal/handler/jwt"
 	"webook/internal/ioc"
 	"webook/internal/repository"
-	"webook/internal/repository/article"
 	"webook/internal/repository/cache"
-	article2 "webook/internal/repository/dao/article"
 	"webook/internal/service"
 	repository3 "webook/user/repository"
 	cache3 "webook/user/repository/cache"
 	"webook/user/repository/dao"
-	service3 "webook/user/service"
 )
 
 var thirdPartySet = wire.NewSet(
@@ -36,15 +37,16 @@ var userSvcProvider = wire.NewSet(
 	dao.NewUserDao,
 	cache3.NewUserCache,
 	repository3.NewCachedUserRepository,
-	service3.NewUserService,
-	handler.NewUserHandler)
+	InitUserGRPCClient,
+	handler.NewUserHandler,
+)
 
 var articleSet = wire.NewSet(
 	handler.NewArticleHandler,
-	service.NewArticleService,
-	article.NewArticleRepository,
+	service3.NewArticleService,
+	repository4.NewArticleRepository,
 	article2.NewGormArticleDao,
-	cache.NewRedisArticleCache,
+	cache4.NewRedisArticleCache,
 	events.NewKafkaProducer,
 )
 
@@ -90,14 +92,14 @@ func InitArticleHandler(d article2.ArticleDao) *handler.ArticleHandler {
 	wire.Build(
 		thirdPartySet,
 		interactiveSet,
-		service.NewArticleService,
+		service3.NewArticleService,
 		handler.NewArticleHandler,
-		article.NewArticleRepository,
+		repository4.NewArticleRepository,
 		//article2.NewGormArticleDao,
-		cache.NewRedisArticleCache,
-		dao.NewUserDao,
-		cache3.NewUserCache,
-		repository3.NewCachedUserRepository,
+		cache4.NewRedisArticleCache,
+		//dao.NewUserDao,
+		//cache3.NewUserCache,
+		//repository3.NewCachedUserRepository,
 		events.NewKafkaProducer,
 		InitIntrGRPCClient,
 	)

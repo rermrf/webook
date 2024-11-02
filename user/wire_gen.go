@@ -8,6 +8,7 @@ package main
 
 import (
 	"github.com/google/wire"
+	"webook/pkg/grpcx"
 	"webook/user/grpc"
 	"webook/user/ioc"
 	"webook/user/repository"
@@ -18,7 +19,7 @@ import (
 
 // Injectors from wire.go:
 
-func InitUserGRPCServer() *grpc.UserGRPCServer {
+func InitUserGRPCServer() *grpcx.Server {
 	loggerV1 := ioc.InitLogger()
 	db := ioc.InitDB(loggerV1)
 	userDao := dao.NewUserDao(db)
@@ -27,7 +28,8 @@ func InitUserGRPCServer() *grpc.UserGRPCServer {
 	userRepository := repository.NewCachedUserRepository(userDao, userCache)
 	userService := service.NewUserService(userRepository, loggerV1)
 	userGRPCServer := grpc.NewUserGRPCServer(userService)
-	return userGRPCServer
+	server := ioc.InitGRPCServer(userGRPCServer)
+	return server
 }
 
 // wire.go:

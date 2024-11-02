@@ -25,3 +25,9 @@ grpc:
       addr: "127.0.0.1:8090"
       secure: false
       threshold: 70
+    user:
+      addr: "127.0.0.1:8091"
+      secure: false
+    article:
+      addr: "127.0.0.1:8092"
+      secure: false
