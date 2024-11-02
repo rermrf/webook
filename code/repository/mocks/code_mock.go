@@ -7,7 +7,7 @@
 //
 
 // Package repomocks is a generated GoMock package.
-package repomocks
+package mocks
 
 import (
 	context "context"

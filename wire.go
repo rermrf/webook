@@ -38,11 +38,11 @@ var GormArticleSet = wire.NewSet(
 )
 
 // 短信相关依赖
-var CodeSet = wire.NewSet(
-	service.NewCodeService,
-	cache.NewCodeCache,
-	repository.NewCodeRepository,
-)
+//var CodeSet = wire.NewSet(
+//	service4.NewCodeService,
+//	cache3.NewCodeCache,
+//	repository3.NewCodeRepository,
+//)
 
 var ThirdPartySet = wire.NewSet(
 	ioc.InitRedis,
@@ -84,6 +84,7 @@ var grpcClientSet = wire.NewSet(
 	ioc.InitUserGRPCClient,
 	ioc.InitArticleGRPCClient,
 	ioc.InitSMSGRPCClient,
+	ioc.InitCodeGRPCClient,
 )
 
 func InitWebServer() *App {
@@ -94,7 +95,7 @@ func InitWebServer() *App {
 		ioc.InitMiddlewares,
 		UserSet,
 
-		CodeSet,
+		//CodeSet,
 		ThirdPartySet,
 		OAuth2Set,
 		InteractiveSet,

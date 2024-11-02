@@ -7,7 +7,7 @@
 //
 
 // Package svcmocks is a generated GoMock package.
-package svcmocks
+package mocks
 
 import (
 	context "context"

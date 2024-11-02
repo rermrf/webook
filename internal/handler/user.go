@@ -11,10 +11,10 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"net/http"
 	"time"
+	codev1 "webook/api/proto/gen/code/v1"
 	userv1 "webook/api/proto/gen/user/v1"
 	"webook/internal/errs"
 	ijwt "webook/internal/handler/jwt"
-	"webook/internal/service"
 	"webook/pkg/ginx"
 	"webook/pkg/logger"
 )
@@ -23,7 +23,7 @@ const biz = "login"
 
 type UserHandler struct {
 	svc         userv1.UserServiceClient
-	codeSvc     service.CodeService
+	codeSvc     codev1.CodeServiceClient
 	emailExp    *regexp.Regexp
 	passwordExp *regexp.Regexp
 	phoneExp    *regexp.Regexp
@@ -32,7 +32,7 @@ type UserHandler struct {
 	l   logger.LoggerV1
 }
 
-func NewUserHandler(svc userv1.UserServiceClient, codeSvc service.CodeService, cmd redis.Cmdable, handler ijwt.Handler, l logger.LoggerV1) *UserHandler {
+func NewUserHandler(svc userv1.UserServiceClient, codeSvc codev1.CodeServiceClient, cmd redis.Cmdable, handler ijwt.Handler, l logger.LoggerV1) *UserHandler {
 	const (
 		emailRegexPattern    = `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
 		passwordRegexPattern = `^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&.])[A-Za-z\d@$!%*?&.]{8,72}$`
@@ -127,10 +127,16 @@ func (h *UserHandler) LoginSMS(ctx *gin.Context, req LoginSMSReq) (ginx.Result, 
 		return ginx.Result{Code: 4, Msg: "手机号格式不正确"}, errors.New("手机号码格式不正确")
 	}
 
-	ok, err = h.codeSvc.Verify(ctx, biz, req.Code, req.Phone)
-	if errors.Is(err, service.ErrCodeVerifyTooManyTimes) {
-		return ginx.Result{Code: 4, Msg: "重试次数过多，请重新发送"}, err
-	}
+	ver, err := h.codeSvc.Verify(ctx, &codev1.VerifyRequest{
+		Biz:       biz,
+		InputCode: req.Code,
+		Phone:     req.Phone,
+	})
+	ok = ver.GetAnswer()
+	// TODO 利用 grpc 来传递错误码
+	//if errors.Is(err, service.ErrCodeVerifyTooManyTimes) {
+	//	return ginx.Result{Code: 4, Msg: "重试次数过多，请重新发送"}, err
+	//}
 	if err != nil {
 		//ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
 		//zap.L().Error("校验验证码出错", zap.Error(err),
@@ -175,12 +181,16 @@ func (h *UserHandler) SendLoginSMSCode(ctx *gin.Context, req SendLoginSMSCodeReq
 	if !ok {
 		return ginx.Result{Code: 4, Msg: "手机号格式不正确"}, nil
 	}
-	err = h.codeSvc.Send(ctx.Request.Context(), biz, req.Phone)
+	_, err = h.codeSvc.Send(ctx.Request.Context(), &codev1.SendRequest{
+		Biz:   biz,
+		Phone: req.Phone,
+	})
 	switch {
 	case err == nil:
 		return ginx.Result{Msg: "发送成功"}, nil
-	case errors.Is(err, service.ErrCodeSendTooMany):
-		return ginx.Result{Code: 4, Msg: "发送次数过多"}, fmt.Errorf("发送太频繁：%w", err)
+		// TODO 利用 grpc 来传递错误码
+	//case errors.Is(err, service.ErrCodeSendTooMany):
+	//	return ginx.Result{Code: 4, Msg: "发送次数过多"}, fmt.Errorf("发送太频繁：%w", err)
 	default:
 		return ginx.Result{Code: 5, Msg: "系统错误"}, fmt.Errorf("%w", err)
 	}

@@ -34,3 +34,6 @@ grpc:
     sms:
       addr: "127.0.0.1:8093"
       secure: false
+    code:
+      addr: "127.0.0.1:8094"
+      secure: false

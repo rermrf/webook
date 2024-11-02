@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-	"webook/internal/repository/cache"
+	"webook/code/repository/cache"
 )
 
 var (

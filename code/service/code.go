@@ -6,7 +6,8 @@ import (
 	"go.uber.org/zap"
 	"math/rand"
 	smsv1 "webook/api/proto/gen/sms/v1"
-	"webook/internal/repository"
+	"webook/code/repository"
+	"webook/pkg/logger"
 )
 
 const codeTplId = "tplId"
@@ -24,13 +25,15 @@ type CodeService interface {
 type CodeServiceImpl struct {
 	repo   repository.CodeRepository
 	smsSvc smsv1.SMSServiceClient
+	l      logger.LoggerV1
 	//tplId  string
 }
 
-func NewCodeService(repo repository.CodeRepository, smsSvc smsv1.SMSServiceClient) CodeService {
+func NewCodeService(repo repository.CodeRepository, smsSvc smsv1.SMSServiceClient, l logger.LoggerV1) CodeService {
 	return &CodeServiceImpl{
 		repo:   repo,
 		smsSvc: smsSvc,
+		l:      l,
 	}
 }
 

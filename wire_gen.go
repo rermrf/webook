@@ -9,21 +9,21 @@ package main
 import (
 	"github.com/google/wire"
 	events2 "webook/article/events"
-	repository3 "webook/article/repository"
-	cache3 "webook/article/repository/cache"
+	repository2 "webook/article/repository"
+	cache2 "webook/article/repository/cache"
 	dao2 "webook/article/repository/dao"
-	service3 "webook/article/service"
+	service2 "webook/article/service"
 	"webook/interactive/events"
-	repository2 "webook/interactive/repository"
-	cache2 "webook/interactive/repository/cache"
+	"webook/interactive/repository"
+	"webook/interactive/repository/cache"
 	"webook/interactive/repository/dao"
-	service2 "webook/interactive/service"
+	"webook/interactive/service"
 	"webook/internal/handler"
 	"webook/internal/handler/jwt"
 	"webook/internal/ioc"
-	"webook/internal/repository"
-	"webook/internal/repository/cache"
-	"webook/internal/service"
+	repository3 "webook/internal/repository"
+	cache3 "webook/internal/repository/cache"
+	service3 "webook/internal/service"
 )
 
 import (
@@ -38,19 +38,16 @@ func InitWebServer() *App {
 	loggerV1 := ioc.InitLogger()
 	v := ioc.InitMiddlewares(cmdable, jwtHandler, loggerV1)
 	userServiceClient := ioc.InitUserGRPCClient()
-	codeCache := cache.NewCodeCache(cmdable)
-	codeRepository := repository.NewCodeRepository(codeCache)
-	smsServiceClient := ioc.InitSMSGRPCClient()
-	codeService := service.NewCodeService(codeRepository, smsServiceClient)
-	userHandler := handler.NewUserHandler(userServiceClient, codeService, cmdable, jwtHandler, loggerV1)
+	codeServiceClient := ioc.InitCodeGRPCClient()
+	userHandler := handler.NewUserHandler(userServiceClient, codeServiceClient, cmdable, jwtHandler, loggerV1)
 	wechatService := ioc.InitOAuth2WechatService(loggerV1)
 	oAuth2WechatHandler := handler.NewOAuth2WechatHandler(wechatService, userServiceClient, jwtHandler)
 	articleServiceClient := ioc.InitArticleGRPCClient()
 	db := ioc.InitDB(loggerV1)
 	interactiveDao := dao.NewGORMInteractiveDao(db)
-	interactiveCache := cache2.NewRedisInteractiveCache(cmdable)
-	interactiveRepository := repository2.NewCachedInteractiveRepository(interactiveDao, interactiveCache, loggerV1)
-	interactiveService := service2.NewInteractiveService(interactiveRepository)
+	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
+	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDao, interactiveCache, loggerV1)
+	interactiveService := service.NewInteractiveService(interactiveRepository)
 	interactiveServiceClient := ioc.InitIntrGRPCClient(interactiveService)
 	articleHandler := handler.NewArticleHandler(articleServiceClient, loggerV1, interactiveServiceClient)
 	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler)
@@ -58,15 +55,15 @@ func InitWebServer() *App {
 	interactiveReadBatchConsumer := events.NewInteractiveReadBatchConsumer(client, loggerV1, interactiveRepository)
 	v2 := ioc.NewConsumer(interactiveReadBatchConsumer)
 	articleDao := dao2.NewGormArticleDao(db)
-	articleCache := cache3.NewRedisArticleCache(cmdable)
-	articleRepository := repository3.NewArticleRepository(articleDao, articleCache, loggerV1)
+	articleCache := cache2.NewRedisArticleCache(cmdable)
+	articleRepository := repository2.NewArticleRepository(articleDao, articleCache, loggerV1)
 	syncProducer := ioc.NewSyncProducer(client)
 	producer := events2.NewKafkaProducer(syncProducer)
-	articleService := service3.NewArticleService(articleRepository, loggerV1, producer)
-	rankingRedisCache := cache.NewRankingRedisCache(cmdable)
-	rankingLocalCache := cache.NewRankingLocalCache()
-	rankingRepository := repository.NewCachedRankingRepository(rankingRedisCache, rankingLocalCache)
-	rankingService := service.NewBatchRankingService(articleService, interactiveServiceClient, rankingRepository)
+	articleService := service2.NewArticleService(articleRepository, loggerV1, producer)
+	rankingRedisCache := cache3.NewRankingRedisCache(cmdable)
+	rankingLocalCache := cache3.NewRankingLocalCache()
+	rankingRepository := repository3.NewCachedRankingRepository(rankingRedisCache, rankingLocalCache)
+	rankingService := service3.NewBatchRankingService(articleService, interactiveServiceClient, rankingRepository)
 	rlockClient := ioc.InitRLockClient(cmdable)
 	rankingJob := ioc.InitRankingJob(rankingService, rlockClient, loggerV1)
 	cron := ioc.InitJob(loggerV1, rankingJob)
@@ -84,19 +81,16 @@ func InitWebServer() *App {
 var UserSet = wire.NewSet(handler.NewUserHandler)
 
 // Gorm 文章相关依赖
-var GormArticleSet = wire.NewSet(handler.NewArticleHandler, service3.NewArticleService, repository3.NewArticleRepository, dao2.NewGormArticleDao, dao2.InitCollections, cache3.NewRedisArticleCache)
-
-// 短信相关依赖
-var CodeSet = wire.NewSet(service.NewCodeService, cache.NewCodeCache, repository.NewCodeRepository)
+var GormArticleSet = wire.NewSet(handler.NewArticleHandler, service2.NewArticleService, repository2.NewArticleRepository, dao2.NewGormArticleDao, dao2.InitCollections, cache2.NewRedisArticleCache)
 
 var ThirdPartySet = wire.NewSet(ioc.InitRedis, ioc.InitDB, ioc.InitLogger, jwt.NewRedisJWTHandler)
 
-var InteractiveSet = wire.NewSet(service2.NewInteractiveService, repository2.NewCachedInteractiveRepository, dao.NewGORMInteractiveDao, cache2.NewRedisInteractiveCache, events.NewInteractiveReadBatchConsumer)
+var InteractiveSet = wire.NewSet(service.NewInteractiveService, repository.NewCachedInteractiveRepository, dao.NewGORMInteractiveDao, cache.NewRedisInteractiveCache, events.NewInteractiveReadBatchConsumer)
 
 var OAuth2Set = wire.NewSet(handler.NewOAuth2WechatHandler, ioc.InitOAuth2WechatService)
 
 var KafkaSet = wire.NewSet(ioc.InitKafka, ioc.NewConsumer, ioc.NewSyncProducer, events2.NewKafkaProducer)
 
-var rankingServiceSet = wire.NewSet(service.NewBatchRankingService, repository.NewCachedRankingRepository, cache.NewRankingRedisCache, cache.NewRankingLocalCache)
+var rankingServiceSet = wire.NewSet(service3.NewBatchRankingService, repository3.NewCachedRankingRepository, cache3.NewRankingRedisCache, cache3.NewRankingLocalCache)
 
-var grpcClientSet = wire.NewSet(ioc.InitIntrGRPCClient, ioc.InitUserGRPCClient, ioc.InitArticleGRPCClient, ioc.InitSMSGRPCClient)
+var grpcClientSet = wire.NewSet(ioc.InitIntrGRPCClient, ioc.InitUserGRPCClient, ioc.InitArticleGRPCClient, ioc.InitSMSGRPCClient, ioc.InitCodeGRPCClient)
