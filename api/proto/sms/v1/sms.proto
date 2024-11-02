@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package sms.v1;
+option go_package = "/sms/v1;smsV1";
+
+service SMSService {
+  rpc Send(SendRequest) returns(SendResponse);
+}
+
+message SendRequest {
+  string biz = 1;
+  repeated string args = 2;
+  repeated string numbers = 3;
+}
+
+message SendResponse {
+
+}

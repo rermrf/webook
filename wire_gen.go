@@ -40,8 +40,8 @@ func InitWebServer() *App {
 	userServiceClient := ioc.InitUserGRPCClient()
 	codeCache := cache.NewCodeCache(cmdable)
 	codeRepository := repository.NewCodeRepository(codeCache)
-	smsService := ioc.InitSMSService()
-	codeService := service.NewCodeService(codeRepository, smsService)
+	smsServiceClient := ioc.InitSMSGRPCClient()
+	codeService := service.NewCodeService(codeRepository, smsServiceClient)
 	userHandler := handler.NewUserHandler(userServiceClient, codeService, cmdable, jwtHandler, loggerV1)
 	wechatService := ioc.InitOAuth2WechatService(loggerV1)
 	oAuth2WechatHandler := handler.NewOAuth2WechatHandler(wechatService, userServiceClient, jwtHandler)
@@ -87,7 +87,7 @@ var UserSet = wire.NewSet(handler.NewUserHandler)
 var GormArticleSet = wire.NewSet(handler.NewArticleHandler, service3.NewArticleService, repository3.NewArticleRepository, dao2.NewGormArticleDao, dao2.InitCollections, cache3.NewRedisArticleCache)
 
 // 短信相关依赖
-var CodeSet = wire.NewSet(ioc.InitSMSService, service.NewCodeService, cache.NewCodeCache, repository.NewCodeRepository)
+var CodeSet = wire.NewSet(service.NewCodeService, cache.NewCodeCache, repository.NewCodeRepository)
 
 var ThirdPartySet = wire.NewSet(ioc.InitRedis, ioc.InitDB, ioc.InitLogger, jwt.NewRedisJWTHandler)
 
@@ -99,4 +99,4 @@ var KafkaSet = wire.NewSet(ioc.InitKafka, ioc.NewConsumer, ioc.NewSyncProducer, 
 
 var rankingServiceSet = wire.NewSet(service.NewBatchRankingService, repository.NewCachedRankingRepository, cache.NewRankingRedisCache, cache.NewRankingLocalCache)
 
-var grpcClientSet = wire.NewSet(ioc.InitIntrGRPCClient, ioc.InitUserGRPCClient, ioc.InitArticleGRPCClient)
+var grpcClientSet = wire.NewSet(ioc.InitIntrGRPCClient, ioc.InitUserGRPCClient, ioc.InitArticleGRPCClient, ioc.InitSMSGRPCClient)

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"go.uber.org/zap"
 	"math/rand"
+	smsv1 "webook/api/proto/gen/sms/v1"
 	"webook/internal/repository"
-	"webook/internal/service/sms"
 )
 
 const codeTplId = "tplId"
@@ -23,11 +23,11 @@ type CodeService interface {
 
 type CodeServiceImpl struct {
 	repo   repository.CodeRepository
-	smsSvc sms.Service
+	smsSvc smsv1.SMSServiceClient
 	//tplId  string
 }
 
-func NewCodeService(repo repository.CodeRepository, smsSvc sms.Service) CodeService {
+func NewCodeService(repo repository.CodeRepository, smsSvc smsv1.SMSServiceClient) CodeService {
 	return &CodeServiceImpl{
 		repo:   repo,
 		smsSvc: smsSvc,
@@ -43,7 +43,11 @@ func (svc *CodeServiceImpl) Send(ctx context.Context, biz string, phone string) 
 		return err
 	}
 	// 发送出去
-	err = svc.smsSvc.Send(ctx, codeTplId, []string{code}, phone)
+	_, err = svc.smsSvc.Send(ctx, &smsv1.SendRequest{
+		Biz:     codeTplId,
+		Args:    []string{code},
+		Numbers: []string{phone},
+	})
 	if err != nil {
 		zap.L().Warn("发送太频繁", zap.Error(err))
 	}

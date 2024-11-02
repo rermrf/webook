@@ -24,6 +24,7 @@ import (
 	"webook/internal/repository"
 	"webook/internal/repository/cache"
 	"webook/internal/service"
+	ioc2 "webook/sms/ioc"
 	repository4 "webook/user/repository"
 	cache4 "webook/user/repository/cache"
 	dao3 "webook/user/repository/dao"
@@ -39,7 +40,7 @@ func InitWebServer() *gin.Engine {
 	userServiceClient := InitUserGRPCClient()
 	codeCache := cache.NewCodeCache(cmdable)
 	codeRepository := repository.NewCodeRepository(codeCache)
-	smsService := ioc.InitSMSService()
+	smsService := ioc2.InitSMSService()
 	codeService := service.NewCodeService(codeRepository, smsService)
 	userHandler := handler.NewUserHandler(userServiceClient, codeService, cmdable, jwtHandler, loggerV1)
 	wechatService := InitWechatService(loggerV1)

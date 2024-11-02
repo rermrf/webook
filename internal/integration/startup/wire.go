@@ -20,6 +20,7 @@ import (
 	"webook/internal/repository"
 	"webook/internal/repository/cache"
 	"webook/internal/service"
+	ioc2 "webook/sms/ioc"
 	repository3 "webook/user/repository"
 	cache3 "webook/user/repository/cache"
 	"webook/user/repository/dao"
@@ -71,7 +72,7 @@ func InitWebServer() *gin.Engine {
 		repository.NewCodeRepository,
 
 		// Service 部分
-		ioc.InitSMSService,
+		ioc2.InitSMSService,
 		service.NewCodeService,
 		InitWechatService,
 

@@ -39,7 +39,6 @@ var GormArticleSet = wire.NewSet(
 
 // 短信相关依赖
 var CodeSet = wire.NewSet(
-	ioc.InitSMSService,
 	service.NewCodeService,
 	cache.NewCodeCache,
 	repository.NewCodeRepository,
@@ -84,6 +83,7 @@ var grpcClientSet = wire.NewSet(
 	ioc.InitIntrGRPCClient,
 	ioc.InitUserGRPCClient,
 	ioc.InitArticleGRPCClient,
+	ioc.InitSMSGRPCClient,
 )
 
 func InitWebServer() *App {
