@@ -12,9 +12,9 @@ import (
 	"webook/article/domain"
 	service2 "webook/article/service"
 	domain2 "webook/interactive/domain"
-	"webook/internal/repository"
-	repomocks "webook/internal/repository/mocks"
 	svcmocks "webook/internal/service/mocks"
+	"webook/ranking/repository"
+	repomocks "webook/ranking/repository/mocks"
 )
 
 func TestRankingTopN(t *testing.T) {
@@ -99,7 +99,7 @@ func TestRankingTopN(t *testing.T) {
 			rankSvc.scoreFunc = func(t time.Time, likeCnt int64) float64 {
 				return float64(likeCnt)
 			}
-			arts, err := rankSvc.topN(context.Background())
+			arts, err := rankSvc.ranktopN(context.Background())
 			assert.Equal(t, tc.wantErr, err)
 			assert.Equal(t, tc.wantArts, arts)
 		})

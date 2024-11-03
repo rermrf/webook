@@ -21,9 +21,9 @@ import (
 	"webook/internal/handler"
 	"webook/internal/handler/jwt"
 	"webook/internal/ioc"
-	repository3 "webook/internal/repository"
-	cache3 "webook/internal/repository/cache"
-	service3 "webook/internal/service"
+	repository3 "webook/ranking/repository"
+	cache4 "webook/ranking/repository/cache"
+	service3 "webook/ranking/service"
 )
 
 import (
@@ -60,8 +60,8 @@ func InitWebServer() *App {
 	syncProducer := ioc.NewSyncProducer(client)
 	producer := events2.NewKafkaProducer(syncProducer)
 	articleService := service2.NewArticleService(articleRepository, loggerV1, producer)
-	rankingRedisCache := cache3.NewRankingRedisCache(cmdable)
-	rankingLocalCache := cache3.NewRankingLocalCache()
+	rankingRedisCache := cache4.NewRankingRedisCache(cmdable)
+	rankingLocalCache := cache4.NewRankingLocalCache()
 	rankingRepository := repository3.NewCachedRankingRepository(rankingRedisCache, rankingLocalCache)
 	rankingService := service3.NewBatchRankingService(articleService, interactiveServiceClient, rankingRepository)
 	rlockClient := ioc.InitRLockClient(cmdable)
@@ -91,6 +91,6 @@ var OAuth2Set = wire.NewSet(handler.NewOAuth2WechatHandler, ioc.InitOAuth2Wechat
 
 var KafkaSet = wire.NewSet(ioc.InitKafka, ioc.NewConsumer, ioc.NewSyncProducer, events2.NewKafkaProducer)
 
-var rankingServiceSet = wire.NewSet(service3.NewBatchRankingService, repository3.NewCachedRankingRepository, cache3.NewRankingRedisCache, cache3.NewRankingLocalCache)
+var rankingServiceSet = wire.NewSet(service3.NewBatchRankingService, repository3.NewCachedRankingRepository, cache4.NewRankingRedisCache, cache4.NewRankingLocalCache)
 
 var grpcClientSet = wire.NewSet(ioc.InitIntrGRPCClient, ioc.InitUserGRPCClient, ioc.InitArticleGRPCClient, ioc.InitSMSGRPCClient, ioc.InitCodeGRPCClient)

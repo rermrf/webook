@@ -2,8 +2,8 @@ package repository
 
 import (
 	"context"
-	"webook/article/domain"
-	"webook/internal/repository/cache"
+	"webook/ranking/domain"
+	cache2 "webook/ranking/repository/cache"
 )
 
 //go:generate mockgen -source=./ranking.go -package=repomocks -destination=./mocks/ranking_mock.go
@@ -12,7 +12,7 @@ type RankingRepository interface {
 	GetTopN(ctx context.Context) ([]domain.Article, error)
 }
 
-func NewCachedRankingRepository(redis *cache.RankingRedisCache, local *cache.RankingLocalCache) RankingRepository {
+func NewCachedRankingRepository(redis *cache2.RankingRedisCache, local *cache2.RankingLocalCache) RankingRepository {
 	return &CachedRankingRepository{
 		redis: redis,
 		local: local,
@@ -21,8 +21,8 @@ func NewCachedRankingRepository(redis *cache.RankingRedisCache, local *cache.Ran
 
 type CachedRankingRepository struct {
 	// 使用具体实现，可读性更好，对测试不友好，因为没有面向接口编程
-	redis *cache.RankingRedisCache
-	local *cache.RankingLocalCache
+	redis *cache2.RankingRedisCache
+	local *cache2.RankingLocalCache
 }
 
 func (r *CachedRankingRepository) ReplaceTopN(ctx context.Context, arts []domain.Article) error {

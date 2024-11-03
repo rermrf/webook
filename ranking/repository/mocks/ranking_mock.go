@@ -11,15 +11,17 @@ package repomocks
 
 import (
 	context "context"
-	gomock "go.uber.org/mock/gomock"
 	reflect "reflect"
-	"webook/article/domain"
+	domain "webook/ranking/domain"
+
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockRankingRepository is a mock of RankingRepository interface.
 type MockRankingRepository struct {
 	ctrl     *gomock.Controller
 	recorder *MockRankingRepositoryMockRecorder
+	isgomock struct{}
 }
 
 // MockRankingRepositoryMockRecorder is the mock recorder for MockRankingRepository.

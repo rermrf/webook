@@ -1,0 +1,13 @@
+redis:
+  addr: "localhost:6379"
+
+grpc:
+  server:
+    addr: "127.0.0.1:8095"
+  client:
+    article:
+      addr: "127.0.0.1:8092"
+      secure: false
+    interactive:
+      addr: "127.0.0.1:8090"
+      secure: false

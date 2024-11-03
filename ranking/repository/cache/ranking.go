@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"github.com/redis/go-redis/v9"
 	"time"
-	"webook/article/domain"
+	"webook/ranking/domain"
 )
 
 type RankingCache interface {

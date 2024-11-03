@@ -17,9 +17,9 @@ import (
 	"webook/internal/handler"
 	ijwt "webook/internal/handler/jwt"
 	"webook/internal/ioc"
-	"webook/internal/repository"
-	"webook/internal/repository/cache"
-	"webook/internal/service"
+	"webook/ranking/repository"
+	cache3 "webook/ranking/repository/cache"
+	"webook/ranking/service"
 )
 
 // User 相关依赖
@@ -75,8 +75,8 @@ var KafkaSet = wire.NewSet(
 var rankingServiceSet = wire.NewSet(
 	service.NewBatchRankingService,
 	repository.NewCachedRankingRepository,
-	cache.NewRankingRedisCache,
-	cache.NewRankingLocalCache,
+	cache3.NewRankingRedisCache,
+	cache3.NewRankingLocalCache,
 )
 
 var grpcClientSet = wire.NewSet(
