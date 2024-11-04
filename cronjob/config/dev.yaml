@@ -1,0 +1,7 @@
+db:
+  mysql:
+    dsn: "root:root@tcp(localhost:13306)/webook?charset=utf8mb4&parseTime=True&loc=Local"
+
+grpc:
+  server:
+    addr: "127.0.0.1:8097"

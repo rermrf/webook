@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 	"time"
-	"webook/internal/domain"
-	"webook/internal/repository"
+	"webook/cronjob/domain"
+	"webook/cronjob/repository"
 	"webook/pkg/logger"
 )
 
@@ -22,23 +22,23 @@ type JobService interface {
 	//Release(ctx context.Context, id int64) error
 }
 
-type cronJobService struct {
+type CronJobService struct {
 	repo            repository.JobRepository
 	refreshInterval time.Duration
 	l               logger.LoggerV1
 }
 
-func NewCronJobService(repo repository.JobRepository, refreshInterval time.Duration, l logger.LoggerV1) *cronJobService {
-	return &cronJobService{repo: repo, refreshInterval: refreshInterval, l: l}
+func NewCronJobService(repo repository.JobRepository, l logger.LoggerV1) JobService {
+	return &CronJobService{repo: repo, refreshInterval: time.Second * 10, l: l}
 }
 
-func (p *cronJobService) AddJob(ctx context.Context, j domain.Job) error {
-	//j.NextTime = j.NextTime(time.Now())
+func (p *CronJobService) AddJob(ctx context.Context, j domain.Job) error {
+	//j.Next = j.Next(time.Now())
 	//return p.repo.AddJob(ctx, j)
 	return nil
 }
 
-func (p *cronJobService) Preempt(ctx context.Context) (domain.Job, error) {
+func (p *CronJobService) Preempt(ctx context.Context) (domain.Job, error) {
 	j, err := p.repo.Preempt(ctx)
 
 	// 续约
@@ -76,7 +76,7 @@ func (p *cronJobService) Preempt(ctx context.Context) (domain.Job, error) {
 	return j, err
 }
 
-func (p *cronJobService) refresh(id int64) {
+func (p *CronJobService) refresh(id int64) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	// 如何续约？
@@ -89,8 +89,8 @@ func (p *cronJobService) refresh(id int64) {
 	}
 }
 
-func (p *cronJobService) ResetNextTime(ctx context.Context, j domain.Job) error {
-	next := j.NextTime()
+func (p *CronJobService) ResetNextTime(ctx context.Context, j domain.Job) error {
+	next := j.Next()
 	if next.IsZero() {
 		// 没有下一次
 		return p.repo.Stop(ctx, j.Id)

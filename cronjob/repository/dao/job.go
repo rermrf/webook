@@ -18,7 +18,7 @@ type GORMJobDAO struct {
 	db *gorm.DB
 }
 
-func NewGORMJobDAO(db *gorm.DB) *GORMJobDAO {
+func NewGORMJobDAO(db *gorm.DB) JobDao {
 	return &GORMJobDAO{db: db}
 }
 

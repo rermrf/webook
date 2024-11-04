@@ -3,8 +3,8 @@ package repository
 import (
 	"context"
 	"time"
-	"webook/internal/domain"
-	"webook/internal/repository/dao"
+	"webook/cronjob/domain"
+	"webook/cronjob/repository/dao"
 )
 
 type JobRepository interface {
@@ -17,6 +17,10 @@ type JobRepository interface {
 
 type PreemptCronJobRepository struct {
 	dao dao.JobDao
+}
+
+func NewPreemptCronJobRepository(dao dao.JobDao) JobRepository {
+	return &PreemptCronJobRepository{dao: dao}
 }
 
 func (p *PreemptCronJobRepository) Preempt(ctx context.Context) (domain.Job, error) {
