@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/prometheus/client_golang/prometheus"
 	"time"
-	"webook/user/domain"
+	"webook/oauth2/domain"
 )
 
 // PrometheusDecorator 对微信的登录响应时间进行监控
@@ -13,12 +13,28 @@ type PrometheusDecorator struct {
 	sum prometheus.Summary
 }
 
-func NewPrometheusDecorator(service Service) *PrometheusDecorator {
+func NewPrometheusDecorator(
+	service Service,
+	nameSpace string,
+	subsystem string,
+	name string,
+	instanceId string,
+) *PrometheusDecorator {
 	sum := prometheus.NewSummary(prometheus.SummaryOpts{
-		Namespace: "emoji",
-		Subsystem: "webook",
-		Name:      "wechat_resp_time",
-		Help:      "统计 wechat 服务的性能数据",
+		Namespace: nameSpace,
+		Subsystem: subsystem,
+		Name:      name,
+		ConstLabels: map[string]string{
+			"instance_id": instanceId,
+		},
+		Help: "统计 wechat 服务的性能数据",
+		Objectives: map[float64]float64{
+			0.5:   0.01,
+			0.9:   0.01,
+			0.95:  0.01,
+			0.99:  0.001,
+			0.999: 0.0001,
+		},
 	})
 	prometheus.MustRegister(sum)
 	return &PrometheusDecorator{

@@ -1,7 +1,7 @@
 package startup
 
 import (
-	"webook/internal/service/oauth2/wechat"
+	"webook/oauth2/service/wechat"
 	"webook/pkg/logger"
 )
 

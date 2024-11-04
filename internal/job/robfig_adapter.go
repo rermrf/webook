@@ -4,17 +4,18 @@ import (
 	"context"
 	"github.com/prometheus/client_golang/prometheus"
 	"time"
-	logger2 "webook/pkg/logger"
+	"webook/pkg/cronjobx"
+	"webook/pkg/logger"
 )
 
 // RankingJobAdapter 适配器适配两个不同的接口
 type RankingJobAdapter struct {
-	j Job
-	l logger2.LoggerV1
+	j cronjobx.Job
+	l logger.LoggerV1
 	p prometheus.Summary
 }
 
-func NewRankingJobAdapter(j Job, l logger2.LoggerV1) *RankingJobAdapter {
+func NewRankingJobAdapter(j cronjobx.Job, l logger.LoggerV1) *RankingJobAdapter {
 	p := prometheus.NewSummary(prometheus.SummaryOpts{
 		Namespace: "emoji",
 		Subsystem: "webook",
@@ -36,6 +37,6 @@ func (r *RankingJobAdapter) Run() {
 	}()
 	err := r.j.Run(context.Background())
 	if err != nil {
-		r.l.Error("运行任务失败", logger2.String("job", r.j.Name()), logger2.Error(err))
+		r.l.Error("运行任务失败", logger.String("job", r.j.Name()), logger.Error(err))
 	}
 }

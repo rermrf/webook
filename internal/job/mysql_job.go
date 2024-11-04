@@ -9,7 +9,7 @@ import (
 	"time"
 	"webook/internal/domain"
 	"webook/internal/service"
-	logger2 "webook/pkg/logger"
+	"webook/pkg/logger"
 )
 
 type Executor interface {
@@ -82,11 +82,11 @@ func (l *LocalFuncExecutor) Exec(ctx context.Context, j domain.Job) error {
 type Scheduler struct {
 	execs   map[string]Executor
 	svc     service.JobService
-	l       logger2.LoggerV1
+	l       logger.LoggerV1
 	limiter *semaphore.Weighted
 }
 
-func NewScheduler(l logger2.LoggerV1, svc service.JobService) *Scheduler {
+func NewScheduler(l logger.LoggerV1, svc service.JobService) *Scheduler {
 	return &Scheduler{
 		l:       l,
 		svc:     svc,
@@ -117,14 +117,14 @@ func (s *Scheduler) Schedule(ctx context.Context) error {
 		if err != nil {
 			// 不能 return
 			// 继续下一轮
-			s.l.Error("抢占任务失败", logger2.Error(err))
+			s.l.Error("抢占任务失败", logger.Error(err))
 		}
 
-		exec, ok := s.execs[j.Exectuor]
+		exec, ok := s.execs[j.Executor]
 		if !ok {
 			// DEBUG 的时候最好中断
 			// 线上继续
-			s.l.Error("未找到对应的执行器", logger2.String("executor", j.Exectuor))
+			s.l.Error("未找到对应的执行器", logger.String("executor", j.Executor))
 			continue
 		}
 
@@ -135,7 +135,7 @@ func (s *Scheduler) Schedule(ctx context.Context) error {
 				s.limiter.Release(1)
 				er := j.CancelFunc()
 				if er != nil {
-					s.l.Error("释放任务失败", logger2.Error(er), logger2.Int64("id", j.Id))
+					s.l.Error("释放任务失败", logger.Error(er), logger.Int64("id", j.Id))
 				}
 			}()
 			// 异步执行，不要阻塞主调度循环
@@ -143,7 +143,7 @@ func (s *Scheduler) Schedule(ctx context.Context) error {
 			er := exec.Exec(ctx, j)
 			if er != nil {
 				// 也可以考虑这里重试
-				s.l.Error("任务执行失败", logger2.Error(er))
+				s.l.Error("任务执行失败", logger.Error(er))
 			}
 			// 执行完毕
 			// 要不要考虑下一次调度？
@@ -151,7 +151,7 @@ func (s *Scheduler) Schedule(ctx context.Context) error {
 			defer cancel()
 			er = s.svc.ResetNextTime(ctx, j)
 			if er != nil {
-				s.l.Error("设置下一次执行时间失败", logger2.Error(er))
+				s.l.Error("设置下一次执行时间失败", logger.Error(er))
 			}
 		}()
 

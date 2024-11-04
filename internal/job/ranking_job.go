@@ -19,7 +19,8 @@ type RankingJob struct {
 	localLock *sync.Mutex
 }
 
-func NewRankingJob(svc rankingv1.RankingServiceClient,
+func NewRankingJob(
+	svc rankingv1.RankingServiceClient,
 	timeout time.Duration,
 	client *rlock.Client,
 	l logger2.LoggerV1,

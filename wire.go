@@ -5,10 +5,6 @@ package main
 import (
 	"github.com/google/wire"
 	article3 "webook/article/events"
-	repository4 "webook/article/repository"
-	cache4 "webook/article/repository/cache"
-	dao3 "webook/article/repository/dao"
-	service3 "webook/article/service"
 	"webook/interactive/events"
 	repository2 "webook/interactive/repository"
 	cache2 "webook/interactive/repository/cache"
@@ -17,9 +13,6 @@ import (
 	"webook/internal/handler"
 	ijwt "webook/internal/handler/jwt"
 	"webook/internal/ioc"
-	"webook/ranking/repository"
-	cache3 "webook/ranking/repository/cache"
-	"webook/ranking/service"
 )
 
 // User 相关依赖
@@ -30,19 +23,7 @@ var UserSet = wire.NewSet(
 // Gorm 文章相关依赖
 var GormArticleSet = wire.NewSet(
 	handler.NewArticleHandler,
-	service3.NewArticleService,
-	repository4.NewArticleRepository,
-	dao3.NewGormArticleDao,
-	dao3.InitCollections,
-	cache4.NewRedisArticleCache,
 )
-
-// 短信相关依赖
-//var CodeSet = wire.NewSet(
-//	service4.NewCodeService,
-//	cache3.NewCodeCache,
-//	repository3.NewCodeRepository,
-//)
 
 var ThirdPartySet = wire.NewSet(
 	ioc.InitRedis,
@@ -56,13 +37,11 @@ var InteractiveSet = wire.NewSet(
 	repository2.NewCachedInteractiveRepository,
 	dao2.NewGORMInteractiveDao,
 	cache2.NewRedisInteractiveCache,
-	//article3.NewInteractiveReadEventConsumer,
 	events.NewInteractiveReadBatchConsumer,
 )
 
 var OAuth2Set = wire.NewSet(
 	handler.NewOAuth2WechatHandler,
-	ioc.InitOAuth2WechatService,
 )
 
 var KafkaSet = wire.NewSet(
@@ -72,19 +51,14 @@ var KafkaSet = wire.NewSet(
 	article3.NewKafkaProducer,
 )
 
-var rankingServiceSet = wire.NewSet(
-	service.NewBatchRankingService,
-	repository.NewCachedRankingRepository,
-	cache3.NewRankingRedisCache,
-	cache3.NewRankingLocalCache,
-)
-
 var grpcClientSet = wire.NewSet(
 	ioc.InitIntrGRPCClient,
 	ioc.InitUserGRPCClient,
 	ioc.InitArticleGRPCClient,
 	ioc.InitSMSGRPCClient,
 	ioc.InitCodeGRPCClient,
+	ioc.InitRankingGRPCClient,
+	ioc.InitOAuth2GRPCClient,
 )
 
 func InitWebServer() *App {
@@ -102,11 +76,8 @@ func InitWebServer() *App {
 		grpcClientSet,
 		KafkaSet,
 		GormArticleSet,
-		//MongoArticleSet,
-		//S3ArticleSet,
 		// 组装我这个结构体的所有字段
 
-		rankingServiceSet,
 		ioc.InitRankingJob,
 		ioc.InitJob,
 		ioc.InitRLockClient,

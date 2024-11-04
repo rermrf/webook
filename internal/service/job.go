@@ -5,14 +5,17 @@ import (
 	"time"
 	"webook/internal/domain"
 	"webook/internal/repository"
-	logger2 "webook/pkg/logger"
+	"webook/pkg/logger"
 )
 
 // JobService 抢占式任务调度
+//
+//go:generate mockgen -source=./cron_job.go -package=svcmocks -destination=mocks/cron_job.mock.go CronJobService
 type JobService interface {
 	// Preempt 抢占
 	Preempt(ctx context.Context) (domain.Job, error)
 	ResetNextTime(ctx context.Context, j domain.Job) error
+	AddJob(ctx context.Context, j domain.Job) error
 	// PreemptV1 直接返回一个释放的方法，然后调用者去调
 	// PreemptV1(ctx context.Context) (domain.Job, error)
 	// Release 释放
@@ -22,7 +25,17 @@ type JobService interface {
 type cronJobService struct {
 	repo            repository.JobRepository
 	refreshInterval time.Duration
-	l               logger2.LoggerV1
+	l               logger.LoggerV1
+}
+
+func NewCronJobService(repo repository.JobRepository, refreshInterval time.Duration, l logger.LoggerV1) *cronJobService {
+	return &cronJobService{repo: repo, refreshInterval: refreshInterval, l: l}
+}
+
+func (p *cronJobService) AddJob(ctx context.Context, j domain.Job) error {
+	//j.NextTime = j.NextTime(time.Now())
+	//return p.repo.AddJob(ctx, j)
+	return nil
 }
 
 func (p *cronJobService) Preempt(ctx context.Context) (domain.Job, error) {
@@ -72,7 +85,7 @@ func (p *cronJobService) refresh(id int64) {
 	err := p.repo.UpdateUtime(ctx, id)
 	if err != nil {
 		// 可以考虑重试
-		p.l.Error("续约失败", logger2.Error(err), logger2.Int64("jid", id))
+		p.l.Error("续约失败", logger.Error(err), logger.Int64("jid", id))
 	}
 }
 

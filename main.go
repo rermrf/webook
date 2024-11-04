@@ -24,7 +24,7 @@ func main() {
 	//u.RegisterRoutes(server)
 
 	initViperV2Watch()
-	initLogger()
+	//initLogger()
 
 	closeFunc := ioc.InitOTEL()
 
@@ -189,7 +189,7 @@ func initViper() {
 //
 //	server.Use(func(ctx *gin.Context) {
 //		fmt.Println("这是第一个Middleware")
-//		ctx.Next()
+//		ctx.NextTime()
 //	})
 //
 //	//redisClient := redis.NewClient(&redis.Options{

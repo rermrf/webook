@@ -511,7 +511,7 @@ package handler
 //			},
 //			middleware: func(c *gin.Context) {
 //				c.Set("userId", int64(1))
-//				c.Next()
+//				c.NextTime()
 //			},
 //			reqBody:  `{"nickname": "emoji", "about_me": "about me", "birthday": "2000-01-02"}`,
 //			wantCode: http.StatusOK,
@@ -525,7 +525,7 @@ package handler
 //			},
 //			reqBody: `{"nickname": "emoji", "about_me": "about me", "birthday": "2000-01-02`,
 //			middleware: func(c *gin.Context) {
-//				c.Next()
+//				c.NextTime()
 //			},
 //			wantCode: http.StatusOK,
 //			wantBody: `{"code":4,"msg":"参数格式错误"}`,
@@ -538,7 +538,7 @@ package handler
 //			},
 //			reqBody: `{"nickname": "", "about_me": "about me", "birthday": "2000-01-02"}`,
 //			middleware: func(c *gin.Context) {
-//				c.Next()
+//				c.NextTime()
 //			},
 //			wantCode: http.StatusOK,
 //			wantBody: `{"code":4,"msg":"昵称不能为空"}`,
@@ -551,7 +551,7 @@ package handler
 //		//	},
 //		//	reqBody: fmt.Fprintf("{'nickname': 'emoji', 'about_me': %s, 'birthday': '2000-01-02'}", ),
 //		//	middleware: func(c *gin.Context) {
-//		//		c.Next()
+//		//		c.NextTime()
 //		//	},
 //		//	wantCode: http.StatusOK,
 //		//	wantBody: `{"code":4,"msg":"关于我过长"}`,
@@ -564,7 +564,7 @@ package handler
 //			},
 //			reqBody: `{"nickname": "emoji", "about_me": "about me", "birthday": "2000/01/02"}`,
 //			middleware: func(c *gin.Context) {
-//				c.Next()
+//				c.NextTime()
 //			},
 //			wantCode: http.StatusOK,
 //			wantBody: `{"code":4,"msg":"时间格式不对"}`,
@@ -577,7 +577,7 @@ package handler
 //			},
 //			reqBody: `{"nickname": "emoji", "about_me": "about me", "birthday": "2000-01-02"}`,
 //			middleware: func(c *gin.Context) {
-//				c.Next()
+//				c.NextTime()
 //			},
 //			wantCode: http.StatusOK,
 //			wantBody: `{"code":5,"msg":"系统错误"}`,
@@ -591,7 +591,7 @@ package handler
 //			},
 //			middleware: func(c *gin.Context) {
 //				c.Set("userId", int64(1))
-//				c.Next()
+//				c.NextTime()
 //			},
 //			reqBody:  `{"nickname": "emoji", "about_me": "about me", "birthday": "2000-01-02"}`,
 //			wantCode: http.StatusOK,
@@ -639,7 +639,7 @@ package handler
 //			},
 //			middleware: func(c *gin.Context) {
 //				c.Set("userId", int64(1))
-//				c.Next()
+//				c.NextTime()
 //			},
 //			reqBody:  "",
 //			wantCode: http.StatusOK,
@@ -652,7 +652,7 @@ package handler
 //				return userSvc
 //			},
 //			middleware: func(c *gin.Context) {
-//				c.Next()
+//				c.NextTime()
 //			},
 //			reqBody:  "",
 //			wantCode: http.StatusOK,
@@ -667,7 +667,7 @@ package handler
 //			},
 //			middleware: func(c *gin.Context) {
 //				c.Set("userId", int64(1))
-//				c.Next()
+//				c.NextTime()
 //			},
 //			reqBody:  "",
 //			wantCode: http.StatusOK,
@@ -682,7 +682,7 @@ package handler
 //			},
 //			middleware: func(c *gin.Context) {
 //				c.Set("userId", int64(1))
-//				c.Next()
+//				c.NextTime()
 //			},
 //			reqBody:  "",
 //			wantCode: http.StatusOK,

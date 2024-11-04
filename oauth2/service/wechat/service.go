@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	logger2 "webook/pkg/logger"
-	"webook/user/domain"
+	"webook/oauth2/domain"
+	"webook/pkg/logger"
 )
 
 var (
@@ -23,10 +23,10 @@ type service struct {
 	appId     string
 	appSecret string
 	//cmd       redis.Cmdable
-	l logger2.LoggerV1
+	l logger.LoggerV1
 }
 
-func NewService(appId string, appSecret string, l logger2.LoggerV1) Service {
+func NewService(appId string, appSecret string, l logger.LoggerV1) Service {
 	return &service{
 		appId:     appId,
 		appSecret: appSecret,
@@ -34,7 +34,7 @@ func NewService(appId string, appSecret string, l logger2.LoggerV1) Service {
 	}
 }
 
-func (s *service) VerifyCode(ctx context.Context, code string, state string) (domain.WechatInfo, error) {
+func (s *service) VerifyCode(ctx context.Context, code string, _ string) (domain.WechatInfo, error) {
 	const targetPattern = "https://api.weixin.qq.com/sns/oauth2/access_token?appid=%s&secret=%s&code=%s&grant_type=authorization_code"
 	target := fmt.Sprintf(targetPattern, s.appId, s.appSecret, code)
 	resq, err := http.Get(target)
@@ -64,12 +64,9 @@ func (s *service) VerifyCode(ctx context.Context, code string, state string) (do
 	//	// 不相同
 	//}
 
-	//zap.L().Info("调用微信，拿到用户信息",
-	//	zap.String("unionID", res.UnionId),
-	//	zap.String("openID", res.OpenId))
 	s.l.Info("调用微信，拿到用户信息",
-		logger2.String("unionID", res.UnionId),
-		logger2.String("openID", res.OpenId),
+		logger.String("unionID", res.UnionId),
+		logger.String("openID", res.OpenId),
 	)
 
 	return domain.WechatInfo{

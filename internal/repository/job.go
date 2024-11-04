@@ -28,7 +28,7 @@ func (p *PreemptCronJobRepository) Preempt(ctx context.Context) (domain.Job, err
 		Id:       j.Id,
 		Cfg:      j.Cfg,
 		Name:     j.Name,
-		Exectuor: j.Executor,
+		Executor: j.Executor,
 	}, nil
 }
 

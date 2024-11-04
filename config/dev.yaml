@@ -37,3 +37,9 @@ grpc:
     code:
       addr: "127.0.0.1:8094"
       secure: false
+    ranking:
+      addr: "127.0.0.1:8095"
+      secure: false
+    oauth2:
+      addr: "127.0.0.1:8096"
+      secure: false

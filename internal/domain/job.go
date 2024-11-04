@@ -11,10 +11,11 @@ type Job struct {
 	Name string
 
 	Cron     string
-	Exectuor string
+	Executor string
 	// 通用的任务的抽象，我们也不知道任务具体细节，所以搞一个 Cfg
 	// 具体任务设置具体的值
 	Cfg string
+	//NextTime time.Time
 
 	CancelFunc func() error
 }
