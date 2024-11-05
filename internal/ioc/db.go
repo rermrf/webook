@@ -9,8 +9,8 @@ import (
 	"gorm.io/plugin/opentelemetry/tracing"
 	"gorm.io/plugin/prometheus"
 	"time"
+	"webook/cronjob/repository/dao"
 	dao2 "webook/interactive/repository/dao"
-	"webook/internal/repository/dao"
 	logger2 "webook/pkg/logger"
 )
 

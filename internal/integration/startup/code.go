@@ -4,16 +4,16 @@ import (
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	oauth2v1 "webook/api/proto/gen/oauth2/v1"
+	codev1 "webook/api/proto/gen/code/v1"
 )
 
-func InitOAuth2GRPCClient() oauth2v1.Oauth2ServiceClient {
+func InitCodeGRPCClient() codev1.CodeServiceClient {
 	type Config struct {
 		Addr   string `yaml:"addr"`
 		Secure bool   `yaml:"secure"`
 	}
 	var cfg Config
-	err := viper.UnmarshalKey("grpc.client.oauth2", &cfg)
+	err := viper.UnmarshalKey("grpc.client.code", &cfg)
 	if err != nil {
 		panic(err)
 	}
@@ -30,5 +30,5 @@ func InitOAuth2GRPCClient() oauth2v1.Oauth2ServiceClient {
 	if err != nil {
 		panic(err)
 	}
-	return oauth2v1.NewOauth2ServiceClient(cc)
+	return codev1.NewCodeServiceClient(cc)
 }

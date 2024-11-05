@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 	rankingv1 "webook/api/proto/gen/ranking/v1"
-	logger2 "webook/pkg/logger"
+	"webook/pkg/logger"
 )
 
 type RankingJob struct {
@@ -14,7 +14,7 @@ type RankingJob struct {
 	timeout   time.Duration
 	client    *rlock.Client
 	key       string
-	l         logger2.LoggerV1
+	l         logger.LoggerV1
 	lock      *rlock.Lock
 	localLock *sync.Mutex
 }
@@ -23,7 +23,7 @@ func NewRankingJob(
 	svc rankingv1.RankingServiceClient,
 	timeout time.Duration,
 	client *rlock.Client,
-	l logger2.LoggerV1,
+	l logger.LoggerV1,
 ) *RankingJob {
 	return &RankingJob{
 		svc: svc,
@@ -66,7 +66,7 @@ func (r *RankingJob) Run(ctx context.Context) error {
 			if er != nil {
 				// 不怎么办
 				// 争取下一次继续抢锁
-				r.l.Error("分布式锁续约失败", logger2.Error(err))
+				r.l.Error("分布式锁续约失败", logger.Error(err))
 			}
 			r.localLock.Lock()
 			r.lock = nil

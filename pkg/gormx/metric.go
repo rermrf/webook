@@ -25,7 +25,7 @@ func (c *PrometheusSummaryMetricPlugin) Initialize(db *gorm.DB) error {
 	return nil
 }
 
-func newCallbacks(nameSpace, subsystem, name, help, db string) *PrometheusSummaryMetricPlugin {
+func NewPrometheusSummaryMetricPlugin(nameSpace, subsystem, name, help, db string) *PrometheusSummaryMetricPlugin {
 	vector := promsdk.NewSummaryVec(promsdk.SummaryOpts{
 		// 在这边要考虑设置各种 Namespace
 		Namespace: nameSpace,

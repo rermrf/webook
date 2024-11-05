@@ -189,7 +189,7 @@ func initViper() {
 //
 //	server.Use(func(ctx *gin.Context) {
 //		fmt.Println("这是第一个Middleware")
-//		ctx.NextTime()
+//		ctx.Next()
 //	})
 //
 //	//redisClient := redis.NewClient(&redis.Options{

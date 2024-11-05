@@ -10,9 +10,6 @@ import (
 	cache4 "webook/article/repository/cache"
 	article2 "webook/article/repository/dao"
 	service3 "webook/article/service"
-	"webook/code/repository"
-	"webook/code/repository/cache"
-	"webook/code/service"
 	repository2 "webook/interactive/repository"
 	cache2 "webook/interactive/repository/cache"
 	dao2 "webook/interactive/repository/dao"
@@ -20,7 +17,6 @@ import (
 	"webook/internal/handler"
 	ijwt "webook/internal/handler/jwt"
 	"webook/internal/ioc"
-	ioc2 "webook/sms/ioc"
 	repository3 "webook/user/repository"
 	cache3 "webook/user/repository/cache"
 	"webook/user/repository/dao"
@@ -58,6 +54,13 @@ var interactiveSet = wire.NewSet(
 	cache2.NewRedisInteractiveCache,
 )
 
+var clientSet = wire.NewSet(
+	InitArticleGRPCClient,
+	InitIntrGRPCClient,
+	InitOAuth2GRPCClient,
+	InitCodeGRPCClient,
+)
+
 func InitWebServer() *gin.Engine {
 	wire.Build(
 		thirdPartySet,
@@ -65,21 +68,10 @@ func InitWebServer() *gin.Engine {
 		articleSet,
 		interactiveSet,
 
-		// cache 部分
-		cache.NewCodeCache,
-
-		// repo 部分
-		repository.NewCodeRepository,
-
-		// Service 部分
-		ioc2.InitSMSService,
-		service.NewCodeService,
-		InitWechatService,
-
 		// handler 部分
 		handler.NewOAuth2WechatHandler,
 		ijwt.NewRedisJWTHandler,
-		InitIntrGRPCClient,
+		clientSet,
 
 		// 中间件，路由等？
 		//gin.Default,
@@ -93,16 +85,9 @@ func InitArticleHandler(d article2.ArticleDao) *handler.ArticleHandler {
 	wire.Build(
 		thirdPartySet,
 		interactiveSet,
-		service3.NewArticleService,
 		handler.NewArticleHandler,
-		repository4.NewArticleRepository,
-		//article2.NewGormArticleDao,
-		cache4.NewRedisArticleCache,
-		//dao.NewUserDao,
-		//cache3.NewUserCache,
-		//repository3.NewCachedUserRepository,
-		events.NewKafkaProducer,
 		InitIntrGRPCClient,
+		InitArticleGRPCClient,
 	)
 	return &handler.ArticleHandler{}
 }

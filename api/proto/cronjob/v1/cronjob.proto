@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package cronjob.v1;
+option go_package = "/cronjob/v1;cronjobV1";
+
+import "google/protobuf/timestamp.proto"; // 使用timestamp类型
+
+message CronJob {
+  int64 id = 1;
+  string name = 2;
+  string cron = 3;
+  string executor = 4;
+  string cfg = 5;
+  google.protobuf.Timestamp next_time = 6;
+}
+
+service CronJobService {
+  rpc Preempt(PreemptRequest) returns (PreemptResponse);
+  rpc ResetNextTime(ResetNextTimeRequest) returns (ResetNextTimeResponse);
+  rpc AddJob(AddJobRequest) returns (AddJobResponse);
+}
+
+message PreemptRequest {
+
+}
+
+message PreemptResponse {
+  CronJob job = 1;
+}
+
+message ResetNextTimeRequest {
+  CronJob job = 1;
+}
+
+message ResetNextTimeResponse {
+
+}
+
+message AddJobRequest {
+  CronJob job = 1;
+}
+
+message AddJobResponse {
+
+}

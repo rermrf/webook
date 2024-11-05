@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 	rankingv1 "webook/api/proto/gen/ranking/v1"
-	"webook/internal/domain"
+	"webook/cronjob/domain"
+	"webook/cronjob/service"
 	"webook/internal/job"
-	"webook/internal/service"
 	"webook/pkg/logger"
 )
 

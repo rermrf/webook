@@ -3,7 +3,7 @@ package startup
 import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"webook/internal/repository/dao"
+	"webook/interactive/repository/dao"
 )
 
 func InitDB() *gorm.DB {

@@ -7,8 +7,8 @@ import (
 	"golang.org/x/sync/semaphore"
 	"net/http"
 	"time"
-	"webook/internal/domain"
-	"webook/internal/service"
+	"webook/cronjob/domain"
+	"webook/cronjob/service"
 	"webook/pkg/logger"
 )
 
