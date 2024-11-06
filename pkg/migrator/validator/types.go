@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/ecodeclub/ekit/slice"
 	"go.uber.org/atomic"
+	"golang.org/x/sync/errgroup"
 	"gorm.io/gorm"
 	"time"
 	"webook/pkg/logger"
@@ -44,15 +45,21 @@ func NewValidator[T migrator.Entity](base *gorm.DB, target *gorm.DB, l logger.Lo
 	}
 }
 
-func (v *Validator[T]) Validate(ctx context.Context) {
-	v.validateBaseToTarget(ctx)
-	v.validateTargetToBase(ctx)
+func (v *Validator[T]) Validate(ctx context.Context) error {
+	var eg errgroup.Group
+	eg.Go(func() error {
+		return v.validateBaseToTarget(ctx)
+	})
+	eg.Go(func() error {
+		return v.validateTargetToBase(ctx)
+	})
+	return eg.Wait()
 }
 
 // Validate 调用者可以通过 ctx 来控制程序退出
 // 全量检验，是不是一条条比对？
 // 蓑衣要从数据库里面查询出来
-func (v *Validator[T]) validateBaseToTarget(ctx context.Context) {
+func (v *Validator[T]) validateBaseToTarget(ctx context.Context) error {
 	offset := -1
 	for {
 		//if v.highLoad.Load().(bool) {
@@ -67,6 +74,7 @@ func (v *Validator[T]) validateBaseToTarget(ctx context.Context) {
 		// 例如 .Order("id DESC")，每次插入数据，就会导致你的 offset 不准了
 		// 假如我的表没有 id 这个列怎么办？
 		// 找个类似的列，比如说 ctime
+		// TODO 改成批量
 		err := v.base.WithContext(dbCtx).Offset(offset).Order("id").First(&src).Error
 		cancel()
 		switch err {
@@ -107,7 +115,7 @@ func (v *Validator[T]) validateBaseToTarget(ctx context.Context) {
 
 		case gorm.ErrRecordNotFound:
 			// 比完了，没数据了，全量校验结束了
-			return
+			return nil
 		default:
 			v.l.Error("校验数据，查询 base 出错", logger.Error(err))
 			continue
@@ -121,7 +129,7 @@ func (v *Validator[T]) validateBaseToTarget(ctx context.Context) {
 // 这一步大多数效果很好，尤其是那些软删除的
 // 如果 count 不一致，那么接下来，理论上来说，还可以分段 count
 // 比如说，我先 count 第一个月的数据，一旦有数据删除了，你还的一条一条来
-func (v *Validator[T]) validateTargetToBase(ctx context.Context) {
+func (v *Validator[T]) validateTargetToBase(ctx context.Context) error {
 	// 先找 target，再找 base，找出 base 中已经被删除的
 	// 理论上来说，就是 target 里面一条一条找
 	offset := -v.batchSize
@@ -132,12 +140,12 @@ func (v *Validator[T]) validateTargetToBase(ctx context.Context) {
 		err := v.target.WithContext(dbCtx).Select("id").Offset(offset).Limit(v.batchSize).Order("id").Find(&dstTs).Error
 		cancel()
 		if len(dstTs) == 0 {
-			return
+			return nil
 		}
 		switch err {
 		case gorm.ErrRecordNotFound:
 			// 没数据了，直接返回
-			return
+			return nil
 		case nil:
 			var ids []int64
 			for _, dstT := range dstTs {
@@ -169,7 +177,7 @@ func (v *Validator[T]) validateTargetToBase(ctx context.Context) {
 		}
 		if len(dstTs) < v.batchSize {
 			// 没数据了
-			return
+			return nil
 		}
 	}
 }
