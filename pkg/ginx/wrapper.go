@@ -54,6 +54,20 @@ func WrapBodyAndToken[T any, C ijwt.UserClaims](l logger.LoggerV1, fn func(ctx *
 	}
 }
 
+func Wrap(l logger.LoggerV1, fn func(ctx *gin.Context) (Result, error)) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		res, err := fn(ctx)
+		if err != nil {
+			// 开始处理 error，记录日志
+			l.Error("处理业务逻辑出现错误",
+				logger.String("path", ctx.Request.URL.Path),
+				logger.String("route", ctx.FullPath()),
+				logger.Error(err))
+		}
+		ctx.JSON(http.StatusOK, res)
+	}
+}
+
 func WrapBody[T any](l logger.LoggerV1, fn func(ctx *gin.Context, req T) (Result, error)) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var req T

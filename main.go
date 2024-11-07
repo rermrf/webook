@@ -32,7 +32,7 @@ func main() {
 	// etcdctl --endpoints=127.0.0.1:12379 put /webook "$(<./config/dev.yaml)"
 	//initViperReomte()
 
-	app := InitWebServer()
+	app := InitApp()
 
 	// kafka 消费
 	for _, c := range app.Consumers {
@@ -41,6 +41,13 @@ func main() {
 			panic(err)
 		}
 	}
+
+	// HTTP 方式使用迁移的方法
+	//go func() {
+	//	scheduler := scheduler2.NewScheduler()
+	//	scheduler.RegisterRoutes(app.webAdmin.group("/migrator"))
+	//	app.webAdmin.Run(":8081")
+	//}()
 
 	app.cron.Start()
 

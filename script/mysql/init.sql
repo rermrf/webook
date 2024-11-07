@@ -1,5 +1,7 @@
 create database webook;
 
+create database webook_intr;
+
 use webook;
 
 CREATE TABLE `users` (
@@ -93,7 +95,3 @@ create table webook.user_like_bizs
         unique (biz, biz_id, uid)
 );
 
-
-create table webook.users
-(
-    id              bigint auto_i

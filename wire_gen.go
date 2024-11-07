@@ -25,7 +25,7 @@ import (
 
 // Injectors from wire.go:
 
-func InitWebServer() *App {
+func InitApp() *App {
 	cmdable := ioc.InitRedis()
 	jwtHandler := jwt.NewRedisJWTHandler(cmdable)
 	loggerV1 := ioc.InitLogger()

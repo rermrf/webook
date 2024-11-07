@@ -1,9 +1,18 @@
 db:
   mysql:
-    dsn: "root:root@tcp(localhost:13306)/webook?charset=utf8mb4&parseTime=True&loc=Local"
+    src:
+      dsn: "root:root@tcp(localhost:13306)/webook?charset=utf8mb4&parseTime=True&loc=Local"
+    dst:
+      dsn: "root:root@tcp(localhost:13306)/webook_intr?charset=utf8mb4&parseTime=True&loc=Local"
+
+migrator:
+  pattern: "SRC_ONLY"
+  web:
+    addr: "127.0.0.1:7080"
 
 redis:
   addr: "localhost:6379"
+
 
 kafka:
   addrs:

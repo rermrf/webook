@@ -28,7 +28,7 @@ func TestGenSQL(t *testing.T) {
 	require.NoError(t, err)
 
 	const prefix = "INSERT INTO `interactives`(`biz_id`, `biz`, `read_cnt`, `collect_cnt`, `like_cnt`, `ctime`, `utime`)\nVALUES "
-	const rowNum = 1000
+	const rowNum = 100
 
 	now := time.Now().UnixMilli()
 	_, err = file.WriteString(prefix)

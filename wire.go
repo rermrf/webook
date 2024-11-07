@@ -61,7 +61,7 @@ var grpcClientSet = wire.NewSet(
 	ioc.InitOAuth2GRPCClient,
 )
 
-func InitWebServer() *App {
+func InitApp() *App {
 	wire.Build(
 		// 中间件，路由等？
 		//gin.Default,

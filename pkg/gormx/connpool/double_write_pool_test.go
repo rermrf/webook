@@ -21,7 +21,7 @@ func TestConnPool(t *testing.T) {
 		Conn: &DoubleWritePool{
 			src:     webook.ConnPool,
 			dst:     intr.ConnPool,
-			pattern: *atomic.NewString(patternSrcFirst),
+			pattern: *atomic.NewString(PatternSrcFirst),
 		},
 	}))
 	require.NoError(t, err)

@@ -15,6 +15,15 @@ type Fixer[T migrator.Entity] struct {
 	columns []string
 }
 
+func NewFixer[T migrator.Entity](base *gorm.DB, target *gorm.DB) (*Fixer[T], error) {
+	rows, err := base.Model(new(T)).Order("id").Rows()
+	if err != nil {
+		return nil, err
+	}
+	columns, err := rows.Columns()
+	return &Fixer[T]{base: base, target: target, columns: columns}, err
+}
+
 // Fix 直接覆盖
 // TODO 改成批量
 func (f *Fixer[T]) Fix(ctx context.Context, evt events.InconsistentEvent) error {

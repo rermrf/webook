@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"log"
 )
 
 func main() {
@@ -19,6 +20,11 @@ func main() {
 			panic(err)
 		}
 	}
+
+	go func() {
+		err := app.webAdmin.Start()
+		log.Println(err)
+	}()
 
 	err := app.server.Serve()
 	if err != nil {

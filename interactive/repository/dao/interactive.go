@@ -6,6 +6,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"time"
+	"webook/pkg/migrator"
 )
 
 var ErrRecordNotFound = gorm.ErrRecordNotFound
@@ -254,6 +255,15 @@ type Interactive struct {
 	CollectCnt int64
 	Ctime      int64
 	Utime      int64
+}
+
+func (i Interactive) ID() int64 {
+	return i.Id
+}
+
+func (i Interactive) Equal(dst migrator.Entity) bool {
+	dstVal, ok := dst.(Interactive)
+	return ok && dstVal == i
 }
 
 // InteractiveV1 对写更友好
