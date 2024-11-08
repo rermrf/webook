@@ -50,7 +50,6 @@ func NewValidator[T migrator.Entity](base *gorm.DB, target *gorm.DB, l logger.Lo
 		p:         p,
 		direction: direction,
 		batchSize: 100,
-		utime:     0,
 		//highLoad:  highLoad,
 	}
 	res.fromBase = res.fullFromBase
@@ -184,12 +183,22 @@ func (v *Validator[T]) incrFromBase(ctx context.Context, offset int) (T, error) 
 	// 找个类似的列，比如说 ctime
 	// TODO 改成批量
 	err := v.base.WithContext(dbCtx).
-		Where("utime > ", v.utime).
+		Where("utime > ?", v.utime).
 		Offset(offset).
-		Order("utime ASC").
+		Order("utime").
 		First(&src).Error
 	return src, err
 }
+
+// 摆脱对 T 的依赖
+//func (v *Validator[T]) incrFromBaseV1(ctx context.Context, offset int) (T, error) {
+//	rows, err := v.base.WithContext(ctx).Where("utime > ?", v.utime).Offset(offset).Order("utime").Rows()
+//	cols, err := rows.Columns()
+//	// 所有列的值
+//	vals := make([]interface{}, len(cols))
+//	vals.Scan(vals...)
+//	return vals
+//}
 
 // 理论上来说，可以利用 count 加速这个过程
 // 举个例子，假如你初始化目标表的数据是 昨天的 23.59.59 导出来的
