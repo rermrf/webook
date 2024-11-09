@@ -36,16 +36,16 @@ func InitApp() *App {
 	oauth2ServiceClient := ioc.InitOAuth2GRPCClient()
 	oAuth2WechatHandler := handler.NewOAuth2WechatHandler(oauth2ServiceClient, userServiceClient, jwtHandler)
 	articleServiceClient := ioc.InitArticleGRPCClient()
+	client := ioc.InitEtcd()
+	interactiveServiceClient := ioc.InitIntrGRPCClientV2(client)
+	articleHandler := handler.NewArticleHandler(articleServiceClient, loggerV1, interactiveServiceClient)
+	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler)
+	saramaClient := ioc.InitKafka()
 	db := ioc.InitDB(loggerV1)
 	interactiveDao := dao.NewGORMInteractiveDao(db)
 	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
 	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDao, interactiveCache, loggerV1)
-	interactiveService := service.NewInteractiveService(interactiveRepository)
-	interactiveServiceClient := ioc.InitIntrGRPCClient(interactiveService)
-	articleHandler := handler.NewArticleHandler(articleServiceClient, loggerV1, interactiveServiceClient)
-	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler)
-	client := ioc.InitKafka()
-	interactiveReadBatchConsumer := events.NewInteractiveReadBatchConsumer(client, loggerV1, interactiveRepository)
+	interactiveReadBatchConsumer := events.NewInteractiveReadBatchConsumer(saramaClient, loggerV1, interactiveRepository)
 	v2 := ioc.NewConsumer(interactiveReadBatchConsumer)
 	rankingServiceClient := ioc.InitRankingGRPCClient()
 	rlockClient := ioc.InitRLockClient(cmdable)
@@ -67,7 +67,7 @@ var UserSet = wire.NewSet(handler.NewUserHandler)
 // Gorm 文章相关依赖
 var GormArticleSet = wire.NewSet(handler.NewArticleHandler)
 
-var ThirdPartySet = wire.NewSet(ioc.InitRedis, ioc.InitDB, ioc.InitLogger, jwt.NewRedisJWTHandler)
+var ThirdPartySet = wire.NewSet(ioc.InitRedis, ioc.InitDB, ioc.InitLogger, jwt.NewRedisJWTHandler, ioc.InitEtcd)
 
 var InteractiveSet = wire.NewSet(service.NewInteractiveService, repository.NewCachedInteractiveRepository, dao.NewGORMInteractiveDao, cache.NewRedisInteractiveCache, events.NewInteractiveReadBatchConsumer)
 
@@ -75,4 +75,4 @@ var OAuth2Set = wire.NewSet(handler.NewOAuth2WechatHandler)
 
 var KafkaSet = wire.NewSet(ioc.InitKafka, ioc.NewConsumer, ioc.NewSyncProducer, events2.NewKafkaProducer)
 
-var grpcClientSet = wire.NewSet(ioc.InitIntrGRPCClient, ioc.InitUserGRPCClient, ioc.InitArticleGRPCClient, ioc.InitSMSGRPCClient, ioc.InitCodeGRPCClient, ioc.InitRankingGRPCClient, ioc.InitOAuth2GRPCClient)
+var grpcClientSet = wire.NewSet(ioc.InitIntrGRPCClientV2, ioc.InitUserGRPCClient, ioc.InitArticleGRPCClient, ioc.InitSMSGRPCClient, ioc.InitCodeGRPCClient, ioc.InitRankingGRPCClient, ioc.InitOAuth2GRPCClient)

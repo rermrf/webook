@@ -30,6 +30,7 @@ var ThirdPartySet = wire.NewSet(
 	ioc.InitDB,
 	ioc.InitLogger,
 	ijwt.NewRedisJWTHandler,
+	ioc.InitEtcd,
 )
 
 var InteractiveSet = wire.NewSet(
@@ -52,7 +53,7 @@ var KafkaSet = wire.NewSet(
 )
 
 var grpcClientSet = wire.NewSet(
-	ioc.InitIntrGRPCClient,
+	ioc.InitIntrGRPCClientV2,
 	ioc.InitUserGRPCClient,
 	ioc.InitArticleGRPCClient,
 	ioc.InitSMSGRPCClient,

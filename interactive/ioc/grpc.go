@@ -3,14 +3,15 @@ package ioc
 import (
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
-	"log"
 	grpc2 "webook/interactive/grpc"
 	"webook/pkg/grpcx"
+	"webook/pkg/logger"
 )
 
-func InitGRPCServer(intrServer *grpc2.InteractiveServiceServer) *grpcx.Server {
+func InitGRPCServer(intrServer *grpc2.InteractiveServiceServer, l logger.LoggerV1) *grpcx.Server {
 	type Config struct {
-		Addr string `yaml:"addr"`
+		Port      int      `yaml:"port"`
+		EtcdAddrs []string `yaml:"etcdAddrs"`
 	}
 	var cfg Config
 	err := viper.UnmarshalKey("grpc.server", &cfg)
@@ -20,10 +21,12 @@ func InitGRPCServer(intrServer *grpc2.InteractiveServiceServer) *grpcx.Server {
 
 	server := grpc.NewServer()
 	intrServer.Register(server)
-	log.Println(cfg.Addr)
 
 	return &grpcx.Server{
-		Server: server,
-		Addr:   cfg.Addr,
+		Server:    server,
+		Port:      cfg.Port,
+		EtcdAddrs: cfg.EtcdAddrs,
+		Name:      "interactive",
+		L:         l,
 	}
 }

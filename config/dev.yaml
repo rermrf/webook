@@ -19,12 +19,15 @@ kafka:
   addrs:
     - "localhost:9094"
 
+etcd:
+  addr: "localhost:12379"
+
 grpc:
   client:
     intr:
-      addr: "127.0.0.1:8090"
+#      addr: "127.0.0.1:8090"
       secure: false
-      threshold: 70
+#      threshold: 70
     user:
       addr: "127.0.0.1:8091"
       secure: false
