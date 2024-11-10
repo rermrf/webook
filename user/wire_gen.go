@@ -28,7 +28,7 @@ func InitUserGRPCServer() *grpcx.Server {
 	userRepository := repository.NewCachedUserRepository(userDao, userCache)
 	userService := service.NewUserService(userRepository, loggerV1)
 	userGRPCServer := grpc.NewUserGRPCServer(userService)
-	server := ioc.InitGRPCServer(userGRPCServer)
+	server := ioc.InitGRPCServer(userGRPCServer, loggerV1)
 	return server
 }
 
