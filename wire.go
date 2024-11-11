@@ -55,7 +55,7 @@ var KafkaSet = wire.NewSet(
 var grpcClientSet = wire.NewSet(
 	ioc.InitIntrGRPCClientV2,
 	ioc.InitUserGRPCClient,
-	ioc.InitArticleGRPCClient,
+	ioc.InitArticleGRPCClientV1,
 	ioc.InitSMSGRPCClient,
 	ioc.InitCodeGRPCClient,
 	ioc.InitRankingGRPCClient,

@@ -3,11 +3,14 @@ redis:
 
 grpc:
   server:
-    addr: "127.0.0.1:8095"
+    port: 8095
+    etcdAddrs:
+      - "localhost:12379"
   client:
     article:
-      addr: "127.0.0.1:8092"
       secure: false
     interactive:
-      addr: "127.0.0.1:8090"
       secure: false
+
+etcd:
+  addr: "localhost:12379"

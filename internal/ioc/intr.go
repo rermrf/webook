@@ -12,21 +12,6 @@ import (
 	"webook/internal/client"
 )
 
-func InitEtcd() *etcdv3.Client {
-	type Config struct {
-		Addr string `yaml:"addr"`
-	}
-	var cfg Config
-	if err := viper.UnmarshalKey("etcd", &cfg); err != nil {
-		panic(err)
-	}
-	cli, err := etcdv3.NewFromURL(cfg.Addr)
-	if err != nil {
-		panic(err)
-	}
-	return cli
-}
-
 func InitIntrGRPCClientV2(client *etcdv3.Client) intrv1.InteractiveServiceClient {
 	type Config struct {
 		Secure bool `yaml:"secure"`
@@ -42,11 +27,14 @@ func InitIntrGRPCClientV2(client *etcdv3.Client) intrv1.InteractiveServiceClient
 		panic(err)
 	}
 
-	opts := []grpc.DialOption{grpc.WithResolvers(bd), grpc.WithInsecure()}
+	opts := []grpc.DialOption{grpc.WithResolvers(bd)}
 	if cfg.Secure {
+		// 加载证书之类的东西
+		// 启用 HTTPS
+	} else {
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
-	opts = append(opts, grpc.WithResolvers(bd))
+	//opts = append(opts, grpc.WithResolvers(bd))
 	conn, err := grpc.NewClient("etcd:///service/interactive", opts...)
 	if err != nil {
 		panic(err)

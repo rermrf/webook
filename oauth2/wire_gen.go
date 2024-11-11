@@ -18,6 +18,6 @@ func InitOauth2GRPCServer() *grpcx.Server {
 	loggerV1 := ioc.InitLogger()
 	service := ioc.InitService(loggerV1)
 	oauth2ServiceServer := grpc.NewOauth2ServiceServer(service)
-	server := ioc.InitGRPCxServer(oauth2ServiceServer)
+	server := ioc.InitGRPCxServer(oauth2ServiceServer, loggerV1)
 	return server
 }

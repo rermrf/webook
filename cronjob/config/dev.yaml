@@ -4,4 +4,6 @@ db:
 
 grpc:
   server:
-    addr: "127.0.0.1:8097"
+    port: 8097
+    etcdAddrs:
+      - "localhost:12379"

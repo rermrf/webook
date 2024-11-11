@@ -4,6 +4,8 @@ import (
 	rlock "github.com/gotomicro/redis-lock"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/viper"
+	etcdv3 "go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/client/v3/naming/resolver"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"time"
@@ -28,24 +30,30 @@ func InitJob(l logger.LoggerV1, ranking *job.RankingJob) *cron.Cron {
 	return res
 }
 
-func InitRankingGRPCClient() rankingv1.RankingServiceClient {
+func InitRankingGRPCClient(client *etcdv3.Client) rankingv1.RankingServiceClient {
 	type Config struct {
-		Addr   string `json:"addr"`
-		Secure bool   `json:"secure"`
+		Secure bool `json:"secure"`
 	}
 	var cfg Config
 	err := viper.UnmarshalKey("grpc.client.ranking", &cfg)
 	if err != nil {
 		panic(err)
 	}
-	var opts []grpc.DialOption
+
+	bd, err := resolver.NewBuilder(client)
+	if err != nil {
+		panic(err)
+	}
+
+	opts := []grpc.DialOption{grpc.WithResolvers(bd)}
+
 	if cfg.Secure {
 		// 加载证书之类的东西
 		// 启用 HTTPS
 	} else {
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
-	cc, err := grpc.NewClient(cfg.Addr, opts...)
+	cc, err := grpc.NewClient("etcd:///service/ranking", opts...)
 	if err != nil {
 		panic(err)
 	}

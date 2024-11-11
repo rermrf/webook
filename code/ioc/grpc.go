@@ -5,11 +5,13 @@ import (
 	"google.golang.org/grpc"
 	igrpc "webook/code/grpc"
 	"webook/pkg/grpcx"
+	"webook/pkg/logger"
 )
 
-func InitGRPCServer(codeServer *igrpc.CodeGRPCServer) *grpcx.Server {
+func InitGRPCServer(codeServer *igrpc.CodeGRPCServer, l logger.LoggerV1) *grpcx.Server {
 	type Config struct {
-		Addr string `yaml:"addr"`
+		Port      int      `yaml:"port"`
+		EtcdAddrs []string `yaml:"etcdAddrs"`
 	}
 	var cfg Config
 	err := viper.UnmarshalKey("grpc.server", &cfg)
@@ -20,7 +22,10 @@ func InitGRPCServer(codeServer *igrpc.CodeGRPCServer) *grpcx.Server {
 	codeServer.Register(server)
 
 	return &grpcx.Server{
-		Server: server,
-		Addr:   cfg.Addr,
+		Server:    server,
+		Port:      cfg.Port,
+		EtcdAddrs: cfg.EtcdAddrs,
+		Name:      "code",
+		L:         l,
 	}
 }

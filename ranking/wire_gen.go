@@ -19,15 +19,17 @@ import (
 // Injectors from wire.go:
 
 func InitRankingGRPCServer() *grpcx.Server {
-	articleServiceClient := ioc.InitArticleGRPCClient()
-	interactiveServiceClient := ioc.InitIntrGRPCClient()
+	client := ioc.InitEtcd()
+	articleServiceClient := ioc.InitArticleGRPCClient(client)
+	interactiveServiceClient := ioc.InitIntrGRPCClient(client)
 	cmdable := ioc.InitRedis()
 	rankingRedisCache := cache.NewRankingRedisCache(cmdable)
 	rankingLocalCache := cache.NewRankingLocalCache()
 	rankingRepository := repository.NewCachedRankingRepository(rankingRedisCache, rankingLocalCache)
 	rankingService := service.NewBatchRankingService(articleServiceClient, interactiveServiceClient, rankingRepository)
 	rankingServiceServer := grpc.NewRankingServiceServer(rankingService)
-	server := ioc.InitGRPCServer(rankingServiceServer)
+	loggerV1 := ioc.InitLogger()
+	server := ioc.InitGRPCServer(rankingServiceServer, loggerV1)
 	return server
 }
 

@@ -12,4 +12,6 @@ kafka:
 
 grpc:
   server:
-    addr: "127.0.0.1:8092"
+    port: 8092
+    etcdAddrs:
+      - "localhost:12379"

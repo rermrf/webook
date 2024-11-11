@@ -1,6 +1,8 @@
 grpc:
   server:
-    addr: "127.0.0.1:8096"
+    port: 8096
+    etcdAddrs:
+      - "localhost:12379"
 
 wechatConf:
   appId: "xxxx"

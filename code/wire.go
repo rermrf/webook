@@ -16,6 +16,7 @@ func InitCodeGRPCServer() *grpcx.Server {
 	wire.Build(
 		ioc.InitLogger,
 		ioc.InitRedis,
+		ioc.InitEtcd,
 		ioc.InitGRPCServer,
 		grpc.NewCodeGRPCServer,
 		service.NewCodeService,

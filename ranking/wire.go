@@ -20,7 +20,8 @@ var grpcClientSet = wire.NewSet(
 func InitRankingGRPCServer() *grpcx.Server {
 	wire.Build(
 		ioc.InitRedis,
-		//ioc.InitLogger,
+		ioc.InitLogger,
+		ioc.InitEtcd,
 		cache.NewRankingLocalCache,
 		cache.NewRankingRedisCache,
 		repository.NewCachedRankingRepository,

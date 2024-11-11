@@ -21,10 +21,11 @@ func InitCodeGRPCServer() *grpcx.Server {
 	cmdable := ioc.InitRedis()
 	codeCache := cache.NewCodeCache(cmdable)
 	codeRepository := repository.NewCodeRepository(codeCache)
-	smsServiceClient := ioc.InitSmsGRPCClient()
+	client := ioc.InitEtcd()
+	smsServiceClient := ioc.InitSmsGRPCClient(client)
 	loggerV1 := ioc.InitLogger()
 	codeService := service.NewCodeService(codeRepository, smsServiceClient, loggerV1)
 	codeGRPCServer := grpc.NewCodeGRPCServer(codeService)
-	server := ioc.InitGRPCServer(codeGRPCServer)
+	server := ioc.InitGRPCServer(codeGRPCServer, loggerV1)
 	return server
 }

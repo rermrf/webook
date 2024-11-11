@@ -31,7 +31,7 @@ func InitArticleGRPCServer() *grpcx.Server {
 	producer := events.NewKafkaProducer(syncProducer)
 	articleService := service.NewArticleService(articleRepository, loggerV1, producer)
 	articleGRPCServer := grpc.NewArticleGRPCServer(articleService)
-	server := ioc.InitGRPCServer(articleGRPCServer)
+	server := ioc.InitGRPCServer(articleGRPCServer, loggerV1)
 	return server
 }
 

@@ -24,6 +24,6 @@ func InitCronJobGRPCServer() *grpcx.Server {
 	jobRepository := repository.NewPreemptCronJobRepository(jobDao)
 	jobService := service.NewCronJobService(jobRepository, loggerV1)
 	cronJobServiceServer := grpc.NewCronJobServiceServer(jobService)
-	server := ioc.InitGRPCxServer(cronJobServiceServer)
+	server := ioc.InitGRPCxServer(cronJobServiceServer, loggerV1)
 	return server
 }

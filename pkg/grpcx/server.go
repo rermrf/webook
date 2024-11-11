@@ -88,9 +88,9 @@ func (s *Server) register() error {
 	}
 	go func() {
 		// 在这里操作续约
-		for kaResp := range ch {
+		for _ = range ch {
 			// 正常就是打印一下 DEBUG 日志啥的
-			s.L.Debug(kaResp.String())
+			//s.L.Debug(kaResp.String())
 		}
 	}()
 

@@ -4,12 +4,14 @@ import (
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"webook/pkg/grpcx"
+	"webook/pkg/logger"
 	igrpc "webook/ranking/grpc"
 )
 
-func InitGRPCServer(rankServer *igrpc.RankingServiceServer) *grpcx.Server {
+func InitGRPCServer(rankServer *igrpc.RankingServiceServer, l logger.LoggerV1) *grpcx.Server {
 	type Config struct {
-		Addr string `yaml:"addr"`
+		Port      int      `yaml:"port"`
+		EtcdAddrs []string `yaml:"etcdAddrs"`
 	}
 	var cfg Config
 	err := viper.UnmarshalKey("grpc.server", &cfg)
@@ -20,7 +22,10 @@ func InitGRPCServer(rankServer *igrpc.RankingServiceServer) *grpcx.Server {
 	rankServer.Register(server)
 
 	return &grpcx.Server{
-		Server: server,
-		Addr:   cfg.Addr,
+		Server:    server,
+		Port:      cfg.Port,
+		EtcdAddrs: cfg.EtcdAddrs,
+		Name:      "ranking",
+		L:         l,
 	}
 }

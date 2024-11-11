@@ -18,6 +18,6 @@ func InitSMSGRPCServer() *grpcx.Server {
 	loggerV1 := ioc.InitLogger()
 	service := ioc.InitSMSService(loggerV1)
 	smsgrpcServer := grpc.NewSMSGRPCServer(service)
-	server := ioc.InitGRPCServer(smsgrpcServer)
+	server := ioc.InitGRPCServer(smsgrpcServer, loggerV1)
 	return server
 }
