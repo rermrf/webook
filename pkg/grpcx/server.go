@@ -75,6 +75,9 @@ func (s *Server) register() error {
 	// 在这一步之前完成所有的启动的准备工作，包括缓存预加载之类的事情
 	err = em.AddEndpoint(ctx, s.key, endpoints.Endpoint{
 		Addr: addr,
+		//Metadata: map[string]string{
+		//	"weight": weight,
+		//},
 	}, etcdv3.WithLease(leaseResp.ID))
 	if err != nil {
 		return err

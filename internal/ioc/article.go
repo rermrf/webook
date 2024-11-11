@@ -5,6 +5,7 @@ import (
 	etcdv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/naming/resolver"
 	"google.golang.org/grpc"
+	_ "google.golang.org/grpc/balancer/weightedroundrobin"
 	"google.golang.org/grpc/credentials/insecure"
 	articlev1 "webook/api/proto/gen/article/v1"
 )
@@ -24,7 +25,12 @@ func InitArticleGRPCClientV1(client *etcdv3.Client) articlev1.ArticleServiceClie
 		panic(err)
 	}
 
-	opts := []grpc.DialOption{grpc.WithResolvers(bd)}
+	opts := []grpc.DialOption{
+		grpc.WithResolvers(bd),
+		// 使用轮训负载均衡算法
+		//grpc.WithDefaultServiceConfig(`{"loadBalancingConfig":[{"round_robin":{}}]}`),
+		grpc.WithDefaultServiceConfig(`{"loadBalancingConfig":[{"weighted_round_robin": {}}]}`),
+	}
 	if cfg.Secure {
 		// 加载证书之类的东西
 		// 启用 HTTPS
