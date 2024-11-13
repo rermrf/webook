@@ -1,8 +1,12 @@
 package wrr
 
 import (
+	"context"
 	"google.golang.org/grpc/balancer"
 	"google.golang.org/grpc/balancer/base"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"io"
 	"sync"
 )
 
@@ -33,6 +37,7 @@ func (p *PickerBuilder) Build(info base.PickerBuildInfo) balancer.Picker {
 			weightVal := md["weight"]
 			weight, _ := weightVal.(float64)
 			cc.weight = int(weight)
+			//cc.group = md["group"]
 		}
 
 		if cc.weight == 0 {
@@ -65,6 +70,9 @@ func (p *Picker) Pick(info balancer.PickInfo) (balancer.PickResult, error) {
 	var maxCC *conn
 	// 计算当前权重
 	for _, cc := range p.conns {
+		if !cc.available {
+			continue
+		}
 		// 性能最好就是在 cc 上用原子操作
 		// 但是筛选结果不会严格符合 WRR 算法
 		// 整体效果可以
@@ -81,16 +89,73 @@ func (p *Picker) Pick(info balancer.PickInfo) (balancer.PickResult, error) {
 		SubConn: maxCC.cc,
 		Done: func(info balancer.DoneInfo) {
 			// 很多动态算法，根据通用结果来调整权重，就在这里
+			err := info.Err
+			if err == nil {
+				// 可以考虑增加权重
+				return
+			}
+			switch err {
+			// 一般是主动取消，你没必要去调
+			case context.Canceled:
+				return
+			case context.DeadlineExceeded:
+			// 可以考虑降低权重
+			case io.EOF, io.ErrUnexpectedEOF:
+				// 基本可以认为这个节点已经崩了
+			default:
+				st, ok := status.FromError(err)
+				if ok {
+					code := st.Code()
+					switch code {
+					case codes.Unavailable:
+						// 这里可能表达的是熔断
+						// 就要考虑挪走该节点，这个节点已经不可用了
+						// 注意并发问题，可以使用原子操作
+						maxCC.available = false
+						go func() {
+							// 额外开一个 goroutine 去探活
+							// 借助 health check
+							// for 循环
+							if p.healthCheck(maxCC) {
+								// 放回来
+								maxCC.available = true
+								// 最好加点流量控制的措施
+								// 要求下一次选中 maxCC 的时候，掷骰子，生成一随机数，如果大于特定的阈值，就将这个请求发过去
+
+							}
+						}()
+					case codes.ResourceExhausted:
+						// 这里可能表达的是限流
+						// 可以挪走
+						// 也可以留着，留着的话，就要降低权重，最好是 currentWeight 和 weight 都调低
+						// 减少它被选中的概率
+
+						// 加一个错误吗表达降级
+					}
+				}
+			}
 		},
 	}, nil
 }
 
+func (p *Picker) healthCheck(cc *conn) bool {
+	// 调用 grpc 内置的 health check 接口
+	return true
+}
+
 // conn 代表节点
 type conn struct {
-	// 权重
-	weight        int
-	currentWeight int
+	// 初始权重
+	weight int
+	// 有效权重
+	efficientWeight int
+	currentWeight   int
 
 	// 真正的，grpc 里面的代表一个节点的表达
 	cc balancer.SubConn
+
+	available bool
+
+	// 假如有 vip 或者 非vip
+	group string
 }
