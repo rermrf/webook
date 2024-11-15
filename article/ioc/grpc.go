@@ -18,7 +18,7 @@ func InitGRPCServer(artServer *igrpc.ArticleGRPCServer, l logger.LoggerV1) *grpc
 	if err != nil {
 		panic(err)
 	}
-	server := grpc.NewServer()
+	server := grpc.NewServer(grpc.ChainUnaryInterceptor())
 	artServer.Register(server)
 
 	return &grpcx.Server{

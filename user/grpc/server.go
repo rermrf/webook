@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	userv1 "webook/api/proto/gen/user/v1"
@@ -23,6 +24,10 @@ func (u *UserGRPCServer) Register(server *grpc.Server) {
 }
 
 func (u *UserGRPCServer) Signup(ctx context.Context, request *userv1.SignUpRequest) (*userv1.SignUpResponse, error) {
+	if ctx.Value("limited") == "true" {
+		// 不去了
+		return &userv1.SignUpResponse{}, errors.New("触发限流，缓存未命中，不查询数据库")
+	}
 	err := u.svc.SignUp(ctx, u.toDTO(request.User))
 	return &userv1.SignUpResponse{}, err
 }

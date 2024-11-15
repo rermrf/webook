@@ -6,6 +6,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"testing"
+	"time"
 	intrv1 "webook/api/proto/gen/intr/v1"
 )
 
@@ -14,7 +15,10 @@ func TestGRPCClient(t *testing.T) {
 	require.NoError(t, err)
 	client := intrv1.NewInteractiveServiceClient(cc)
 
-	res, err := client.IncrReadCnt(context.Background(), &intrv1.IncrReadCntRequest{
+	// 1s 超时
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	res, err := client.IncrReadCnt(ctx, &intrv1.IncrReadCntRequest{
 		Biz:   "test",
 		BizId: 123,
 	})
