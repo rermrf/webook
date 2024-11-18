@@ -75,9 +75,14 @@ func (s *Server) register() error {
 	// 在这一步之前完成所有的启动的准备工作，包括缓存预加载之类的事情
 	err = em.AddEndpoint(ctx, s.key, endpoints.Endpoint{
 		Addr: addr,
-		//Metadata: map[string]string{
-		//	"weight": weight,
-		//},
+		Metadata: map[string]any{
+			//"weight": weight,
+			// 服务端启动从配置文件/环境变量中读取
+			"labels": []string{"vip", "read_first", "beijing"},
+			//"region": "shanghai",
+			//"vip":    true,
+			//"read_write_pattern": "read",
+		},
 	}, etcdv3.WithLease(leaseResp.ID))
 	if err != nil {
 		return err

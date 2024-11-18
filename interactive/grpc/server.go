@@ -27,6 +27,8 @@ func (i *InteractiveServiceServer) Register(server *grpc.Server) {
 }
 
 func (i *InteractiveServiceServer) IncrReadCnt(ctx context.Context, request *intrv1.IncrReadCntRequest) (*intrv1.IncrReadCntResponse, error) {
+	//ctx, span := otel.Tracer("interactive_server").Start(ctx, "IncrReadCnt")
+	//defer span.End()
 	err := i.svc.IncrReadCnt(ctx, request.GetBiz(), request.GetBizId())
 	return &intrv1.IncrReadCntResponse{}, err
 }

@@ -38,6 +38,7 @@ func (p *PickerBuilder) Build(info base.PickerBuildInfo) balancer.Picker {
 			weight, _ := weightVal.(float64)
 			cc.weight = int(weight)
 			//cc.group = md["group"]
+			cc.labels = md["labels"].([]string)
 		}
 
 		if cc.weight == 0 {
@@ -69,10 +70,14 @@ func (p *Picker) Pick(info balancer.PickInfo) (balancer.PickResult, error) {
 	var total int
 	var maxCC *conn
 	// 计算当前权重
+	//label := info.Ctx.Value("label")
 	for _, cc := range p.conns {
 		if !cc.available {
 			continue
 		}
+
+		// 如果要是 cc 里面的所有标签都不包含这个 label，就跳过
+
 		// 性能最好就是在 cc 上用原子操作
 		// 但是筛选结果不会严格符合 WRR 算法
 		// 整体效果可以
@@ -157,5 +162,6 @@ type conn struct {
 	available bool
 
 	// 假如有 vip 或者 非vip
-	group string
+	group  string
+	labels []string
 }
