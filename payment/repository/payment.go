@@ -11,28 +11,33 @@ type paymentRepository struct {
 	dao dao.PaymentDAO
 }
 
-func newPaymentRepository(dao dao.PaymentDAO) PaymentRepository {
+func NewPaymentRepository(dao dao.PaymentDAO) PaymentRepository {
 	return &paymentRepository{dao: dao}
 }
 
 func (p *paymentRepository) AddPayMent(ctx context.Context, pmt domain.Payment) error {
-	//TODO implement me
-	panic("implement me")
+	return p.dao.Insert(ctx, p.toEntity(pmt))
 }
 
 func (p *paymentRepository) UpdatePayMent(ctx context.Context, pmt domain.Payment) error {
-	//TODO implement me
-	panic("implement me")
+	return p.dao.UpdateTxnIDAndStatus(ctx, pmt.BizTradeNO, pmt.TxnID, pmt.Status)
 }
 
 func (p *paymentRepository) FindExpiredPayment(ctx context.Context, offiset int, limit int, t time.Time) ([]domain.Payment, error) {
-	//TODO implement me
-	panic("implement me")
+	pmts, err := p.dao.FindExpiredPayment(ctx, offiset, limit, t)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]domain.Payment, 0, len(pmts))
+	for _, pmt := range pmts {
+		res = append(res, p.toDomain(pmt))
+	}
+	return res, nil
 }
 
 func (p *paymentRepository) GetPayment(ctx context.Context, bizTradeNO string) (domain.Payment, error) {
-	//TODO implement me
-	panic("implement me")
+	r, err := p.dao.GetPayment(ctx, bizTradeNO)
+	return p.toDomain(r), err
 }
 
 func (p *paymentRepository) toDomain(pmt dao.Payment) domain.Payment {

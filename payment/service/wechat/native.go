@@ -40,6 +40,26 @@ type NativePaymentService struct {
 	nativeCBTypeToStatus map[string]domain.PaymentStatus
 }
 
+func NewNativePaymentService(appID string, mchID string, repo repository.PaymentRepository, svc *native.NativeApiService, l logger.LoggerV1) *NativePaymentService {
+	return &NativePaymentService{
+		appID:     appID,
+		mchID:     mchID,
+		notifyURL: "http://wechat.ermoji.com/pay/callback",
+		repo:      repo,
+		svc:       svc,
+		l:         l,
+		nativeCBTypeToStatus: map[string]domain.PaymentStatus{
+			"SUCCESS":  domain.PaymentStatusSuccess,
+			"PAYERROR": domain.PaymentStatusFailed,
+			"NOTPAY":   domain.PaymentStatusInit,
+			"CLOSED":   domain.PaymentStatusFailed,
+			"REVOKED":  domain.PaymentStatusFailed,
+			"REFUND":   domain.PaymentStatusRefund,
+		},
+	}
+}
+
+// Prepay 为了拿到扫码支付的二维码
 func (n *NativePaymentService) Prepay(ctx context.Context, pmt domain.Payment) (string, error) {
 	pmt.Status = domain.PaymentStatusInit
 	err := n.repo.AddPayMent(ctx, pmt)
@@ -51,9 +71,15 @@ func (n *NativePaymentService) Prepay(ctx context.Context, pmt domain.Payment) (
 		Appid:       core.String(n.appID),
 		Mchid:       core.String(n.mchID),
 		Description: core.String(pmt.Description),
-		OutTradeNo:  core.String(pmt.BizTradeNO),
+		// 这个地方是有讲究的
+		// 选择1：业务方直接传给我，我透传，我啥也不干
+		// 选择2：业务方给我它的业务标识，我自己生成一个 - 担忧出现重复
+		// 注意，不管你是选择 1 还是 2，业务方都一定要传给你一个唯一标识
+		// Biz + BizTradeNo 唯一，biz + biz_id
+		OutTradeNo: core.String(pmt.BizTradeNO),
 		// 最好把这个带上
 		TimeExpire: core.Time(time.Now().Add(time.Minute * 30)),
+		NotifyUrl:  core.String(n.notifyURL),
 		Amount: &native.Amount{
 			Total:    core.Int64(pmt.Amt.Total),
 			Currency: core.String(pmt.Amt.Currency),

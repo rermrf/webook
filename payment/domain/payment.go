@@ -33,5 +33,5 @@ const (
 	PaymentStatusInit
 	PaymentStatusSuccess
 	PaymentStatusFailed
-	paymentStatusRefund
+	PaymentStatusRefund
 )
