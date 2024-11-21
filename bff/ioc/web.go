@@ -8,10 +8,9 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"strings"
 	"time"
-	"webook/internal"
-	"webook/internal/handler"
-	ijwt "webook/internal/handler/jwt"
-	"webook/internal/handler/middleware"
+	"webook/bff/handler"
+	ijwt "webook/bff/handler/jwt"
+	"webook/bff/handler/middleware"
 	"webook/pkg/ginx"
 	"webook/pkg/ginx/middlewares/metric"
 	limitbuilder "webook/pkg/ginx/middlewares/ratelimit"
@@ -25,7 +24,7 @@ func InitGin(mdls []gin.HandlerFunc, hdl *handler.UserHandler, oauth2WechatHdl *
 	hdl.RegisterRoutes(server)
 	oauth2WechatHdl.RegisterRoutes(server)
 	articleHdl.RegisterRoutes(server)
-	(&internal.ObservabilityHandler{}).RegisterRoutes(server)
+	(&handler.ObservabilityHandler{}).RegisterRoutes(server)
 	return server
 }
 

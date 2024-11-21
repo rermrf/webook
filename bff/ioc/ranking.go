@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"time"
 	rankingv1 "webook/api/proto/gen/ranking/v1"
-	"webook/internal/job"
+	"webook/bff/job"
 	"webook/pkg/cronjobx"
 	"webook/pkg/logger"
 )

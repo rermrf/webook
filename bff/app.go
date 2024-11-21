@@ -3,11 +3,11 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"
-	"webook/internal/events"
+	"webook/pkg/saramax"
 )
 
 type App struct {
 	Server    *gin.Engine
-	Consumers []events.Consumer
+	Consumers []saramax.Consumer
 	cron      *cron.Cron
 }
