@@ -35,3 +35,5 @@ const (
 	PaymentStatusFailed
 	PaymentStatusRefund
 )
+
+//type Txn payments.Transaction

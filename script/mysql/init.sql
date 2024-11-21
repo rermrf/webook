@@ -1,6 +1,9 @@
 create database webook;
 
 create database webook_intr;
+create database webook_payment;
+create database webook_reward;
+create database webook_account;
 
 use webook;
 

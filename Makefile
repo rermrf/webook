@@ -11,26 +11,10 @@ docker:
 	@docker rmi -f rermrf/webook:v0.0.1
 	@docker build -t rermrf/webook:v0.0.1 .
 
-.PHONY: mock
-mock:
-	# 生成 mock 文件...
-	@mockgen -source=internal/service/user.go -package=svcmocks -destination=internal/service/mocks/user_mock.go
-	@mockgen -source=internal/service/code.go -package=svcmocks -destination=internal/service/mocks/code_mock.go
-	@mockgen -source=internal/service/article.go -package=svcmocks -destination=internal/service/mocks/article_mock.go
-	@mockgen -source=internal/service/interactive.go -package=svcmocks -destination=internal/service/mocks/interactive_mock.go
-	@mockgen -source=internal/repository/user.go -package=repomocks -destination=internal/repository/mocks/user_mock.go
-	@mockgen -source=internal/repository/code.go -package=repomocks -destination=internal/repository/mocks/code_mock.go
-	@mockgen -source=internal/repository/article/article.go -package=artrepomocks -destination=internal/repository/article/mocks/article_mock.go
-	@mockgen -source=internal/repository/article/article_author.go -package=artrepomocks -destination=internal/repository/article/mocks/article_author_mock.go
-	@mockgen -source=internal/repository/article/article_reader.go -package=artrepomocks -destination=internal/repository/article/mocks/article_reader_mock.go
-	@mockgen -source=internal/repository/dao/user.go -package=daomocks -destination=internal/repository/dao/mocks/user_dao_mock.go
-	@mockgen -source=internal/repository/cache/user.go -package=cachemocks -destination=internal/repository/cache/mocks/user_cache_mock.go
-	@mockgen -source=internal/service/sms/types.go -package=smsmocks -destination=internal/service/sms/mocks/sms_mock.go
-	@mockgen -source=internal/pkg/ratelimit/types.go -package=limitmocks -destination=internal/pkg/ratelimit/mocks/ratelimit_mock.go
-	@mockgen -package=redismocks -destination=internal/repository/cache/redismocks/cmdable_mock.go github.com/redis/go-redis/v9 Cmdable
-	# 同步依赖...
-	@go mod tidy
-
 .PHONY: grpc
 grpc:
 	@buf generate ./api/proto
+
+.PHONY: grpc_mock
+grpc_mock:
+	@mockgen -source=./api/proto/gen/payment/v1/payment_grpc.pb.go -package=pmtmocks -destination=./api/proto/gen/payment/v1/mocks/payment_grpc.mock.go

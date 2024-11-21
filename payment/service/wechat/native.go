@@ -42,19 +42,25 @@ type NativePaymentService struct {
 
 func NewNativePaymentService(appID string, mchID string, repo repository.PaymentRepository, svc *native.NativeApiService, l logger.LoggerV1) *NativePaymentService {
 	return &NativePaymentService{
-		appID:     appID,
-		mchID:     mchID,
+		appID: appID,
+		mchID: mchID,
+		// 一般来说，这个都是固定的，基本不会变，除非换域名
+		// 从配置文件中读取
+		// 1. 测试环境 test.wechat.emoji.com
+		// 2. 开发环境 dev.wechat.emoji.com
+		// 3. 线上环境 wechat.emoji.com
 		notifyURL: "http://wechat.ermoji.com/pay/callback",
 		repo:      repo,
 		svc:       svc,
 		l:         l,
 		nativeCBTypeToStatus: map[string]domain.PaymentStatus{
-			"SUCCESS":  domain.PaymentStatusSuccess,
-			"PAYERROR": domain.PaymentStatusFailed,
-			"NOTPAY":   domain.PaymentStatusInit,
-			"CLOSED":   domain.PaymentStatusFailed,
-			"REVOKED":  domain.PaymentStatusFailed,
-			"REFUND":   domain.PaymentStatusRefund,
+			"SUCCESS":    domain.PaymentStatusSuccess,
+			"PAYERROR":   domain.PaymentStatusFailed,
+			"NOTPAY":     domain.PaymentStatusInit,
+			"CLOSED":     domain.PaymentStatusFailed,
+			"REVOKED":    domain.PaymentStatusFailed,
+			"REFUND":     domain.PaymentStatusRefund,
+			"USERPAYING": domain.PaymentStatusInit,
 		},
 	}
 }
@@ -62,10 +68,13 @@ func NewNativePaymentService(appID string, mchID string, repo repository.Payment
 // Prepay 为了拿到扫码支付的二维码
 func (n *NativePaymentService) Prepay(ctx context.Context, pmt domain.Payment) (string, error) {
 	pmt.Status = domain.PaymentStatusInit
+	// 唯一索引冲突
+	// 业务方唤起了支付，但是没付，下一次再过来，应该换 BizTradeNO
 	err := n.repo.AddPayMent(ctx, pmt)
 	if err != nil {
 		return "", err
 	}
+	// 业务内唯一凭证
 	// sn := uuid.New().String()
 	resp, _, err := n.svc.Prepay(ctx, native.PrepayRequest{
 		Appid:       core.String(n.appID),
@@ -77,7 +86,7 @@ func (n *NativePaymentService) Prepay(ctx context.Context, pmt domain.Payment) (
 		// 注意，不管你是选择 1 还是 2，业务方都一定要传给你一个唯一标识
 		// Biz + BizTradeNo 唯一，biz + biz_id
 		OutTradeNo: core.String(pmt.BizTradeNO),
-		// 最好把这个带上
+		// 最好把这个带上，30 分钟内有效
 		TimeExpire: core.Time(time.Now().Add(time.Minute * 30)),
 		NotifyUrl:  core.String(n.notifyURL),
 		Amount: &native.Amount{
@@ -92,6 +101,7 @@ func (n *NativePaymentService) Prepay(ctx context.Context, pmt domain.Payment) (
 	return *resp.CodeUrl, nil
 }
 
+// SyncWechatInfo 兜底就是准备同步状态
 func (n *NativePaymentService) SyncWechatInfo(ctx context.Context, bizTradeNO string) error {
 	// 对账
 	txn, _, err := n.svc.QueryOrderByOutTradeNo(ctx, native.QueryOrderByOutTradeNoRequest{
@@ -117,8 +127,10 @@ func (n *NativePaymentService) HandleCallback(ctx context.Context, txn *payments
 }
 
 func (n *NativePaymentService) updateByTxn(ctx context.Context, txn *payments.Transaction) error {
+	// 核心就是更新数据库状态
 	status, ok := n.nativeCBTypeToStatus[*txn.TradeType]
 	if !ok {
+		// 这个地方要告警
 		return fmt.Errorf("%w，微信的状态是 %s", errUnknownTransactionState, *txn.TradeState)
 	}
 	// 很显然，就是更新一下我们本地数据库里面的 payment 的状态

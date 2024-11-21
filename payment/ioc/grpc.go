@@ -26,7 +26,7 @@ func InitGRPCServer(weSvc *grpc2.WechatServiceServer, l logger.LoggerV1) *grpcx.
 		Server:    server,
 		Port:      cfg.Port,
 		EtcdAddrs: cfg.EtcdAddrs,
-		Name:      "article",
+		Name:      "payment",
 		L:         l,
 	}
 }

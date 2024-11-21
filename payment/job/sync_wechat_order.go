@@ -39,6 +39,7 @@ func (s *SyncWechatOrderJob) Run() error {
 			}
 		}
 		if len(pmts) < limit {
+			// 没数据了
 			return nil
 		}
 		offset += len(pmts)

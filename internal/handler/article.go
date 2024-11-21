@@ -10,6 +10,7 @@ import (
 	"time"
 	articlev1 "webook/api/proto/gen/article/v1"
 	intrv1 "webook/api/proto/gen/intr/v1"
+	rewardv1 "webook/api/proto/gen/reward/v1"
 	"webook/article/domain"
 	ijwt "webook/internal/handler/jwt"
 	"webook/pkg/ginx"
@@ -41,16 +42,18 @@ import (
 type ArticleHandler struct {
 	svc     articlev1.ArticleServiceClient
 	intrSvc intrv1.InteractiveServiceClient
+	reward  rewardv1.RewardServiceClient
 	l       logger.LoggerV1
 	biz     string
 }
 
-func NewArticleHandler(svc articlev1.ArticleServiceClient, l logger.LoggerV1, intrSvc intrv1.InteractiveServiceClient) *ArticleHandler {
+func NewArticleHandler(svc articlev1.ArticleServiceClient, l logger.LoggerV1, intrSvc intrv1.InteractiveServiceClient, reward rewardv1.RewardServiceClient) *ArticleHandler {
 	return &ArticleHandler{
 		svc:     svc,
 		intrSvc: intrSvc,
 		l:       l,
 		biz:     "article",
+		reward:  reward,
 	}
 }
 
@@ -68,6 +71,8 @@ func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 
 	pub.POST("/like", ginx.WrapBodyAndToken(h.l, h.Like))
 	pub.POST("/collect", ginx.WrapBodyAndToken[LikeReq, ijwt.UserClaims](h.l, h.Like))
+
+	pub.POST("/reward", ginx.WrapBodyAndToken(h.l, h.Reward))
 }
 
 //type ReaderHandler struct {
@@ -328,6 +333,40 @@ func (h *ArticleHandler) List(ctx *gin.Context, req ListReq, uc ijwt.UserClaims)
 	return ginx.Result{
 		Data: req.articlesToVO(arts),
 	}, err
+}
+
+// Reward 打赏
+func (h *ArticleHandler) Reward(ctx *gin.Context, req RewardReq, uc ijwt.UserClaims) (ginx.Result, error) {
+	artResp, err := h.svc.GetPublishedById(ctx.Request.Context(), &articlev1.GetPublishedByIdRequest{
+		Id: req.Id,
+	})
+	if err != nil {
+		return ginx.Result{
+			Code: 5,
+			Msg:  "系统错误",
+		}, err
+	}
+	art := artResp.GetArticle()
+	resp, err := h.reward.PreReward(ctx.Request.Context(), &rewardv1.PreRewardRequest{
+		Biz:       "article",
+		BizId:     art.Id,
+		BizName:   art.Title,
+		TargetUid: art.Author.Id,
+		Uid:       uc.UserId,
+		Amt:       req.Amt,
+	})
+	if err != nil {
+		return ginx.Result{
+			Code: 5,
+			Msg:  "系统错误",
+		}, err
+	}
+	return ginx.Result{
+		Data: map[string]interface{}{
+			"codeURL": resp.CodeUrl,
+			"rid":     resp.Rid,
+		},
+	}, nil
 }
 
 func (r ListReq) articlesToVO(src []domain.Article) []ArticleVO {

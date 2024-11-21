@@ -49,3 +49,8 @@ type LikeReq struct {
 	Like bool  `json:"like"`
 	Id   int64 `json:"id"`
 }
+
+type RewardReq struct {
+	Id  int64 `json:"id"`
+	Amt int64 `json:"amt"`
+}
