@@ -10,7 +10,7 @@ type SaramaProducer struct {
 	producer sarama.SyncProducer
 }
 
-func NewSaramaProducer(client sarama.Client) (*SaramaProducer, error) {
+func NewSaramaProducer(client sarama.Client) (Producer, error) {
 	p, err := sarama.NewSyncProducerFromClient(client)
 	if err != nil {
 		return nil, err

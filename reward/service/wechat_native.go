@@ -25,6 +25,7 @@ func NewWechatNativeRewardService(client pmtv1.WechatPaymentServiceClient, repo 
 }
 
 func (s *WechatNativeRewardService) PreReward(ctx context.Context, r domain.Reward) (domain.CodeURL, error) {
+	// 缓存支付二维码，一旦发现支付成功了，就清楚二维码
 	// 先查询缓存，确定是否已经创建过了打赏的预支付订单
 	codeURL, err := s.repo.GetCachedCodeURL(ctx, r)
 	if err == nil {
@@ -38,10 +39,11 @@ func (s *WechatNativeRewardService) PreReward(ctx context.Context, r domain.Rewa
 	// rpc 调用支付服务生成微信支付的二维码
 	resp, err := s.client.NativePrePay(ctx, &pmtv1.PrePayRequest{
 		Amt: &pmtv1.Amount{
-			Total:    r.Amt,
+			Total: r.Amt,
+			// 这里写死货币单位
 			Currency: "CNY",
 		},
-		// 想办法拼出一个 biz_trade_id
+		// 想办法拼出一个 biz_trade_id，业务 + 打赏id
 		BizTradeNo:  fmt.Sprintf("reward-%d", rid),
 		Description: fmt.Sprintf("打赏-%s", r.Target.BizName),
 	})
@@ -69,11 +71,17 @@ func (s *WechatNativeRewardService) GetReward(ctx context.Context, rid, uid int6
 		// 说明非法
 		return domain.Reward{}, errors.New("查询的打赏记录和打赏人对不上")
 	}
+	// 有可能，我的打赏记录，还是 Init 状态：原因：第三方支付服务卡了，payment卡了，kafka消息积压了
 	// 已经是完结状态
-	if r.Completed() {
+	if r.Completed() || ctx.Value("limited") == true {
+		// 已经知道你的打赏结果了
 		return r, nil
 	}
 	// 这个时候，考虑到支付到查询结果，搞一个慢路径
+	// 有可能支付了，但是 reward 本身没有收到通知
+	// 直接查询 payment
+	// 只能解决，支付收到了，但是 reward 没收到
+	// 降级状态、限流状态、熔断状态，不要走慢路径
 	resp, err := s.client.GetPayment(ctx, &pmtv1.GetPaymentRequest{
 		BizTradeNo: s.bizTradeNo(r.Id),
 	})

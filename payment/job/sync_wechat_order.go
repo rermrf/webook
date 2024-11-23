@@ -12,10 +12,14 @@ type SyncWechatOrderJob struct {
 	l   logger.LoggerV1
 }
 
+func (s *SyncWechatOrderJob) Name() string {
+	return "SyncWechatOrder"
+}
+
 // 我这个定时任务，多久运行一次？
 // 不必也别频繁，比如说一分钟运行一次
 
-func (s *SyncWechatOrderJob) Run() error {
+func (s *SyncWechatOrderJob) Run(ctx context.Context) error {
 	// 定时找到超时的微信支付订单，然后发起同步
 	// 针对过期订单
 	t := time.Now().Add(-time.Minute * 31)

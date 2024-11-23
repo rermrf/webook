@@ -40,7 +40,7 @@ type NativePaymentService struct {
 	nativeCBTypeToStatus map[string]domain.PaymentStatus
 }
 
-func NewNativePaymentService(appID string, mchID string, repo repository.PaymentRepository, svc *native.NativeApiService, l logger.LoggerV1) *NativePaymentService {
+func NewNativePaymentService(appID string, mchID string, repo repository.PaymentRepository, svc *native.NativeApiService, l logger.LoggerV1, producer events.Producer) *NativePaymentService {
 	return &NativePaymentService{
 		appID: appID,
 		mchID: mchID,
@@ -53,6 +53,7 @@ func NewNativePaymentService(appID string, mchID string, repo repository.Payment
 		repo:      repo,
 		svc:       svc,
 		l:         l,
+		producer:  producer,
 		nativeCBTypeToStatus: map[string]domain.PaymentStatus{
 			"SUCCESS":    domain.PaymentStatusSuccess,
 			"PAYERROR":   domain.PaymentStatusFailed,
@@ -119,6 +120,8 @@ func (n *NativePaymentService) FindExpiredPayment(ctx context.Context, offiset, 
 }
 
 func (n *NativePaymentService) GetPayment(ctx context.Context, bizTradeNO string) (domain.Payment, error) {
+	// 在这里，我能不能设计一个慢路径？如果要是不知道支付结果，我就去微信里面查一下
+	// 或者异步查一下
 	return n.repo.GetPayment(ctx, bizTradeNO)
 }
 
@@ -147,11 +150,13 @@ func (n *NativePaymentService) updateByTxn(ctx context.Context, txn *payments.Tr
 	// 有些系统，会根据支付状态来决定要不要通知
 	// 我要是发送消息失败了怎么办？
 	// 站在业务的角度，你是不是至少应该成功一次
+	// 这里有很多问题，核心就是部分失败问题，其次还有重复发送问题
 	err = n.producer.ProducePaymentEvent(ctx, events.PaymentEvent{
 		BizTradeNO: *txn.OutTradeNo,
 		Status:     status.AsUint8(),
 	})
 	if err != nil {
+		// 加监控加告警，立刻手动修复。或者自动补发
 		n.l.Error("发送支付事件失败", logger.Error(err), logger.String("biz_trade_no", *txn.TransactionId))
 	}
 	return nil

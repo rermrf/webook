@@ -24,6 +24,7 @@ func InitApp() App {
 		ioc.InitGRPCServer,
 		web.NewWechatHandler,
 		ioc.InitWechatNativeService,
+		ioc.InitProducer,
 		repository.NewPaymentRepository,
 		dao.NewPaymentGORMDAO,
 		grpc.NewWechatServiceServer,

@@ -58,7 +58,8 @@ func (r *PaymentEventConsumer) Start() error {
 }
 
 func (r *PaymentEventConsumer) Consume(msg *sarama.ConsumerMessage, evt PaymentEvent) error {
-	// 不是我们的
+	// 不是我们的，我只处理reward
+	// biz_trade_no 是以 reward 开头
 	if !strings.HasPrefix(string(msg.Topic), "reward") {
 		return nil
 	}

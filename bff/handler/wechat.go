@@ -8,7 +8,7 @@ import (
 	"time"
 	oauth2v1 "webook/api/proto/gen/oauth2/v1"
 	userv1 "webook/api/proto/gen/user/v1"
-	ijwt "webook/internal/handler/jwt"
+	ijwt "webook/bff/handler/jwt"
 	"webook/pkg/ginx"
 )
 

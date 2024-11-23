@@ -9,14 +9,14 @@ package main
 import (
 	"github.com/google/wire"
 	events2 "webook/article/events"
+	"webook/bff/handler"
+	"webook/bff/handler/jwt"
+	"webook/bff/ioc"
 	"webook/interactive/events"
 	"webook/interactive/repository"
 	"webook/interactive/repository/cache"
 	"webook/interactive/repository/dao"
 	"webook/interactive/service"
-	"webook/internal/handler"
-	"webook/internal/handler/jwt"
-	"webook/internal/ioc"
 )
 
 import (

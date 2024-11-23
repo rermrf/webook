@@ -9,5 +9,6 @@ type PaymentEvent struct {
 }
 
 func (PaymentEvent) Topic() string {
+	// return biz + "_payment_events"
 	return "payment_events"
 }

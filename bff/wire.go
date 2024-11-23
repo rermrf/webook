@@ -5,14 +5,14 @@ package main
 import (
 	"github.com/google/wire"
 	article3 "webook/article/events"
+	"webook/bff/handler"
+	ijwt "webook/bff/handler/jwt"
+	"webook/bff/ioc"
 	"webook/interactive/events"
 	repository2 "webook/interactive/repository"
 	cache2 "webook/interactive/repository/cache"
 	dao2 "webook/interactive/repository/dao"
 	service2 "webook/interactive/service"
-	"webook/internal/handler"
-	ijwt "webook/internal/handler/jwt"
-	"webook/internal/ioc"
 )
 
 // User 相关依赖

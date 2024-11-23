@@ -12,8 +12,8 @@ import (
 	"go.uber.org/zap"
 	"net/http"
 	"time"
+	"webook/bff/ioc"
 	"webook/config"
-	"webook/internal/ioc"
 )
 
 func main() {

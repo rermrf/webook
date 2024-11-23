@@ -3,8 +3,7 @@ package ioc
 import (
 	"github.com/IBM/sarama"
 	"github.com/spf13/viper"
-	events2 "webook/interactive/events"
-	"webook/internal/events"
+	"webook/payment/events"
 )
 
 func InitKafka() sarama.Client {
@@ -13,6 +12,10 @@ func InitKafka() sarama.Client {
 	}
 	saramaCfg := sarama.NewConfig()
 	saramaCfg.Producer.Return.Successes = true
+	// 使用 hash 保证同一个 biz 发送到同一个 topic
+	// 如果 要新增分区，怎么保证消息的顺序性？
+	// 在原本分区没有消息挤压的前提下，让新分区睡眠一小段时间，等待之前的消息消费完
+	saramaCfg.Producer.Partitioner = sarama.NewConsistentCRCHashPartitioner
 	var cfg Config
 	err := viper.UnmarshalKey("kafka", &cfg)
 	if err != nil {
@@ -25,19 +28,10 @@ func InitKafka() sarama.Client {
 	return client
 }
 
-func NewSyncProducer(client sarama.Client) sarama.SyncProducer {
-	res, err := sarama.NewSyncProducerFromClient(client)
+func InitProducer(client sarama.Client) events.Producer {
+	res, err := events.NewSaramaProducer(client)
 	if err != nil {
 		panic(err)
 	}
 	return res
-}
-
-// NewConsumer 面临的问题依旧是所有的 Consumer 在这里注册一下
-//func NewConsumer(c1 *article.InteractiveReadEventConsumer) []events.Consumer {
-//	return []events.Consumer{c1}
-//}
-
-func NewConsumer(c1 *events2.InteractiveReadBatchConsumer) []events.Consumer {
-	return []events.Consumer{c1}
 }

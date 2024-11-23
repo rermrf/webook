@@ -13,8 +13,8 @@ import (
 	"time"
 	codev1 "webook/api/proto/gen/code/v1"
 	userv1 "webook/api/proto/gen/user/v1"
-	"webook/internal/errs"
-	ijwt "webook/internal/handler/jwt"
+	"webook/bff/errs"
+	ijwt "webook/bff/handler/jwt"
 	"webook/pkg/ginx"
 	"webook/pkg/logger"
 )

@@ -10,6 +10,7 @@ import (
 	"github.com/wechatpay-apiv3/wechatpay-go/services/payments/native"
 	"github.com/wechatpay-apiv3/wechatpay-go/utils"
 	"os"
+	"webook/payment/events"
 	"webook/payment/repository"
 	"webook/payment/service/wechat"
 	"webook/pkg/logger"
@@ -52,10 +53,20 @@ func InitWechatNativeService(
 	cli *core.Client,
 	repo repository.PaymentRepository,
 	l logger.LoggerV1,
-	cfg WechatConfig) *wechat.NativePaymentService {
-	return wechat.NewNativePaymentService(cfg.AppID, cfg.MchID, repo, &native.NativeApiService{
-		Client: cli,
-	}, l)
+	cfg WechatConfig,
+	producer events.Producer,
+) *wechat.NativePaymentService {
+	return wechat.NewNativePaymentService(
+		cfg.AppID,
+		cfg.MchID,
+		repo,
+
+		&native.NativeApiService{
+			Client: cli,
+		},
+		l,
+		producer,
+	)
 }
 
 func InitWechatClient(cfg WechatConfig) *core.Client {

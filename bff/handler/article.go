@@ -12,7 +12,7 @@ import (
 	intrv1 "webook/api/proto/gen/intr/v1"
 	rewardv1 "webook/api/proto/gen/reward/v1"
 	"webook/article/domain"
-	ijwt "webook/internal/handler/jwt"
+	ijwt "webook/bff/handler/jwt"
 	"webook/pkg/ginx"
 	"webook/pkg/logger"
 )
@@ -347,6 +347,8 @@ func (h *ArticleHandler) Reward(ctx *gin.Context, req RewardReq, uc ijwt.UserCla
 		}, err
 	}
 	art := artResp.GetArticle()
+	// 拿到打赏的二维码
+	// 不是直接调用支付，而是调用打赏
 	resp, err := h.reward.PreReward(ctx.Request.Context(), &rewardv1.PreRewardRequest{
 		Biz:       "article",
 		BizId:     art.Id,
@@ -364,7 +366,8 @@ func (h *ArticleHandler) Reward(ctx *gin.Context, req RewardReq, uc ijwt.UserCla
 	return ginx.Result{
 		Data: map[string]interface{}{
 			"codeURL": resp.CodeUrl,
-			"rid":     resp.Rid,
+			// 代表的是这一次打赏的id，后续在前端可通过这个 id 验证支付
+			"rid": resp.Rid,
 		},
 	}, nil
 }
