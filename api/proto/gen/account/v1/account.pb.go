@@ -176,6 +176,8 @@ type CreditItem struct {
 	unknownFields protoimpl.UnknownFields
 
 	// 在一些复杂的系统里面，用户可能有多个账号，还有虚拟账号，退款账号等乱七八糟的划分
+	// 平台账号怎么表达？ 快速退款账号、垫款账号、
+	// 用户账号
 	Account int64 `protobuf:"varint,1,opt,name=account,proto3" json:"account,omitempty"`
 	// 账号类型
 	AccountType AccountType `protobuf:"varint,2,opt,name=account_type,json=accountType,proto3,enum=account.v1.AccountType" json:"account_type,omitempty"`
