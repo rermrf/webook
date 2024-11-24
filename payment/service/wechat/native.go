@@ -151,6 +151,7 @@ func (n *NativePaymentService) updateByTxn(ctx context.Context, txn *payments.Tr
 	// 我要是发送消息失败了怎么办？
 	// 站在业务的角度，你是不是至少应该成功一次
 	// 这里有很多问题，核心就是部分失败问题，其次还有重复发送问题
+	// TODO: 保证消息一定发送成功：本地消息表
 	err = n.producer.ProducePaymentEvent(ctx, events.PaymentEvent{
 		BizTradeNO: *txn.OutTradeNo,
 		Status:     status.AsUint8(),

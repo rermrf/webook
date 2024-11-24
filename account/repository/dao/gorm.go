@@ -15,8 +15,12 @@ func NewAccountGORMDAO(db *gorm.DB) AccountDAO {
 	return &AccountGORMDAO{db: db}
 }
 
+// AddActivities 一次业务里面的相关账号的余额变动
 func (a *AccountGORMDAO) AddActivities(ctx context.Context, activities ...AccountActivity) error {
+	// 同一个业务，应该是事务
 	return a.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 修改余额
+		// 添加支付记录
 		now := time.Now().UnixMilli()
 		for _, act := range activities {
 			// 一般在用户注册的时候就会创建好账号，但是我们没有，所以要兼容处理一下
@@ -40,6 +44,7 @@ func (a *AccountGORMDAO) AddActivities(ctx context.Context, activities ...Accoun
 				return err
 			}
 		}
-		return tx.Create(&activities).Error
+		// 批量插入
+		return tx.Model(&activities).Create(&activities).Error
 	})
 }

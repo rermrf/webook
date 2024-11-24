@@ -117,6 +117,7 @@ func (s *WechatNativeRewardService) UpdateReward(ctx context.Context, bizTradeNO
 		return err
 	}
 	// 完成了支付，准备入账
+	// TODO: 解决幂等问题
 	if status == domain.RewardStatusPayed {
 		r, err := s.repo.GetReward(ctx, rid)
 		if err != nil {
@@ -145,6 +146,10 @@ func (s *WechatNativeRewardService) UpdateReward(ctx context.Context, bizTradeNO
 		})
 		if err != nil {
 			s.l.Error("入账失败了", logger.String("biz_trade_no", bizTradeNO), logger.Error(err))
+			// 做好监控和告警
+			// 引入自动修复功能
+			// 如果没有 24小时值班 + 自动修复 + 异地容灾备份（随机演练）
+			// 然后面试官又吹牛逼说自己的可用性有 9999，你可以认为，他在扯淡
 			return err
 		}
 	}

@@ -9,7 +9,7 @@ type AccountDAO interface {
 // Account 账号本体
 type Account struct {
 	Id int64 `gorm:"primaryKey,autoIncrement"`
-	// 对应的用户的 ID
+	// 对应的用户的 ID，如果是系统账号，它是 0 值
 	Uid int64 `gorm:"uniqueIndex:account_uid"`
 	// 账号 ID，这个才是对外使用的
 	Account int64 `gorm:"uniqueIndex:account_uid"`
