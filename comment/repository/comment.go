@@ -58,23 +58,36 @@ func (c *commentRepository) FindByBiz(ctx context.Context, biz string, bizId, mi
 }
 
 func (c *commentRepository) DeleteComment(ctx context.Context, comment domain.Comment) error {
-	//TODO implement me
-	panic("implement me")
+	return c.dao.Delete(ctx, c.toEntity(comment))
 }
 
 func (c *commentRepository) CreateComment(ctx context.Context, comment domain.Comment) error {
-	//TODO implement me
-	panic("implement me")
+	return c.dao.Insert(ctx, c.toEntity(comment))
 }
 
 func (c *commentRepository) GetCommentByIds(ctx context.Context, ids []int64) ([]domain.Comment, error) {
-	//TODO implement me
-	panic("implement me")
+	vals, err := c.dao.FindOneByIds(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	comments := make([]domain.Comment, 0, len(vals))
+	for _, v := range vals {
+		comment := c.toDomain(v)
+		comments = append(comments, comment)
+	}
+	return comments, nil
 }
 
-func (c *commentRepository) GetMoreReplies(ctx context.Context, rid int64, id int64, limit int64) ([]domain.Comment, error) {
-	//TODO implement me
-	panic("implement me")
+func (c *commentRepository) GetMoreReplies(ctx context.Context, rid int64, maxId int64, limit int64) ([]domain.Comment, error) {
+	cs, err := c.dao.FindRepliesByRid(ctx, rid, maxId, limit)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]domain.Comment, 0, len(cs))
+	for _, cm := range cs {
+		res = append(res, c.toDomain(cm))
+	}
+	return res, nil
 }
 
 func (c *commentRepository) toDomain(src dao.Comment) domain.Comment {

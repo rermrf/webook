@@ -4,8 +4,8 @@ import (
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"webook/comment/repository/dao"
 	"webook/pkg/logger"
-	"webook/user/repository/dao"
 )
 
 func InitDB(l logger.LoggerV1) *gorm.DB {

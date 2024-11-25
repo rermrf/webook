@@ -42,7 +42,7 @@ message CreateCommentResponse {
 
 message GetMoreRepliesRequest {
   int64 rid = 1;
-  int64 max_id = 2;
+  int64 min_id = 2;
   int64 limit = 3;
 }
 

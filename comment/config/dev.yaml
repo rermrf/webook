@@ -1,0 +1,12 @@
+db:
+  mysql:
+    dsn: "root:root@tcp(localhost:13306)/webook_comment?charset=utf8mb4&parseTime=True&loc=Local"
+
+etcd:
+  addr: "localhost:12379"
+
+grpc:
+  server:
+    port: 8101
+    etcdAddrs:
+      - "localhost:12379"
