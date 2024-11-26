@@ -13,6 +13,7 @@ service CommentService {
   rpc GetMoreReplies (GetMoreRepliesRequest) returns (GetMoreRepliesResponse);
 }
 
+// 按照评论时间排序，在使用自增主键的情况下，实际上就是按照主键大小排序，正序
 message GetCommentListRequest {
   string biz = 1;
   int64 bizid = 2;
@@ -60,6 +61,7 @@ message Comment {
   Comment parent_comment = 7;
   // 正常来说，你在时间传递上，如果不想用 int64 之类的
   // 就可以考虑使用这个 Timestamp
+//  repeated Comment children = 8;
   google.protobuf.Timestamp ctime = 9;
   google.protobuf.Timestamp utime = 10;
 }

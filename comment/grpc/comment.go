@@ -25,8 +25,9 @@ func (c *CommentServiceServer) Register(server *grpc.Server) {
 
 func (c *CommentServiceServer) GetCommentList(ctx context.Context, request *commentv1.GetCommentListRequest) (*commentv1.GetCommentListResponse, error) {
 	minID := request.GetMinId()
-	// 第一次查询
+	// 第一次查询，用户没有传
 	if minID <= 0 {
+		// 从当前最新的评论开始取
 		minID = math.MaxInt64
 	}
 	domainComments, err := c.svc.GetCommentList(ctx, request.GetBiz(), request.GetBizid(), request.GetMinId(), request.GetLimit())

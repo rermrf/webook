@@ -43,7 +43,7 @@ func (d *GORMCommentDao) FindRepliesByPid(ctx context.Context, pid int64, offset
 	var res []Comment
 	err := d.db.WithContext(ctx).
 		Where("pid = ?", pid).
-		Order("id desc").
+		Order("id ASC").
 		Offset(offset).
 		Limit(limit).
 		Find(&res).Error
@@ -62,10 +62,10 @@ func (d *GORMCommentDao) FindOneByIds(ctx context.Context, ids []int64) ([]Comme
 	return res, err
 }
 
-func (d *GORMCommentDao) FindRepliesByRid(ctx context.Context, rid int64, id int64, limit int64) ([]Comment, error) {
+func (d *GORMCommentDao) FindRepliesByRid(ctx context.Context, rid int64, maxId int64, limit int64) ([]Comment, error) {
 	var res []Comment
 	err := d.db.WithContext(ctx).
-		Where("root_id = ? AND id > ?", rid, id).
+		Where("root_id = ? AND id > ?", rid, maxId).
 		Order("id ASC").
 		Limit(int(limit)).Find(&res).Error
 	return res, err

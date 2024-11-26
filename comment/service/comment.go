@@ -16,10 +16,7 @@ func NewCommentService(repo repository.CommentRepository) CommentService {
 
 func (c *commentService) GetCommentList(ctx context.Context, biz string, bizId, minID, limit int64) ([]domain.Comment, error) {
 	list, err := c.repo.FindByBiz(ctx, biz, bizId, minID, limit)
-	if err != nil {
-		return nil, err
-	}
-	return list, nil
+	return list, err
 }
 
 func (c *commentService) DeleteComment(ctx context.Context, id int64) error {

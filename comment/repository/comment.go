@@ -24,24 +24,28 @@ func NewCommentRepository(dao dao.CommentDao, l logger.LoggerV1) CommentReposito
 
 func (c *commentRepository) FindByBiz(ctx context.Context, biz string, bizId, minID, limit int64) ([]domain.Comment, error) {
 	conmments, err := c.dao.FindByBiz(ctx, biz, bizId, minID, limit)
+	// 最新评论的缓存效果不是很好
+	// 在这里缓存第一页，缓存没有就去数据库
+	// 也可以考虑定时刷新缓存
 	if err != nil {
 		return nil, err
 	}
-	res := make([]domain.Comment, 0, len(conmments))
+	res := make([]domain.Comment, len(conmments))
 	// 只找三条
 	var eg errgroup.Group
 	downgraded := ctx.Value("downgraded") == "true"
-	for _, conmment := range conmments {
+	for i, conmment := range conmments {
 		conmment := conmment
 		// 这两句不能放进去，因为并发操作 res 会有坑
 		cm := c.toDomain(conmment)
-		res = append(res, cm)
+		res[i] = cm
 		if downgraded {
 			continue
 		}
+		i := i
 		eg.Go(func() error {
 			// 只展示三条
-			cm.Children = make([]domain.Comment, 0, 3)
+			children := make([]domain.Comment, 0, 3)
 			rs, err := c.dao.FindRepliesByPid(ctx, conmment.Id, 0, 3)
 			if err != nil {
 				// 我们认为这个错误是可以容忍的
@@ -49,12 +53,14 @@ func (c *commentRepository) FindByBiz(ctx context.Context, biz string, bizId, mi
 				return nil
 			}
 			for _, r := range rs {
-				cm.Children = append(cm.Children, c.toDomain(r))
+				children = append(children, c.toDomain(r))
 			}
+			res[i].Children = children
 			return nil
 		})
 	}
-	return res, eg.Wait()
+	err = eg.Wait()
+	return res, err
 }
 
 func (c *commentRepository) DeleteComment(ctx context.Context, comment domain.Comment) error {

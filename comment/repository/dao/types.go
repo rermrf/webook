@@ -15,7 +15,7 @@ type CommentDao interface {
 	// Delete 删除本节点及其对于的子节点
 	Delete(ctx context.Context, c Comment) error
 	FindOneByIds(ctx context.Context, ids []int64) ([]Comment, error)
-	FindRepliesByRid(ctx context.Context, rid int64, id int64, limit int64) ([]Comment, error)
+	FindRepliesByRid(ctx context.Context, rid int64, maxId int64, limit int64) ([]Comment, error)
 }
 
 // Comment 总结：所有的索引设计，都是针对 WHERE、ORDER BY、SELECT xxx 来进行的
