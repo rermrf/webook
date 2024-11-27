@@ -3,12 +3,12 @@ package ioc
 import (
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
-	igrpc "webook/article/grpc"
+	igrpc "webook/follow/grpc"
 	"webook/pkg/grpcx"
 	"webook/pkg/logger"
 )
 
-func InitGRPCServer(artServer *igrpc.ArticleGRPCServer, l logger.LoggerV1) *grpcx.Server {
+func InitGRPCServer(followServer *igrpc.FollowServiceServer, l logger.LoggerV1) *grpcx.Server {
 	type Config struct {
 		Port      int      `yaml:"port"`
 		EtcdAddrs []string `yaml:"etcdAddrs"`
@@ -19,13 +19,13 @@ func InitGRPCServer(artServer *igrpc.ArticleGRPCServer, l logger.LoggerV1) *grpc
 		panic(err)
 	}
 	server := grpc.NewServer(grpc.ChainUnaryInterceptor())
-	artServer.Register(server)
+	followServer.Register(server)
 
 	return &grpcx.Server{
 		Server:    server,
 		Port:      cfg.Port,
 		EtcdAddrs: cfg.EtcdAddrs,
-		Name:      "article",
+		Name:      "follow",
 		L:         l,
 	}
 }

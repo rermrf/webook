@@ -11,7 +11,7 @@ type GORMFollowDao struct {
 	db *gorm.DB
 }
 
-func NewGORMFollowRelationDao(db *gorm.DB) FollowDao {
+func NewGORMFollowDao(db *gorm.DB) FollowDao {
 	return &GORMFollowDao{db: db}
 }
 

@@ -5,6 +5,7 @@ create database webook_payment;
 create database webook_reward;
 create database webook_account;
 create database webook_comment;
+create database webook_follow;
 
 use webook;
 

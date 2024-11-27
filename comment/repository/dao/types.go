@@ -34,7 +34,7 @@ type Comment struct {
 	// 根评论
 	RootId sql.NullInt64 `gorm:"index:root_id_ctime" json:"root_id"`
 	// 父级评论
-	PID sql.NullInt64 `gorm:"index" json:"pid"`
+	PID sql.NullInt64 `gorm:"column:pid;index" json:"pid"`
 	// 外键 用于联级删除
 	ParentComment *Comment `gorm:"ForeignKey:PID;AssociationForeignKey:Id;constraint:OnDelete:CASCADE"`
 	// 评论内容
