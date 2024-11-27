@@ -6,6 +6,7 @@ create database webook_reward;
 create database webook_account;
 create database webook_comment;
 create database webook_follow;
+create database webook_tag;
 
 use webook;
 
