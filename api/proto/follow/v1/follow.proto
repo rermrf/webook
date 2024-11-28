@@ -18,6 +18,13 @@ message FollowRequest {
   int64 followee = 1;
   // 关注者
   int64 follower = 2;
+  // 如果说你有额外的功能
+  // 分组功能
+  //  int64 gid = 3;
+  // 标签功能
+  // repeated int64 label_id = 4;
+  // 比如说是否主动提醒 follower，followee 有了新动态
+  //  bool notification = 5;
 }
 
 message FollowResponse {

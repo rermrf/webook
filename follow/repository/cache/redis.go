@@ -47,10 +47,14 @@ func (r *RedisFollowCache) Follow(ctx context.Context, follower, followee int64)
 	return r.updateStaticsInfo(ctx, follower, followee, 1)
 }
 
+// 更新关注人的关注数量，更新被关注者的粉丝数量
 func (r *RedisFollowCache) updateStaticsInfo(ctx context.Context, follower int64, followee int64, delta int) error {
 	tx := r.cmd.TxPipeline()
+	// 往 tx 中增加了两个指令
 	tx.HIncrBy(ctx, r.staticsKey(follower), fieldFollowerCnt, int64(delta))
 	tx.HIncrBy(ctx, r.staticsKey(followee), fieldFolloweeCnt, int64(delta))
+	// 执行，Exec 的时候，会把两条命令发过去 redis server 上，并且这两条命令会一起执行，中间不会有别的命令
+	// redis 的事务不具备 ACID 的特性
 	_, err := tx.Exec(ctx)
 	return err
 }

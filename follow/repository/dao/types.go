@@ -13,6 +13,8 @@ type FollowDao interface {
 	CntFollowee(ctx context.Context, uid int64) (int64, error)
 }
 
+// FollowRelation 这个是类似于点赞的表设计
+// 取消点赞，不是真的删除了数据，而是更新了状态
 type FollowRelation struct {
 	Id int64 `gorm:"primaryKey; autoIncrement;"`
 
@@ -24,6 +26,8 @@ type FollowRelation struct {
 	Follower int64 `gorm:"uniqueIndex:follower_followee"`
 	Followee int64 `gorm:"uniqueIndex:follower_follower"`
 
+	// 对于关注来说，就是插入或者将这个状态更新为可用状态
+	// 对于取消关注来说，将这个状态更新为不可用状态
 	Satus uint8
 
 	Ctime int64

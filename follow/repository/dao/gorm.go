@@ -74,7 +74,7 @@ func (d *GORMFollowDao) CntFollowee(ctx context.Context, uid int64) (int64, erro
 	var cnt int64
 	err := d.db.WithContext(ctx).
 		Select("count(followee)").
-		// <follower, followee>
+		// 这里能够利用到 <follower, followee> 的联合唯一索引
 		Where("follower = ? AND status = ?", uid, FollowRelationStatusActive).Count(&cnt).Error
 	return cnt, err
 }
