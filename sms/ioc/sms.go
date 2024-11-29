@@ -17,10 +17,10 @@ func InitSMSService(l logger.LoggerV1) service.Service {
 //import (
 //	"github.com/redis/go-redis/v9"
 //	"time"
-//	"webook/internal/pkg/ratelimit"
-//	"webook/internal/service/sms"
-//	"webook/internal/service/sms/memory"
-//	limitsvc "webook/internal/service/sms/ratelimit"
+//	"webook/bff/pkg/ratelimit"
+//	"webook/bff/service/sms"
+//	"webook/bff/service/sms/memory"
+//	limitsvc "webook/bff/service/sms/ratelimit"
 //)
 //
 //func InitSMSService(cmd redis.Cmdable) sms.Service {

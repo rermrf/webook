@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 	"webook/interactive/repository/dao"
-	"webook/internal/integration/startup"
+	"webook/user/integration/startup"
 )
 
 //go:embed init.sql

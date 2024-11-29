@@ -11,8 +11,8 @@ import (
 	intrv1 "webook/api/proto/gen/intr/v1"
 	"webook/article/domain"
 	service2 "webook/article/service"
+	svcmocks "webook/bff/service/mocks"
 	domain2 "webook/interactive/domain"
-	svcmocks "webook/internal/service/mocks"
 	"webook/ranking/repository"
 	repomocks "webook/ranking/repository/mocks"
 )

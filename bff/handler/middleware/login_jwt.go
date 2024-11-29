@@ -4,7 +4,7 @@ import (
 	"encoding/gob"
 	"net/http"
 	"time"
-	ijwt "webook/internal/handler/jwt"
+	ijwt "webook/bff/handler/jwt"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"

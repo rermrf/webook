@@ -11,7 +11,6 @@ import (
 	gormMysql "gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"testing"
-	"webook/user/repository/dao"
 )
 
 func TestGormUserDao_Insert(t *testing.T) {
@@ -19,7 +18,7 @@ func TestGormUserDao_Insert(t *testing.T) {
 		name    string
 		mock    func(t *testing.T) *sql.DB
 		ctx     context.Context
-		user    dao.User
+		user    User
 		wantErr error
 		wantId  int64
 	}{
@@ -34,7 +33,7 @@ func TestGormUserDao_Insert(t *testing.T) {
 				return mockDB
 			},
 			ctx: context.Background(),
-			user: dao.User{
+			user: User{
 				Email: sql.NullString{
 					String: "test@test.com",
 					Valid:  true,
@@ -57,8 +56,8 @@ func TestGormUserDao_Insert(t *testing.T) {
 				return mockDB
 			},
 			ctx:     context.Background(),
-			user:    dao.User{},
-			wantErr: dao.ErrUserDuplicate,
+			user:    User{},
+			wantErr: ErrUserDuplicate,
 		},
 		{
 			name: "数据库错误",
@@ -70,7 +69,7 @@ func TestGormUserDao_Insert(t *testing.T) {
 				return mockDB
 			},
 			ctx:     context.Background(),
-			user:    dao.User{},
+			user:    User{},
 			wantErr: errors.New("database error"),
 		},
 	}
@@ -90,7 +89,7 @@ func TestGormUserDao_Insert(t *testing.T) {
 				SkipDefaultTransaction: true,
 			})
 			require.NoError(t, err)
-			ud := dao.NewUserDao(db)
+			ud := NewUserDao(db)
 			err = ud.Insert(tc.ctx, tc.user)
 
 			assert.Equal(t, tc.wantErr, err)

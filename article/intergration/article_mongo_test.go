@@ -17,8 +17,8 @@ import (
 	"time"
 	"webook/article/domain"
 	"webook/article/repository/dao"
-	ijwt "webook/internal/handler/jwt"
-	"webook/internal/integration/startup"
+	ijwt "webook/bff/handler/jwt"
+	startup2 "webook/user/integration/startup"
 )
 
 type ArticleMongoTestSuite struct {
@@ -38,13 +38,13 @@ func (s *ArticleMongoTestSuite) SetupSuite() {
 			UserId: 123,
 		})
 	})
-	s.mdb = startup.InitMongoDB()
+	s.mdb = startup2.InitMongoDB()
 	node, err := snowflake.NewNode(1)
 	require.NoError(s.T(), err)
 	s.col = s.mdb.Collection("articles")
 	s.liveCol = s.mdb.Collection("publishedArt")
 	// 使用 wire 注入
-	artHdl := startup.InitArticleHandler(dao.NewMongoArticleDao(s.mdb, node))
+	artHdl := startup2.InitArticleHandler(dao.NewMongoArticleDao(s.mdb, node))
 	artHdl.RegisterRoutes(s.server)
 }
 

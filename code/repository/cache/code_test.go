@@ -7,7 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 	"testing"
-	"webook/internal/repository/cache/redismocks"
+	"webook/bff/repository/cache/redismocks"
+	redismocks2 "webook/hostory/repository/cache/redismocks"
 )
 
 func TestRedisCodeCache_Set(t *testing.T) {
@@ -22,7 +23,7 @@ func TestRedisCodeCache_Set(t *testing.T) {
 		{
 			name: "set 成功",
 			mock: func(ctrl *gomock.Controller) redis.Cmdable {
-				cmd := redismocks.NewMockCmdable(ctrl)
+				cmd := redismocks2.NewMockCmdable(ctrl)
 				res := redis.NewCmd(context.Background())
 				res.SetErr(nil)
 				res.SetVal(int64(0))
@@ -37,7 +38,7 @@ func TestRedisCodeCache_Set(t *testing.T) {
 		{
 			name: "redis错误",
 			mock: func(ctrl *gomock.Controller) redis.Cmdable {
-				cmd := redismocks.NewMockCmdable(ctrl)
+				cmd := redismocks2.NewMockCmdable(ctrl)
 				res := redis.NewCmd(context.Background())
 				res.SetErr(errors.New("redis error"))
 				cmd.EXPECT().Eval(gomock.Any(), luaSetCode, []string{"phone_code:login:15011111111"}, []any{"200011"}).Return(res)
@@ -51,7 +52,7 @@ func TestRedisCodeCache_Set(t *testing.T) {
 		{
 			name: "一分钟内再次发送",
 			mock: func(ctrl *gomock.Controller) redis.Cmdable {
-				cmd := redismocks.NewMockCmdable(ctrl)
+				cmd := redismocks2.NewMockCmdable(ctrl)
 				res := redis.NewCmd(context.Background())
 				res.SetErr(nil)
 				res.SetVal(int64(-1))
@@ -66,7 +67,7 @@ func TestRedisCodeCache_Set(t *testing.T) {
 		{
 			name: "系统错误",
 			mock: func(ctrl *gomock.Controller) redis.Cmdable {
-				cmd := redismocks.NewMockCmdable(ctrl)
+				cmd := redismocks2.NewMockCmdable(ctrl)
 				res := redis.NewCmd(context.Background())
 				res.SetErr(nil)
 				res.SetVal(int64(10))

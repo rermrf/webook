@@ -4,4 +4,4 @@ scrape_configs:
     scrape_timeout: 3s
     static_configs:
       # 这个是访问 wbook 上的采集数据的端口
-      - targets: ["host.docker.internal:8082"]
+      - targets: ["host.docker.bff:8082"]

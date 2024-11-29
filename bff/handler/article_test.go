@@ -13,8 +13,8 @@ import (
 	"testing"
 	"webook/article/domain"
 	"webook/article/service"
-	ijwt "webook/internal/handler/jwt"
-	svcmocks "webook/internal/service/mocks"
+	ijwt "webook/bff/handler/jwt"
+	svcmocks "webook/bff/service/mocks"
 	"webook/pkg/ginx"
 	"webook/pkg/logger"
 )

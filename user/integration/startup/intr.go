@@ -6,8 +6,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	intrv1 "webook/api/proto/gen/intr/v1"
+	"webook/bff/client"
 	"webook/interactive/service"
-	"webook/internal/client"
 )
 
 func InitIntrGRPCClient(svc service.InteractiveService) intrv1.InteractiveServiceClient {

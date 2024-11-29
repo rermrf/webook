@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/IBM/sarama"
 	events2 "webook/article/events"
-	"webook/internal/repository"
+	"webook/hostory/repository"
 	"webook/pkg/logger"
 	"webook/pkg/saramax"
 )

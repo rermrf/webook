@@ -28,7 +28,6 @@ services:
       - "12379:2379"
   mongo:
     image: mongo:8.0.0
-    restart: always
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: example
@@ -74,3 +73,14 @@ services:
       - '8500:8500'
       - '8600:8600'
       - '8600:8600/udp'
+  elasticsearch:
+    image: elasticsearch:8.16.0
+    container_name: elasticsearch
+    environment:
+      # 单节点形态
+      - "discovery.type=single-node"
+      # 禁用 xpack 功能
+      - "xpack.security.enabled=false"
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"

@@ -5,7 +5,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"net/http"
 	"strconv"
-	ijwt "webook/internal/handler/jwt"
+	ijwt "webook/bff/handler/jwt"
 	"webook/pkg/logger"
 )
 

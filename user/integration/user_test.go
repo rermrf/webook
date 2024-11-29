@@ -10,9 +10,9 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
-	"webook/internal/integration/startup"
-	"webook/internal/ioc"
+	"webook/bff/ioc"
 	"webook/pkg/ginx"
+	"webook/user/integration/startup"
 )
 
 // 集成测试

@@ -30,7 +30,7 @@ func NewCronJobBuilder(l logger2.LoggerV1) *CronJobBuilder {
 	return &CronJobBuilder{
 		l:      l,
 		p:      p,
-		tracer: otel.GetTracerProvider().Tracer("webook/internal/job/job_builder.go"),
+		tracer: otel.GetTracerProvider().Tracer("webook/bff/job/job_builder.go"),
 	}
 }
 

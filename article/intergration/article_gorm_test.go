@@ -14,9 +14,9 @@ import (
 	"testing"
 	"webook/article/domain"
 	"webook/article/repository/dao"
-	ijwt "webook/internal/handler/jwt"
-	"webook/internal/integration/startup"
+	ijwt "webook/bff/handler/jwt"
 	"webook/pkg/ginx"
+	startup2 "webook/user/integration/startup"
 )
 
 // ArticleTestSuite 测试套件
@@ -43,9 +43,9 @@ func (s *ArticleTestSuite) SetupSuite() {
 			UserId: 123,
 		})
 	})
-	s.db = startup.InitDB()
+	s.db = startup2.InitDB()
 	// 使用 wire 注入
-	artHdl := startup.InitArticleHandler(dao.NewGormArticleDao(s.db))
+	artHdl := startup2.InitArticleHandler(dao.NewGormArticleDao(s.db))
 	artHdl.RegisterRoutes(s.server)
 }
 
