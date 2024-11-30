@@ -1,0 +1,16 @@
+kafka:
+  addrs:
+    - "localhost:9094"
+
+etcd:
+  addr: "localhost:12379"
+
+es:
+  urls: "https://localhost:9200"
+  sniff: false
+
+grpc:
+  server:
+    port: 8104
+    etcdAddrs:
+      - "localhost:12379"

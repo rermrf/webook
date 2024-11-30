@@ -418,7 +418,8 @@ type Comment struct {
 	ParentComment *Comment `protobuf:"bytes,7,opt,name=parent_comment,json=parentComment,proto3" json:"parent_comment,omitempty"`
 	// 正常来说，你在时间传递上，如果不想用 int64 之类的
 	// 就可以考虑使用这个 Timestamp
-	//  repeated Comment children = 8;
+	//
+	//	repeated Comment children = 8;
 	Ctime *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=ctime,proto3" json:"ctime,omitempty"`
 	Utime *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=utime,proto3" json:"utime,omitempty"`
 }
