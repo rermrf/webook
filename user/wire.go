@@ -25,6 +25,8 @@ var thirdPartySet = wire.NewSet(
 	ioc.InitDB,
 	ioc.InitLogger,
 	ioc.InitRedis,
+	ioc.InitKafka,
+	ioc.InitProducer,
 )
 
 func InitUserGRPCServer() *grpcx.Server {

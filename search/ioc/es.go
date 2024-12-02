@@ -22,6 +22,7 @@ func InitESClient() *elastic.Client {
 	opts := []elastic.ClientOptionFunc{
 		elastic.SetURL(cfg.Url),
 		elastic.SetHealthcheckTimeoutStartup(timeout),
+		elastic.SetSniff(cfg.Sniff),
 	}
 	client, err := elastic.NewClient(opts...)
 	if err != nil {

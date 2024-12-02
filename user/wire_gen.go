@@ -26,7 +26,9 @@ func InitUserGRPCServer() *grpcx.Server {
 	cmdable := ioc.InitRedis()
 	userCache := cache.NewUserCache(cmdable)
 	userRepository := repository.NewCachedUserRepository(userDao, userCache)
-	userService := service.NewUserService(userRepository, loggerV1)
+	client := ioc.InitKafka()
+	producer := ioc.InitProducer(client)
+	userService := service.NewUserService(userRepository, loggerV1, producer)
 	userGRPCServer := grpc.NewUserGRPCServer(userService)
 	server := ioc.InitGRPCServer(userGRPCServer, loggerV1)
 	return server
@@ -36,4 +38,4 @@ func InitUserGRPCServer() *grpcx.Server {
 
 var userSet = wire.NewSet(grpc.NewUserGRPCServer, service.NewUserService, repository.NewCachedUserRepository, dao.NewUserDao, cache.NewUserCache)
 
-var thirdPartySet = wire.NewSet(ioc.InitDB, ioc.InitLogger, ioc.InitRedis)
+var thirdPartySet = wire.NewSet(ioc.InitDB, ioc.InitLogger, ioc.InitRedis, ioc.InitKafka, ioc.InitProducer)

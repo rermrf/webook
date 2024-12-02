@@ -6,7 +6,7 @@ etcd:
   addr: "localhost:12379"
 
 es:
-  urls: "https://localhost:9200"
+  url: "http://localhost:9200/"
   sniff: false
 
 grpc:

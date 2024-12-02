@@ -5,9 +5,15 @@ option go_package="search/v1;searchV1";
 
 // SyncService 在体量大的情况下，这个接口可以考虑进一步细分
 // 也就是细分为 UserSyncService 和 ArticleSyncService
+// 同步接口
+// 读写分离
 service SyncService {
   rpc InputUser (InputUserRequest) returns (InputUserResponse);
   rpc InputArticle (InputArticleRequest) returns (InputArticleResponse);
+  // 同步评论数据
+  //  rpc InputComment()
+
+  // 能用，但是不能提供业务定制化功能
   rpc InputAny (InputAnyRequest) returns (InputAnyResponse);
 }
 

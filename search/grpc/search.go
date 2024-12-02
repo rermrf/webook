@@ -16,7 +16,7 @@ func NewSearchServiceServer(svc service.SearchService) *SearchServiceServer {
 	return &SearchServiceServer{svc: svc}
 }
 
-func (s *SearchServiceServer) Register(server *grpc.Server) {
+func (s *SearchServiceServer) Register(server grpc.ServiceRegistrar) {
 	searchv1.RegisterSearchServiceServer(server, s)
 }
 

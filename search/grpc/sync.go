@@ -10,15 +10,15 @@ import (
 
 type SyncServiceServer struct {
 	syncSvc service.SyncService
-	searchv1.UnimplementedSearchServiceServer
+	searchv1.UnimplementedSyncServiceServer
 }
 
 func NewSyncServiceServer(syncSvc service.SyncService) *SyncServiceServer {
 	return &SyncServiceServer{syncSvc: syncSvc}
 }
 
-func (s *SyncServiceServer) Register(server *grpc.Server) {
-	searchv1.RegisterSearchServiceServer(server, s)
+func (s *SyncServiceServer) Register(server grpc.ServiceRegistrar) {
+	searchv1.RegisterSyncServiceServer(server, s)
 }
 
 func (s *SyncServiceServer) InputUser(ctx context.Context, request *searchv1.InputUserRequest) (*searchv1.InputUserResponse, error) {

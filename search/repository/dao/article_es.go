@@ -22,6 +22,8 @@ func NewArticleESDao(client *elastic.Client) ArticleDao {
 func (a *ArticleESDao) InputArticle(ctx context.Context, article Article) error {
 	_, err := a.client.Index().
 		Index(ArticleIndexName).
+		// 为社么指定 ID？
+		// 确保后面文章更新的时候，我们这里产生类似的两条数据，而是更新了数据
 		Id(strconv.FormatInt(article.Id, 10)).
 		BodyJson(article).Do(ctx)
 	return err

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"webook/pkg/logger"
 	"webook/user/domain"
+	"webook/user/events"
 	"webook/user/repository"
 
 	"golang.org/x/crypto/bcrypt"
@@ -25,14 +26,16 @@ type UserService interface {
 }
 
 type UserServiceImpl struct {
-	repo repository.UserRepository
-	l    logger.LoggerV1
+	repo     repository.UserRepository
+	l        logger.LoggerV1
+	producer events.Producer
 }
 
-func NewUserService(repo repository.UserRepository, l logger.LoggerV1) UserService {
+func NewUserService(repo repository.UserRepository, l logger.LoggerV1, producer events.Producer) UserService {
 	return &UserServiceImpl{
-		repo: repo,
-		l:    l,
+		repo:     repo,
+		l:        l,
+		producer: producer,
 	}
 }
 
@@ -52,7 +55,17 @@ func (svc *UserServiceImpl) SignUp(ctx context.Context, u domain.User) error {
 	}
 	u.Password = string(hash)
 	// 然后就是，存起来
-	return svc.repo.Create(ctx, u)
+	err = svc.repo.Create(ctx, u)
+	if err == nil {
+		err := svc.producer.ProduceSyncEvent(ctx, events.SyncUserEvent{
+			Id:       u.Id,
+			Email:    u.Email,
+			Phone:    u.Phone,
+			Nickname: u.Nickname,
+		})
+		svc.l.Error("用户注册数据写入到 kafka 失败", logger.Error(err))
+	}
+	return err
 }
 
 func (svc *UserServiceImpl) Login(ctx context.Context, email string, password string) (domain.User, error) {

@@ -141,7 +141,8 @@ func (s *articleService) Publish(ctx context.Context, art domain.Article) (int64
 	// 制作库
 	//id, err := s.repo.Create(ctx, art)
 	//// 线上库
-	return s.repo.Sync(ctx, art)
+	id, err := s.repo.Sync(ctx, art)
+	return id, err
 }
 
 func (s *articleService) PublishV1(ctx context.Context, article domain.Article) (int64, error) {
