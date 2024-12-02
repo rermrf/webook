@@ -26,7 +26,7 @@ func (u *UserESDao) InputUser(ctx context.Context, user User) error {
 func (u *UserESDao) Search(ctx context.Context, keywords []string) ([]User, error) {
 	// 假定上面传入的 keywords 是经过处理的
 	queryString := strings.Join(keywords, " ")
-	query := elastic.NewBoolQuery().Must(elastic.NewMatchQuery("username", queryString))
+	query := elastic.NewBoolQuery().Must(elastic.NewMatchQuery("nickname", queryString))
 	resp, err := u.client.Search(UserIndexName).Query(query).Do(ctx)
 	if err != nil {
 		return nil, err
