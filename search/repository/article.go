@@ -40,7 +40,7 @@ func (a *articleRepository) SearchArticle(ctx context.Context, uid int64, keywor
 			Title:   art.Title,
 			Status:  art.Status,
 			Content: art.Content,
-			//Tags: art.Tags,
+			Tags:    art.Tags,
 		})
 	}
 	return res, nil

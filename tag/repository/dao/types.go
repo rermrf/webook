@@ -15,7 +15,7 @@ type Tag struct {
 	Id int64 `gorm:"primaryKey,autoIncrement"`
 	// 联合唯一索引 <uid, name>
 	Name string `gorm:"type:varchar(4096)"`
-	// 你有一个经典的场景，查出一个人有什么标签
+	// 你有一个经典的场景，查出一个人有什么标签，所以需要在 uid 上创建一个索引
 	Uid   int64 `gorm:"index"`
 	Ctime int64
 	Utime int64

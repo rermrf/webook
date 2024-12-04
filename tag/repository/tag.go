@@ -41,6 +41,7 @@ func (r *CachedTagRepository) BindTagToBiz(ctx context.Context, uid int64, biz s
 			Uid:   uid,
 		})
 	}
+	// 覆盖式地打标签，新的标签完成覆盖老的标签
 	return r.dao.CreateTagBiz(ctx, tagBizs)
 }
 
@@ -49,6 +50,7 @@ func (r *CachedTagRepository) GetTags(ctx context.Context, uid int64) ([]domain.
 	if err == nil {
 		return res, nil
 	}
+	// 下面也是慢路径，你同样可以降级的时候不执行
 	tags, err := r.dao.GetTagsByUid(ctx, uid)
 	if err != nil {
 		return nil, err
@@ -90,7 +92,7 @@ func (r *CachedTagRepository) GetBizTags(ctx context.Context, uid int64, biz str
 }
 
 // PreloadUserTags 在 toB 的场景下，你可以提前预加载缓存
-func (repo *CachedTagRepository) PreloadUserTags(ctx context.Context) error {
+func (r *CachedTagRepository) PreloadUserTags(ctx context.Context) error {
 	// 我们要存的是 uid => 我的所有标签 [{tag1}, {}]
 	// 你这边分批次预加载
 	// 数据里面取出来，调用append
@@ -98,17 +100,25 @@ func (repo *CachedTagRepository) PreloadUserTags(ctx context.Context) error {
 	batch := 100
 	for {
 		dbCtx, cancel := context.WithTimeout(ctx, time.Second)
-		tags, err := repo.dao.GetTags(dbCtx, offset, batch)
+		// 在这里还有一点点优化的手段，就是 GetTags 的时候，order by uid
+		tags, err := r.dao.GetTags(dbCtx, offset, batch)
 		cancel()
 		if err != nil {
 			// 你也可以 continue
+			r.l.Error("预加载缓存获取 Tag 失败", logger.Error(err))
 			return err
 		}
+
+		// 按照 uid 进行分组，一个 uid 执行一次 append
+
+		// 这些 tag 是归属不同的用户
 		for _, tag := range tags {
 			rctx, cancel := context.WithTimeout(ctx, time.Second)
-			err = repo.cache.Append(rctx, tag.Uid, repo.toDomain(tag))
+			err = r.cache.Append(rctx, tag.Uid, r.toDomain(tag))
 			cancel()
 			if err != nil {
+				// 可以终端也可以继续
+				r.l.Error("预加载缓存失败", logger.Error(err))
 				continue
 			}
 		}

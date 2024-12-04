@@ -26,8 +26,10 @@ func (p *SaramaSyncProducer) ProduceSyncEvent(ctx context.Context, tags BizTags)
 	}
 	evt := SyncDataEvent{
 		IndexName: "tags_index",
-		DocId:     fmt.Sprintf("%d_%s_%d", tags.Uid, tags.Biz, tags.BizId),
-		Data:      string(val),
+		// 构成一个唯一的 doc id
+		// 要确保后面打了新标签的时候，搜索那边也会有对应的修改
+		DocId: fmt.Sprintf("%d_%s_%d", tags.Uid, tags.Biz, tags.BizId),
+		Data:  string(val),
 	}
 	val, err = json.Marshal(evt)
 	if err != nil {

@@ -7,7 +7,6 @@ import (
 	"webook/pkg/grpcx"
 	"webook/tag/grpc"
 	"webook/tag/ioc"
-	"webook/tag/repository"
 	"webook/tag/repository/cache"
 	"webook/tag/repository/dao"
 	"webook/tag/service"
@@ -28,7 +27,7 @@ func InitTagGRPCServer() *grpcx.Server {
 		ioc.InitProducer,
 		grpc.NewTagServiceServer,
 		service.NewTagService,
-		repository.NewCachedTagRepository,
+		ioc.InitRepository,
 		dao.NewGORMTagDao,
 		cache.NewRedisTagCache,
 	)

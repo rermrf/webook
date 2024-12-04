@@ -11,4 +11,5 @@ type TagRepository interface {
 	GetTags(ctx context.Context, uid int64) ([]domain.Tag, error)
 	GetTagsById(ctx context.Context, ids []int64) ([]domain.Tag, error)
 	GetBizTags(ctx context.Context, uid int64, biz string, bizId int64) ([]domain.Tag, error)
+	PreloadUserTags(ctx context.Context) error
 }

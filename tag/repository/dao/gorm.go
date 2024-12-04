@@ -33,6 +33,7 @@ func (d *GORMTagDao) CreateTagBiz(ctx context.Context, tagBiz []TagBiz) error {
 		tagBiz.Utime = now
 	}
 	return d.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 覆盖式的操作
 		first := tagBiz[0]
 		err := tx.Model(&TagBiz{}).
 			Delete("uid = ? AND biz = ? AND biz_id = ?", first.Uid, first.BizId, first.BizId).Error

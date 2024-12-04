@@ -33,6 +33,7 @@ message AttachTagsResponse {
 }
 
 message GetTagsRequest {
+  // 按照用户的 Id 来查
   int64 uid = 1;
 }
 
@@ -53,5 +54,7 @@ message GetBizTagsResponse {
 message Tag {
   int64 id = 1;
   string name = 2;
+  // 谁的标签，如果是全局标签（或者系统标签），这个字段是没有的
+  // 层级标签，你可能需要一个 oid 的东西，比如说 oid = 1 代表 IT 技术部门
   int64 uid = 3;
 }
