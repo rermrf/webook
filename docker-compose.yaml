@@ -74,7 +74,7 @@ services:
       - '8600:8600'
       - '8600:8600/udp'
   elasticsearch:
-    image: elasticsearch:8.16.0
+    image: elasticsearch:8.15.5
     container_name: elasticsearch
     environment:
       # 单节点形态
@@ -84,3 +84,22 @@ services:
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     ports:
       - "9200:9200"
+  logstash:
+    image: elastic/logstash:8.15.5
+    container_name: logstash
+    volumes:
+      - ./config/logstash:/usr/share/logstash/pipeline
+#      - ./logstash-logs:/usr/share/logstash/logs
+#      - ./app.log:/usr/share/logstash/app.log
+    environment:
+      - "xpack.monitoring.elasticsearch.hosts=http://elasticsearch:9200"
+    ports:
+      - "5044:5044"
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.15.5
+    container_name: kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - i18n.locale=zh-CN
+    ports:
+      - "5601:5601"
