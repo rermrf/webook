@@ -15,14 +15,7 @@ import (
 
 // Validator T 必须实现了 Entity 接口
 type Validator[T migrator.Entity] struct {
-	// 基准
-	base *gorm.DB
-	// 目标
-	target *gorm.DB
-	l      logger.LoggerV1
-
-	p         events.Producer
-	direction string
+	baseValidator
 	batchSize int
 
 	//highLoad *atomic.Value
@@ -44,11 +37,13 @@ func NewValidator[T migrator.Entity](base *gorm.DB, target *gorm.DB, l logger.Lo
 	//	// 也可以结合本地的CPU和内存判定
 	//}()
 	res := &Validator[T]{
-		base:      base,
-		target:    target,
-		l:         l,
-		p:         p,
-		direction: direction,
+		baseValidator: baseValidator{
+			base:      base,
+			target:    target,
+			l:         l,
+			p:         p,
+			direction: direction,
+		},
 		batchSize: 100,
 		//highLoad:  highLoad,
 	}
@@ -290,21 +285,5 @@ func (v *Validator[T]) validateTargetToBase(ctx context.Context) error {
 func (v *Validator[T]) notifyBaseMissing(ctx context.Context, ids []int64) {
 	for _, id := range ids {
 		v.notify(ctx, id, events.InconsistentEventTypeBaseMissing)
-	}
-}
-
-func (v *Validator[T]) notify(ctx context.Context, id int64, typ string) {
-	ctx, cancel := context.WithTimeout(ctx, time.Second)
-	err := v.p.ProduceInconsistentEvent(ctx, events.InconsistentEvent{
-		Id:        id,
-		Direction: v.direction,
-		Type:      typ,
-	})
-	cancel()
-	if err != nil {
-		// 发现数据不一致并且发送失败
-		// 可以重试，但是重试也会失败，记日志，告警，手动修复
-		// 可以直接忽略，下一轮修复和校验又会找出来
-		v.l.Error("发送数据不一致的消息失败", logger.Error(err))
 	}
 }

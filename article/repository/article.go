@@ -21,6 +21,10 @@ type ArticleRepository interface {
 	GetPublishedById(ctx context.Context, id int64) (domain.Article, error)
 	ListPub(ctx context.Context, startTime time.Time, offset int, limit int) ([]domain.Article, error)
 	//FindById(ctx context.Context, id int64) domain.Article
+
+	// SetPubCache 加更新缓的方法，强限制了所有的实现都必须有缓存
+	//SetPubCache(ctx context.Context, art domain.Article) error
+
 }
 
 type CachedArticleRepository struct {
@@ -84,7 +88,7 @@ func (r *CachedArticleRepository) GetById(ctx context.Context, id int64) (domain
 	if err != nil {
 		return domain.Article{}, err
 	}
-	res = r.toDomain(art)
+	res = r.ToDomain(art)
 	go func() {
 		er := r.cache.Set(ctx, id, res)
 		if er != nil {
@@ -196,7 +200,11 @@ func (r *CachedArticleRepository) preCache(ctx context.Context, data []domain.Ar
 	}
 }
 
-func (r *CachedArticleRepository) toDomain(art dao.Article) domain.Article {
+func (r *CachedArticleRepository) Cache() cache.ArticleCache {
+	return r.cache
+}
+
+func (r *CachedArticleRepository) ToDomain(art dao.Article) domain.Article {
 	return domain.Article{
 		Id:      art.Id,
 		Title:   art.Title,
@@ -213,7 +221,7 @@ func (r *CachedArticleRepository) toDomain(art dao.Article) domain.Article {
 func (r *CachedArticleRepository) toDomains(arts []dao.Article) []domain.Article {
 	res := make([]domain.Article, len(arts))
 	for k, v := range arts {
-		res[k] = r.toDomain(v)
+		res[k] = r.ToDomain(v)
 	}
 	return res
 }

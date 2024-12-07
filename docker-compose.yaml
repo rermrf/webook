@@ -15,7 +15,7 @@ services:
       - ./script/mysql/:/docker-entrypoint-initdb.d/
     ports:
       # 设置端口映射
-      - "13306:3306"
+      - "3306:3306"
   redis:
     image: redis:7.4.0
     # restart: always

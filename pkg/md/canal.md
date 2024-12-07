@@ -69,3 +69,113 @@ canal.admin.port = 11110
 canal.admin.user = admin
 canal.
 ```
+
+
+# canal 使用案例
+
+
+## 案例一：借助 Canal 来更新缓存
+正常我们在使用缓存的时候，都会面临更新缓存和更新 DB 的并发问题。
+
+那么这里我们可以考虑借助 Canal 来更新缓存。
+
+但是在更新缓存的时候，有两种做法：
+- **直接用 Canal 里面的数据来更新**。这种做法的关键点，就是要配置好 Canal 的消息，确保同一条数据的 Binlog 一定会在同一个 Kafka 分区上。
+- **Canal 只被用作一个信号器，数据从数据库里面加载，再回写**。这种机制性能比较差，对数据库压力比较大。
+
+
+### 消息顺序问题
+走第一条路，那么就需要保证消息顺序，在 Canal 的文档里面提供了控制 topic 和分区的配置。
+
+```properties
+# mq config
+canal.mq.topic=webook_binlog
+# dynamic topic route by schema or table regex
+#canal.mq.dynamicTopic=*\\..*
+#canal.mq.partition=0
+# hash partition config
+#canal.mq.enableDynamicQueuePartition=false
+canal.mq.partitionsNum=3
+#canal.mq.dynamicTopicPartitionNum=test.*:4,mycanal:6
+# 按照 id 来哈希
+canal.mq.partitionHash=.*\\..*:id
+```
+
+### 表和 topic 的关系
+在大厂里面，或者说在高并发大数据的应用里面，如果所有的 MYSQL 的表都在同一个 topic，那么就容易出现：
+- **消息积压。**
+- **Kafka 集群性能瓶颈。**
+
+所以在大规模应用里面，你要考虑：
+- 使用不同的集群。
+- 使用不同的 topic。例如说比较常见的就是不同的表使用不同的 topic。
+
+
+### 代码实现：
+这里有一个比较关键的点：**利用 Binlog 来更新缓存，是缓存策略，而不是业务逻辑家**。
+
+所以一般不会通过 Service 来更新，而是绕开 Service，操作 Repository。
+
+在部分情况下，比如说 Repository 本身也没什么逻辑，那么可以直接操作 Cache。
+
+而且，这是具体缓存策略，所以并不适合在 Repository 上定义相关的接口。
+
+
+```go
+type MysqlBinlogConsumer struct {
+	client sarama.Client
+	l      logger.LoggerV1
+	//耦合到实现，而不是耦合到接口，除非你把操作缓存的方法，也定义到 repository 接口上
+	repo *repository.CachedArticleRepository
+}
+
+func (m *MysqlBinlogConsumer) Start() error {
+	cg, err := sarama.NewConsumerGroupFromClient("public_article_cache", m.client)
+	if err != nil {
+		return err
+	}
+	go func() {
+		// 这里逼不得已和 DAO 耦合在一起
+		err := cg.Consume(context.Background(), []string{"webook_binlog"}, saramax.NewHandler[canalx.Message[dao.PublishedArticle]](m.l, m.Consume))
+		if err != nil {
+			m.l.Error("退出了消费循环", logger.Error(err))
+		}
+	}()
+	return err
+}
+
+func (m *MysqlBinlogConsumer) Consume(msg *sarama.ConsumerMessage, val canalx.Message[dao.PublishedArticle]) error {
+	// 别的表的 binlog，不需要关心
+	// 可以考虑不同的表用不同的 topic ，那么这里就不需要判定了
+	if val.Table != "published_articles" {
+		return nil
+	}
+
+	// 更新缓存
+	// 增删改的消息，实际上在 publish article 里面是没有删的消息
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	for _, data := range val.Data {
+		var err error
+		switch data.Status {
+		case domain.ArticleStatusPublished.ToUint8():
+			// 发表要写入
+			err = m.repo.Cache().SetPub(ctx, m.repo.ToDomain(dao.Article(data)))
+		case domain.ArticleStatusPrivate.ToUint8():
+			err = m.repo.Cache().DelPub(ctx, data.Id)
+		}
+		if err != nil {
+			// 记录日志就行
+			m.l.Error("使用canal通知缓存修改失败", logger.Error(err))
+		}
+	}
+	return nil
+}
+
+```
+
+
+## 案例二：借助 Canal 完成数据校验
+在数据迁移那个部分，我们提到可以使用 Canal 来完成增量的数据校验与修复。
+
+业务方只需要考虑创建出来消费者，调用这个方法就行。

@@ -19,6 +19,7 @@ type ArticleCache interface {
 
 	SetPub(ctx context.Context, art domain.Article) error
 	GetPub(ctx context.Context, uid int64) (domain.Article, error)
+	DelPub(ctx context.Context, id int64) error
 }
 
 type RedisArticleCache struct {
@@ -45,6 +46,10 @@ func (c *RedisArticleCache) GetPub(ctx context.Context, uid int64) (domain.Artic
 	var res domain.Article
 	err = json.Unmarshal(val, &res)
 	return res, err
+}
+
+func (c *RedisArticleCache) DelPub(ctx context.Context, id int64) error {
+	return c.cmd.Del(ctx, c.pubKey(id)).Err()
 }
 
 func (c *RedisArticleCache) Set(ctx context.Context, id int64, art domain.Article) error {
