@@ -30,9 +30,12 @@ const (
 //
 // SyncService 在体量大的情况下，这个接口可以考虑进一步细分
 // 也就是细分为 UserSyncService 和 ArticleSyncService
+// 同步接口
+// 读写分离
 type SyncServiceClient interface {
 	InputUser(ctx context.Context, in *InputUserRequest, opts ...grpc.CallOption) (*InputUserResponse, error)
 	InputArticle(ctx context.Context, in *InputArticleRequest, opts ...grpc.CallOption) (*InputArticleResponse, error)
+	// 能用，但是不能提供业务定制化功能
 	InputAny(ctx context.Context, in *InputAnyRequest, opts ...grpc.CallOption) (*InputAnyResponse, error)
 }
 
@@ -80,9 +83,12 @@ func (c *syncServiceClient) InputAny(ctx context.Context, in *InputAnyRequest, o
 //
 // SyncService 在体量大的情况下，这个接口可以考虑进一步细分
 // 也就是细分为 UserSyncService 和 ArticleSyncService
+// 同步接口
+// 读写分离
 type SyncServiceServer interface {
 	InputUser(context.Context, *InputUserRequest) (*InputUserResponse, error)
 	InputArticle(context.Context, *InputArticleRequest) (*InputArticleResponse, error)
+	// 能用，但是不能提供业务定制化功能
 	InputAny(context.Context, *InputAnyRequest) (*InputAnyResponse, error)
 	mustEmbedUnimplementedSyncServiceServer()
 }

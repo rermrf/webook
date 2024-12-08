@@ -228,6 +228,7 @@ type GetTagsRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// 按照用户的 Id 来查
 	Uid int64 `protobuf:"varint,1,opt,name=uid,proto3" json:"uid,omitempty"`
 }
 
@@ -426,7 +427,9 @@ type Tag struct {
 
 	Id   int64  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Uid  int64  `protobuf:"varint,3,opt,name=uid,proto3" json:"uid,omitempty"`
+	// 谁的标签，如果是全局标签（或者系统标签），这个字段是没有的
+	// 层级标签，你可能需要一个 oid 的东西，比如说 oid = 1 代表 IT 技术部门
+	Uid int64 `protobuf:"varint,3,opt,name=uid,proto3" json:"uid,omitempty"`
 }
 
 func (x *Tag) Reset() {
