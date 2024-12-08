@@ -4,11 +4,14 @@ import (
 	"context"
 	"github.com/IBM/sarama"
 	"go.uber.org/atomic"
+	"gorm.io/gorm"
 	"time"
 	"webook/pkg/canalx"
 	"webook/pkg/logger"
 	"webook/pkg/migrator"
+	"webook/pkg/migrator/events"
 	"webook/pkg/migrator/validator"
+	"webook/pkg/saramax"
 )
 
 type MysqlBinlogConsumer[T migrator.Entity] struct {
@@ -24,22 +27,34 @@ func NewMysqlBinlogConsumer[T migrator.Entity](
 	client sarama.Client,
 	l logger.LoggerV1,
 	table string,
-	srcToDst *validator.CanalIncrValidator[T],
-	dtsToSrc *validator.CanalIncrValidator[T],
-	dstFirst *atomic.Bool) *MysqlBinlogConsumer[T] {
+	src *gorm.DB,
+	dst *gorm.DB,
+	p events.Producer,
+) *MysqlBinlogConsumer[T] {
+	srcToDst := validator.NewCanalIncrValidator[T](src, dst, l, p, "SRC")
+	dstToSrc := validator.NewCanalIncrValidator[T](dst, src, l, p, "DST")
 	return &MysqlBinlogConsumer[T]{
 		client:   client,
 		l:        l,
 		table:    table,
 		srcToDst: srcToDst,
-		dtsToSrc: dtsToSrc,
-		dstFirst: dstFirst,
+		dtsToSrc: dstToSrc,
+		dstFirst: atomic.NewBool(false),
 	}
 }
 
 func (m *MysqlBinlogConsumer[T]) Start() error {
-	//TODO implement me
-	panic("implement me")
+	cg, err := sarama.NewConsumerGroupFromClient("migrator_incr", m.client)
+	if err != nil {
+		return err
+	}
+	go func() {
+		err := cg.Consume(context.Background(), []string{"webook_binlog"}, saramax.NewHandler[canalx.Message[T]](m.l, m.Consume))
+		if err != nil {
+			m.l.Error("退出了消费循环", logger.Error(err))
+		}
+	}()
+	return err
 }
 
 func (m *MysqlBinlogConsumer[T]) Consume(msg *sarama.ConsumerMessage, val canalx.Message[T]) error {

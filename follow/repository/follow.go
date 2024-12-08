@@ -84,6 +84,10 @@ func (c *CachedFollowRepository) genFollowRelationList(list []dao.FollowRelation
 	return res
 }
 
+func (c *CachedFollowRepository) Cache() cache.FollowCache {
+	return c.cache
+}
+
 func (c *CachedFollowRepository) toDomain(v dao.FollowRelation) domain.FollowRelation {
 	return domain.FollowRelation{
 		Followee: v.Followee,
