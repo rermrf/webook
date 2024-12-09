@@ -68,12 +68,17 @@ func (f *feedService) GetFeedEventList(ctx context.Context, uid, timestamp, limi
 }
 
 // GetFeedEventListV1 不依赖 Handler 的直接查询
+// Service 层面上的统一实现
+// 基本思路就是，收件箱查一下，发件箱查一下，合并结果（排序，分页），返回结果。
+// 按照时间戳倒叙排序
 func (f *feedService) GetFeedEventListV1(ctx context.Context, uid, timestamp, limit int64) ([]domain.FeedEvent, error) {
 	var eg errgroup.Group
 	var mu sync.RWMutex
 	res := make([]domain.FeedEvent, 0, limit*2)
 	eg.Go(func() error {
+		// 获得你关注所有人的 id
 		resp, rerr := f.followClient.GetFollowee(ctx, &followv1.GetFolloweeRequest{
+			// 你的 ID，为了获取你关注的所有人
 			Follower: uid,
 			Offset:   0,
 			Limit:    200,
