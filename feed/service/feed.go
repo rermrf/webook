@@ -18,6 +18,10 @@ type feedService struct {
 	followClient followv1.FollowServiceClient
 }
 
+func NewFeedService(repo repository.FeedEventRepository, handlerMap map[string]Handler) FeedService {
+	return &feedService{repo: repo, handlerMap: handlerMap}
+}
+
 func (f *feedService) registerService(typ string, handler Handler) {
 	f.handlerMap[typ] = handler
 }

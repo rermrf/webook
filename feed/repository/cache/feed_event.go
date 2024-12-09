@@ -20,7 +20,7 @@ type feedEventCache struct {
 	client redis.Cmdable
 }
 
-func newFeedEventCache(client redis.Cmdable) FeedEventCache {
+func NewFeedEventCache(client redis.Cmdable) FeedEventCache {
 	return &feedEventCache{client: client}
 }
 

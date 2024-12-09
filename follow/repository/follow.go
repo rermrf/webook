@@ -27,6 +27,14 @@ func (c *CachedFollowRepository) GetFollowee(ctx context.Context, follower, offs
 	return c.genFollowRelationList(followerList), nil
 }
 
+func (c *CachedFollowRepository) GetFollower(ctx context.Context, followee int64) ([]domain.FollowRelation, error) {
+	followerList, err := c.dao.FollowerRelationList(ctx, followee)
+	if err != nil {
+		return nil, err
+	}
+	return c.genFollowRelationList(followerList), nil
+}
+
 func (c *CachedFollowRepository) FollowInfo(ctx context.Context, follower, followee int64) (domain.FollowRelation, error) {
 	// follow:123:234 => 标签信息，分组信息
 	fr, err := c.dao.FollowRelationDetail(ctx, follower, followee)

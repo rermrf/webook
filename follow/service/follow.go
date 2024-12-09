@@ -32,3 +32,11 @@ func (f *followService) Follow(ctx context.Context, follower, followee int64) er
 func (f *followService) CancelFollow(ctx context.Context, follower, followee int64) error {
 	return f.repo.InactiveFollowRelation(ctx, follower, followee)
 }
+
+func (f *followService) GetFollower(ctx context.Context, followee int64) ([]domain.FollowRelation, error) {
+	return f.repo.GetFollower(ctx, followee)
+}
+
+func (f *followService) GetFollowStatic(ctx context.Context, followee int64) (domain.FollowStatics, error) {
+	return f.repo.GetFollowStatics(ctx, followee)
+}

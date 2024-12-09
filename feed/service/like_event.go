@@ -16,6 +16,10 @@ type LikeEventHandler struct {
 	repo repository.FeedEventRepository
 }
 
+func NewLikeEventHandler(repo repository.FeedEventRepository) *LikeEventHandler {
+	return &LikeEventHandler{repo: repo}
+}
+
 // CreateFeedEvent 中的 ext 里面至少需要三个 id
 // liked int64：被点赞的人
 // liekr int64：点赞的人

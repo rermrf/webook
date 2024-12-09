@@ -48,6 +48,11 @@ func (t *TableStoreFollowDao) FollowRelationList(ctx context.Context, follower, 
 	return followRelations, nil
 }
 
+func (t *TableStoreFollowDao) FollowerRelationList(ctx context.Context, followee int64) ([]FollowRelation, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (t *TableStoreFollowDao) FollowRelationDetail(ctx context.Context, follower int64, followee int64) (FollowRelation, error) {
 	//TODO implement me
 	panic("implement me")

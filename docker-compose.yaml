@@ -15,7 +15,7 @@ services:
       - ./script/mysql/:/docker-entrypoint-initdb.d/
     ports:
       # 设置端口映射
-      - "3306:3306"
+      - "13306:3306"
   redis:
     image: redis:7.4.0
     # restart: always
@@ -92,25 +92,25 @@ services:
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     ports:
       - "9200:9200"
-  logstash:
-    image: elastic/logstash:8.15.5
-    container_name: logstash
-    volumes:
-      - ./config/logstash:/usr/share/logstash/pipeline
-#      - ./logstash-logs:/usr/share/logstash/logs
-#      - ./app.log:/usr/share/logstash/app.log
-    environment:
-      - "xpack.monitoring.elasticsearch.hosts=http://elasticsearch:9200"
-    ports:
-      - "5044:5044"
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.15.5
-    container_name: kibana
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-      - i18n.locale=zh-CN
-    ports:
-      - "5601:5601"
+#  logstash:
+#    image: elastic/logstash:8.15.5
+#    container_name: logstash
+#    volumes:
+#      - ./config/logstash:/usr/share/logstash/pipeline
+##      - ./logstash-logs:/usr/share/logstash/logs
+##      - ./app.log:/usr/share/logstash/app.log
+#    environment:
+#      - "xpack.monitoring.elasticsearch.hosts=http://elasticsearch:9200"
+#    ports:
+#      - "5044:5044"
+#  kibana:
+#    image: docker.elastic.co/kibana/kibana:8.15.5
+#    container_name: kibana
+#    environment:
+#      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+#      - i18n.locale=zh-CN
+#    ports:
+#      - "5601:5601"
   canal:
     image: canal/canal-server
     environment:

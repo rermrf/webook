@@ -11,6 +11,7 @@ type FollowDao interface {
 	UpdateStatus(ctx context.Context, follower int64, followee int64, status uint8) error
 	CntFollower(ctx context.Context, uid int64) (int64, error)
 	CntFollowee(ctx context.Context, uid int64) (int64, error)
+	FollowerRelationList(ctx context.Context, followee int64) ([]FollowRelation, error)
 }
 
 // FollowRelation 这个是类似于点赞的表设计

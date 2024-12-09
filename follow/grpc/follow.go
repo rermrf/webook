@@ -51,6 +51,25 @@ func (f *FollowServiceServer) FollowInfo(ctx context.Context, request *followv1.
 	return &followv1.FollowInfoResponse{FollowRelation: f.convertToView(res)}, nil
 }
 
+func (f *FollowServiceServer) GetFollower(ctx context.Context, request *followv1.GetFollowerRequest) (*followv1.GetFollowerResponse, error) {
+	list, err := f.svc.GetFollower(ctx, request.Followee)
+	res := make([]*followv1.FollowRelation, 0, len(list))
+	for _, v := range list {
+		res = append(res, f.convertToView(v))
+	}
+	return &followv1.GetFollowerResponse{FollowRelations: res}, err
+}
+
+func (f *FollowServiceServer) GetFollowStatic(ctx context.Context, request *followv1.GetFollowStaticRequest) (*followv1.GetFollowStaticResponse, error) {
+	res, err := f.svc.GetFollowStatic(ctx, request.Followee)
+	return &followv1.GetFollowStaticResponse{
+		FollowStatic: &followv1.FollowStatic{
+			Followers: res.Followers,
+			Followees: res.Followees,
+		},
+	}, err
+}
+
 func (f *FollowServiceServer) convertToView(src domain.FollowRelation) *followv1.FollowRelation {
 	return &followv1.FollowRelation{
 		Follower: src.Follower,

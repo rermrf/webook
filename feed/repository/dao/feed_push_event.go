@@ -25,21 +25,33 @@ type feedPushEventDao struct {
 	db *gorm.DB
 }
 
-func newFeedPushEventDao(db *gorm.DB) FeedPushEventDao {
+func NewFeedPushEventDao(db *gorm.DB) FeedPushEventDao {
 	return &feedPushEventDao{db: db}
 }
 
-func (f feedPushEventDao) CreatePushEvents(ctx context.Context, events []FeedPushEvent) error {
-	//TODO implement me
-	panic("implement me")
+func (f *feedPushEventDao) CreatePushEvents(ctx context.Context, events []FeedPushEvent) error {
+	return f.db.WithContext(ctx).Create(&events).Error
 }
 
-func (f feedPushEventDao) GetPushEvents(ctx context.Context, uid int64, timestamp, limit int64) ([]FeedPushEvent, error) {
-	//TODO implement me
-	panic("implement me")
+func (f *feedPushEventDao) GetPushEvents(ctx context.Context, uid int64, timestamp, limit int64) ([]FeedPushEvent, error) {
+	var events []FeedPushEvent
+	err := f.db.WithContext(ctx).
+		Where("uid = ?", uid).
+		Where("ctime < ?", timestamp).
+		Order("ctime desc").
+		Limit(int(limit)).
+		Find(&events).Error
+	return events, err
 }
 
-func (f feedPushEventDao) GetPushEventsWithTyp(ctx context.Context, typ string, uid, timestamp, limit int64) ([]FeedPushEvent, error) {
-	//TODO implement me
-	panic("implement me")
+func (f *feedPushEventDao) GetPushEventsWithTyp(ctx context.Context, typ string, uid, timestamp, limit int64) ([]FeedPushEvent, error) {
+	var events []FeedPushEvent
+	err := f.db.WithContext(ctx).
+		Where("uid = ?", uid).
+		Where("ctime < ?", timestamp).
+		Where("ctime < ?", timestamp).
+		Order("ctime desc").
+		Limit(int(limit)).
+		Find(&events).Error
+	return events, err
 }
