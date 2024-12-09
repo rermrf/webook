@@ -11,12 +11,14 @@ import (
 	"webook/pkg/saramax"
 )
 
-const topicArticleEvent = "article_feed_event"
+const topicArticleEvent = "article_published_event"
 
-// ArticleFeedEvent 由业务方定义，本服务做适配
-type ArticleFeedEvent struct {
-	uid int64
-	aid int64
+// ArticlePublishedEvent 由业务方定义，本服务做适配
+// 监听业务方的事件
+// 业务方强势，我们自己适配
+type ArticlePublishedEvent struct {
+	Uid int64
+	Aid int64
 }
 
 type ArticleEventConsumer struct {
@@ -35,7 +37,7 @@ func (a *ArticleEventConsumer) Start() error {
 		return err
 	}
 	go func() {
-		err := cg.Consume(context.Background(), []string{topicArticleEvent}, saramax.NewHandler[ArticleFeedEvent](a.l, a.Consume))
+		err := cg.Consume(context.Background(), []string{topicArticleEvent}, saramax.NewHandler[ArticlePublishedEvent](a.l, a.Consume))
 		if err != nil {
 			a.l.Error("退出了消费循环", logger.Error(err))
 		}
@@ -43,14 +45,14 @@ func (a *ArticleEventConsumer) Start() error {
 	return err
 }
 
-func (a *ArticleEventConsumer) Consume(msg *sarama.ConsumerMessage, t ArticleFeedEvent) error {
+func (a *ArticleEventConsumer) Consume(msg *sarama.ConsumerMessage, t ArticlePublishedEvent) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	return a.svc.CreateFeedEvent(ctx, domain.FeedEvent{
 		Type: service.FollowEventName,
 		Ext: map[string]string{
-			"uid": strconv.FormatInt(t.uid, 10),
-			"aid": strconv.FormatInt(t.aid, 10),
+			"uid": strconv.FormatInt(t.Uid, 10),
+			"aid": strconv.FormatInt(t.Aid, 10),
 		},
 	})
 }

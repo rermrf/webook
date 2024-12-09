@@ -12,8 +12,15 @@ import (
 
 const topicFeedEvent = "feed_event"
 
+// FeedEvent 异步调用，数据同步接口
 type FeedEvent struct {
-	Type     string
+	// Type 是我内部定义，我发给不同业务方
+	Type string
+	// 业务方具体的数据
+	// 点赞需要的key：
+	// liker
+	// liked
+	// biz + bizId
 	Metadata map[string]string
 }
 

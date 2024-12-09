@@ -13,7 +13,8 @@ import (
 )
 
 type feedService struct {
-	repo         repository.FeedEventRepository
+	repo repository.FeedEventRepository
+	// key 就是 type，value 就是具体的业务处理逻辑
 	handlerMap   map[string]Handler
 	followClient followv1.FollowServiceClient
 }
@@ -26,6 +27,7 @@ func (f *feedService) registerService(typ string, handler Handler) {
 	f.handlerMap[typ] = handler
 }
 
+// CreateFeedEvent 在service中根据type调用不同的handler
 func (f *feedService) CreateFeedEvent(ctx context.Context, feed domain.FeedEvent) error {
 	// 需要可以解决的handler
 	handler, ok := f.handlerMap[feed.Type]

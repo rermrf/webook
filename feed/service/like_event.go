@@ -24,6 +24,7 @@ func NewLikeEventHandler(repo repository.FeedEventRepository) *LikeEventHandler 
 // liked int64：被点赞的人
 // liekr int64：点赞的人
 // bizId int64：被点赞的东西
+// biz string
 func (l *LikeEventHandler) CreateFeedEvent(ctx context.Context, ext domain.ExtendFields) error {
 	liked, ok := ext.Get("liked").Val.(int64)
 	if !ok {
@@ -34,6 +35,7 @@ func (l *LikeEventHandler) CreateFeedEvent(ctx context.Context, ext domain.Exten
 	// 如果你希望冗余存储数据，但是业务方又不愿意存，
 	// 那么你在这里可以考虑回查业务获得一些数据
 	return l.repo.CreatePushEvents(ctx, []domain.FeedEvent{{
+		// 收件人
 		Uid:   liked,
 		Type:  LikeEventName,
 		Ctime: time.Now(),

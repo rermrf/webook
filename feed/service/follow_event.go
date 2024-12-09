@@ -30,6 +30,7 @@ func (f *FollowEventHandler) CreateFeedEvent(ctx context.Context, ext domain.Ext
 		return errors.New("follow event not found")
 	}
 	return f.repo.CreatePushEvents(ctx, []domain.FeedEvent{{
+		// 被关注者为收件人
 		Uid:   followee,
 		Type:  FollowEventName,
 		Ctime: time.Now(),

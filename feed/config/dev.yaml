@@ -13,12 +13,12 @@ kafka:
 etcd:
   addr: "localhost:12379"
 
-  grpc:
-    server:
-      port: 8103
-      etcdAddrs:
-        - "localhost:12379"
-    client:
-      follow:
-        target: "etcd:///service/follow"
-        secure: false
+grpc:
+  server:
+    port: 8103
+    etcdAddrs:
+      - "localhost:12379"
+  client:
+    follow:
+      target: "etcd:///service/follow"
+      secure: false

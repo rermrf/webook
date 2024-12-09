@@ -24,10 +24,14 @@ func NewArticleEventHandler(repo repository.FeedEventRepository, followClient fo
 
 const (
 	ArticleEventName = "article_event"
-	threshold        = 4
+	// 可以调大或者调小
+	// 调大，数据量大，但是用户体验好
+	// 调小，数据量小，但是用户体验差
+	threshold = 4
 )
 
 func (a *ArticleEventHandler) CreateFeedEvent(ctx context.Context, ext domain.ExtendFields) error {
+	// 要灵活的判定是拉模型（读扩散）还是推模型（写扩散）
 	uid, ok := ext.Get("uid").Val.(int64)
 	if !ok {
 		return errors.New("uid field is not int64")
@@ -39,7 +43,7 @@ func (a *ArticleEventHandler) CreateFeedEvent(ctx context.Context, ext domain.Ex
 	if err != nil {
 		return err
 	}
-	// 粉丝数超出阈值使用拉模型
+	// 粉丝数超出阈值使用拉模型（读扩散）
 	if resp.FollowStatic.Followers > threshold {
 		return a.repo.CreatePullEvent(ctx, domain.FeedEvent{
 			Uid:   uid,
@@ -48,7 +52,7 @@ func (a *ArticleEventHandler) CreateFeedEvent(ctx context.Context, ext domain.Ex
 			Ext:   ext,
 		})
 	} else {
-		// 使用推模型
+		// 使用推模型（写扩散）
 		// 获取粉丝
 		fresp, err := a.followClient.GetFollower(ctx, &followv1.GetFollowerRequest{
 			Followee: uid,
@@ -56,6 +60,9 @@ func (a *ArticleEventHandler) CreateFeedEvent(ctx context.Context, ext domain.Ex
 		if err != nil {
 			return err
 		}
+		// 在这里，判定写扩散还是读扩散
+		// 要综合考虑活跃用户，是不是铁粉
+		// 在这里判定，前提是没有上面那个分支
 		events := make([]domain.FeedEvent, 0, len(fresp.FollowRelations))
 		for _, relation := range fresp.FollowRelations {
 			events = append(events, domain.FeedEvent{

@@ -23,6 +23,7 @@ func (f *FeedEventGrpcServer) Register(server grpc.ServiceRegistrar) {
 	feedv1.RegisterFeedSvcServer(server, f)
 }
 
+// CreateFeedEvent 同步调用，数据同步接口
 func (f *FeedEventGrpcServer) CreateFeedEvent(ctx context.Context, request *feedv1.CreateFeedEventRequest) (*feedv1.CreateFeedEventResponse, error) {
 	err := f.svc.CreateFeedEvent(ctx, f.convertToDomain(request.GetFeedEvent()))
 	return &feedv1.CreateFeedEventResponse{}, err
