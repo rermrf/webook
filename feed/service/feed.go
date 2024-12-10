@@ -19,8 +19,8 @@ type feedService struct {
 	followClient followv1.FollowServiceClient
 }
 
-func NewFeedService(repo repository.FeedEventRepository, handlerMap map[string]Handler) FeedService {
-	return &feedService{repo: repo, handlerMap: handlerMap}
+func NewFeedService(repo repository.FeedEventRepository, handlerMap map[string]Handler, followClient followv1.FollowServiceClient) FeedService {
+	return &feedService{repo: repo, handlerMap: handlerMap, followClient: followClient}
 }
 
 func (f *feedService) registerService(typ string, handler Handler) {
@@ -41,10 +41,16 @@ func (f *feedService) CreateFeedEvent(ctx context.Context, feed domain.FeedEvent
 }
 
 func (f *feedService) GetFeedEventList(ctx context.Context, uid, timestamp, limit int64) ([]domain.FeedEvent, error) {
+	// 万一，有一些业务有自己的查询逻辑；另外一些业务没有特殊的查询逻辑
+	// 怎么写代码？
+	// 要注意尽可能减少数据库查询次数，和 follow client 的调用次数
 	var eg errgroup.Group
+	// n 个 handler * limit
 	res := make([]domain.FeedEvent, 0, limit*int64(len(f.handlerMap)))
 	var mu sync.RWMutex
 	for _, handler := range f.handlerMap {
+		// 每一个业务方都要查询自己的，根据具体的handler实现查询收件箱或者发件箱
+		// 要小心，这一步不要忘了
 		h := handler
 		eg.Go(func() error {
 			events, err := h.FindFeedEvents(ctx, uid, timestamp, limit)
@@ -71,17 +77,25 @@ func (f *feedService) GetFeedEventList(ctx context.Context, uid, timestamp, limi
 // Service 层面上的统一实现
 // 基本思路就是，收件箱查一下，发件箱查一下，合并结果（排序，分页），返回结果。
 // 按照时间戳倒叙排序
+// 查询的时候，业务上不要做特殊处理
 func (f *feedService) GetFeedEventListV1(ctx context.Context, uid, timestamp, limit int64) ([]domain.FeedEvent, error) {
 	var eg errgroup.Group
 	var mu sync.RWMutex
+	// 两倍的 limit，其中一半为收件箱，另外一半为发件箱
 	res := make([]domain.FeedEvent, 0, limit*2)
 	eg.Go(func() error {
+
+		// 性能瓶颈大概率出现在这里
+		// 可以考虑，在触发了降级的时候，或者 follow 本身触发了降级的时候，不走这个分支
+		// 我怎么知道 follow 降级了呢？
+
 		// 获得你关注所有人的 id
 		resp, rerr := f.followClient.GetFollowee(ctx, &followv1.GetFolloweeRequest{
 			// 你的 ID，为了获取你关注的所有人
 			Follower: uid,
 			Offset:   0,
-			Limit:    200,
+			// 可以把全部全部取过来
+			Limit: 100000,
 		})
 		if rerr != nil {
 			return rerr
@@ -100,6 +114,7 @@ func (f *feedService) GetFeedEventListV1(ctx context.Context, uid, timestamp, li
 		return nil
 	})
 	eg.Go(func() error {
+		// 只有一次本地数据库查询，非常快
 		events, err := f.repo.FindPushEvents(ctx, uid, timestamp, limit)
 		if err != nil {
 			return err
@@ -109,9 +124,11 @@ func (f *feedService) GetFeedEventListV1(ctx context.Context, uid, timestamp, li
 		mu.Unlock()
 		return nil
 	})
+	// 合并后排序
 	sort.Slice(res, func(i, j int) bool {
 		return res[i].Ctime.Unix() > res[j].Ctime.Unix()
 	})
 	err := eg.Wait()
-	return res[:slice.Min[int]([]int{int(limit), len(res)})], err
+	// 要小心不够数量。就是你想取10条。结果总共才查到了8条
+	return res[:min[int](len(res), int(limit))], err
 }

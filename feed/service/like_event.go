@@ -45,5 +45,8 @@ func (l *LikeEventHandler) CreateFeedEvent(ctx context.Context, ext domain.Exten
 }
 
 func (l *LikeEventHandler) FindFeedEvents(ctx context.Context, uid, timestamp, limit int64) ([]domain.FeedEvent, error) {
+	// 如果要是你在数据库存储的时候，没有冗余用户的昵称
+	// BFF（业务方） 又不愿意去聚合（调用用户服务获得昵称）
+	// 就得在这里查询，注入 user client 去查
 	return l.repo.FindPushEventWithTyp(ctx, LikeEventName, uid, timestamp, limit)
 }
