@@ -61,6 +61,10 @@ services:
     volumes:
 #      - 姜本地的 prometheus 文件映射到容器内的配置文件
       - ./prometheus.yaml:/etc/prometheus/prometheus.yml
+    command:
+      # 开启 remote writer
+      - "--web.enable-remote-write-receiver"
+      - "--config.file=/etc/prometheus/prometheus.yml"
     ports:
       - "9091:9090"
   grafana:

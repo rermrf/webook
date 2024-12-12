@@ -14,7 +14,7 @@ func InitDB(l logger.LoggerV1) *gorm.DB {
 	}
 	var cfg Config = Config{
 		// 这只默认值
-		DSN: "root:root@tcp(localhost:3306)/webook_feed?charset=utf8mb4&parseTime=True&loc=Local",
+		//DSN: "root:root@tcp(localhost:3306)/webook_feed?charset=utf8mb4&parseTime=True&loc=Local",
 	}
 	err := viper.UnmarshalKey("db.mysql", &cfg)
 	if err != nil {

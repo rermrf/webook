@@ -1,0 +1,24 @@
+db:
+  mysql:
+    dsn: "root:root@tcp(localhost:13306)/webook_feed?charset=utf8mb4&parseTime=True&loc=Local"
+
+redis:
+  addr: "localhost:6379"
+
+
+kafka:
+  addrs:
+    - "localhost:9094"
+
+etcd:
+  addr: "localhost:12379"
+
+grpc:
+  server:
+    port: 8103
+    etcdAddrs:
+      - "localhost:12379"
+  client:
+    follow:
+      target: "etcd:///service/follow"
+      secure: false

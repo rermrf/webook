@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"time"
 	"webook/feed/domain"
 	"webook/feed/repository"
@@ -26,9 +25,9 @@ func NewLikeEventHandler(repo repository.FeedEventRepository) *LikeEventHandler 
 // bizId int64：被点赞的东西
 // biz string
 func (l *LikeEventHandler) CreateFeedEvent(ctx context.Context, ext domain.ExtendFields) error {
-	liked, ok := ext.Get("liked").Val.(int64)
-	if !ok {
-		return errors.New("liked is not int64")
+	liked, err := ext.Get("liked").AsInt64()
+	if err != nil {
+		return err
 	}
 	// 你考虑校验其他数据
 	// 如果你用的是扩展表设计，那么这里就会调用自己业务的扩展表来存储数据

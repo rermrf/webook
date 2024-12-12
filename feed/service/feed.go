@@ -130,5 +130,5 @@ func (f *feedService) GetFeedEventListV1(ctx context.Context, uid, timestamp, li
 	})
 	err := eg.Wait()
 	// 要小心不够数量。就是你想取10条。结果总共才查到了8条
-	return res[:min[int](len(res), int(limit))], err
+	return res[:slice.Min[int]([]int{int(limit), len(res)})], err
 }

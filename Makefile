@@ -18,3 +18,4 @@ grpc:
 .PHONY: grpc_mock
 grpc_mock:
 	@mockgen -source=./api/proto/gen/payment/v1/payment_grpc.pb.go -package=pmtmocks -destination=./api/proto/gen/payment/v1/mocks/payment_grpc.mock.go
+	@mockgen -source=./api/proto/gen/follow/v1/follow_grpc.pb.go -package=followMocks -destination=./api/proto/gen/follow/v1/mocks/follow_grpc.mock.go

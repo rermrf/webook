@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"time"
 	"webook/feed/domain"
 	"webook/feed/repository"
@@ -25,9 +24,9 @@ func NewFollowEventHandler(repo repository.FeedEventRepository) *FollowEventHand
 // follower 就是 A
 // followee 就是 B
 func (f *FollowEventHandler) CreateFeedEvent(ctx context.Context, ext domain.ExtendFields) error {
-	followee, ok := ext.Get("followee").Val.(int64)
-	if !ok {
-		return errors.New("follow event not found")
+	followee, err := ext.Get("followee").AsInt64()
+	if err != nil {
+		return err
 	}
 	return f.repo.CreatePushEvents(ctx, []domain.FeedEvent{{
 		// 被关注者为收件人

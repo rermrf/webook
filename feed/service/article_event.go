@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"github.com/ecodeclub/ekit/slice"
 	"golang.org/x/sync/errgroup"
 	"sort"
@@ -32,9 +31,9 @@ const (
 
 func (a *ArticleEventHandler) CreateFeedEvent(ctx context.Context, ext domain.ExtendFields) error {
 	// 要灵活的判定是拉模型（读扩散）还是推模型（写扩散）
-	uid, ok := ext.Get("uid").Val.(int64)
-	if !ok {
-		return errors.New("uid field is not int64")
+	uid, err := ext.Get("uid").AsInt64()
+	if err != nil {
+		return err
 	}
 	// 根据粉丝数判断使用推模型还是拉模型
 	resp, err := a.followClient.GetFollowStatic(ctx, &followv1.GetFollowStaticRequest{

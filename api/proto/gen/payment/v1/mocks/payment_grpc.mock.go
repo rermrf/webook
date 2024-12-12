@@ -22,6 +22,7 @@ import (
 type MockWechatPaymentServiceClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockWechatPaymentServiceClientMockRecorder
+	isgomock struct{}
 }
 
 // MockWechatPaymentServiceClientMockRecorder is the mock recorder for MockWechatPaymentServiceClient.
@@ -85,6 +86,7 @@ func (mr *MockWechatPaymentServiceClientMockRecorder) NativePrePay(ctx, in any, 
 type MockWechatPaymentServiceServer struct {
 	ctrl     *gomock.Controller
 	recorder *MockWechatPaymentServiceServerMockRecorder
+	isgomock struct{}
 }
 
 // MockWechatPaymentServiceServerMockRecorder is the mock recorder for MockWechatPaymentServiceServer.
@@ -150,6 +152,7 @@ func (mr *MockWechatPaymentServiceServerMockRecorder) mustEmbedUnimplementedWech
 type MockUnsafeWechatPaymentServiceServer struct {
 	ctrl     *gomock.Controller
 	recorder *MockUnsafeWechatPaymentServiceServerMockRecorder
+	isgomock struct{}
 }
 
 // MockUnsafeWechatPaymentServiceServerMockRecorder is the mock recorder for MockUnsafeWechatPaymentServiceServer.
