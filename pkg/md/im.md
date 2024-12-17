@@ -569,3 +569,17 @@ https://docs.openim.io/zh-Hans/guides/gettingStarted/dockerCompose
 而在业务中接入 OpenIM ，要点在于三个点：
 - **前端要完成 OpenIM SDK 接入。也就是说，要能够在自己的网站里面嵌入私聊的聊天窗口**。
 - **后端业务系统要完成和OpenIM 的数据同步**。
+
+
+### 用户数据同步
+
+OpenIM 提供了接口来让你完成这种接入。
+
+现在，假设我们的用户在注册了之后，就要将数据同步一份到 OpenIM 里面。即用户注册是同步在业务系统里面注册，并且也会在 OpenIM 里面注册。
+
+<img src="./img/openim用户数据同步.png">
+
+如上图是一个对接用户的基本流程。**这里我们同样优先采用异步的方式，并且是直接监听了 Canal 的数据**。这样对于用户服务来说，完全不需要修改。
+
+https://docs.openim.io/zh-Hans/restapi/introduction
+
