@@ -22,6 +22,7 @@ type UserRepository interface {
 	Create(ctx context.Context, u domain.User) error
 	UpdateNoSensitiveById(ctx context.Context, u domain.User) error
 	FindByWechat(ctx context.Context, openID string) (domain.User, error)
+	BatchGetUser(ctx context.Context, ids []int64) ([]domain.User, error)
 }
 
 type CachedUserRepository struct {
@@ -136,6 +137,15 @@ func (repo *CachedUserRepository) UpdateNoSensitiveById(ctx context.Context, u d
 func (repo *CachedUserRepository) Create(ctx context.Context, u domain.User) error {
 	return repo.dao.Insert(ctx, repo.domainToEntity(u))
 	// 在这里操作缓存
+}
+
+func (repo *CachedUserRepository) BatchGetUser(ctx context.Context, ids []int64) ([]domain.User, error) {
+	users, err := repo.dao.FindByIds(ctx, ids)
+	var result []domain.User
+	for _, u := range users {
+		result = append(result, repo.entityToDomain(u))
+	}
+	return result, err
 }
 
 func (repo *CachedUserRepository) domainToEntity(u domain.User) dao.User {

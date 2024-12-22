@@ -185,8 +185,9 @@ func (h *UserHandler) SendLoginSMSCode(ctx *gin.Context, req SendLoginSMSCodeReq
 		Biz:   biz,
 		Phone: req.Phone,
 	})
-	switch {
-	case err == nil:
+
+	switch err {
+	case nil:
 		return ginx.Result{Msg: "发送成功"}, nil
 		// TODO 利用 grpc 来传递错误码
 	//case errors.Is(err, service.ErrCodeSendTooMany):
@@ -282,7 +283,7 @@ func (h *UserHandler) LoginJWT(ctx *gin.Context, req LoginRequest) (ginx.Result,
 
 type EditRequest struct {
 	Nickname string `json:"nickname"`
-	AboutMe  string `json:"about_me"`
+	AboutMe  string `json:"aboutMe"`
 	Birthday string `json:"birthday"`
 }
 
@@ -317,12 +318,12 @@ func (h *UserHandler) Edit(ctx *gin.Context, req EditRequest) (ginx.Result, erro
 }
 
 type Profile struct {
-	Email    string
-	Phone    string
-	Nickname string
-	AboutMe  string
-	Birthday string
-	Ctime    string
+	Email    string `json:"email"`
+	Phone    string `json:"phone"`
+	Nickname string `json:"nickname"`
+	AboutMe  string `json:"aboutMe"`
+	Birthday string `json:"birthday"`
+	Ctime    string `json:"ctime"`
 }
 
 func (h *UserHandler) Profile(ctx *gin.Context, uc ijwt.UserClaims) (ginx.Result, error) {

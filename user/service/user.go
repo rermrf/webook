@@ -23,6 +23,7 @@ type UserService interface {
 	EditNoSensitive(ctx context.Context, user domain.User) error
 	FindOrCreate(ctx context.Context, phone string) (domain.User, error)
 	FindOrCreateByWechat(ctx context.Context, wechatInfo domain.WechatInfo) (domain.User, error)
+	BatchGetUser(ctx context.Context, ids []int64) ([]domain.User, error)
 }
 
 type UserServiceImpl struct {
@@ -140,4 +141,8 @@ func (svc *UserServiceImpl) FindOrCreateByWechat(ctx context.Context, info domai
 		return user, err
 	}
 	return svc.repo.FindByWechat(ctx, info.OpenId)
+}
+
+func (svc *UserServiceImpl) BatchGetUser(ctx context.Context, ids []int64) ([]domain.User, error) {
+	return svc.repo.BatchGetUser(ctx, ids)
 }

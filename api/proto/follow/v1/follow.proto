@@ -4,9 +4,10 @@ package follow.v1;
 option go_package="follow/v1;followV1";
 
 service FollowService {
+  // 关注
   rpc Follow (FollowRequest) returns (FollowResponse);
+  // 取消关注
   rpc CancelFollow(cancelFollowRequest) returns (CancelFollowResponse);
-
   // 获得某个人的关注列表
   rpc GetFollowee (GetFolloweeRequest) returns (GetFolloweeResponse);
   // 获得某个人关注另外一个人的详细信息

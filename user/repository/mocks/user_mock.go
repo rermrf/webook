@@ -41,6 +41,21 @@ func (m *MockUserRepository) EXPECT() *MockUserRepositoryMockRecorder {
 	return m.recorder
 }
 
+// BatchGetUser mocks base method.
+func (m *MockUserRepository) BatchGetUser(ctx context.Context, ids []int64) ([]domain.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BatchGetUser", ctx, ids)
+	ret0, _ := ret[0].([]domain.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BatchGetUser indicates an expected call of BatchGetUser.
+func (mr *MockUserRepositoryMockRecorder) BatchGetUser(ctx, ids any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchGetUser", reflect.TypeOf((*MockUserRepository)(nil).BatchGetUser), ctx, ids)
+}
+
 // Create mocks base method.
 func (m *MockUserRepository) Create(ctx context.Context, u domain.User) error {
 	m.ctrl.T.Helper()

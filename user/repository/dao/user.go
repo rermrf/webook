@@ -23,6 +23,7 @@ type UserDao interface {
 	Insert(ctx context.Context, u User) error
 	UpdateNonZeroFields(ctx context.Context, u User) error
 	FindByWechat(ctx context.Context, openID string) (User, error)
+	FindByIds(ctx context.Context, ids []int64) ([]User, error)
 }
 
 type GormUserDao struct {
@@ -76,6 +77,12 @@ func (dao *GormUserDao) Insert(ctx context.Context, u User) error {
 
 func (dao *GormUserDao) UpdateNonZeroFields(ctx context.Context, u User) error {
 	return dao.db.WithContext(ctx).Updates(&u).Error
+}
+
+func (dao *GormUserDao) FindByIds(ctx context.Context, ids []int64) ([]User, error) {
+	var users []User
+	err := dao.db.WithContext(ctx).Where("id in (?)", ids).Find(&users).Error
+	return users, err
 }
 
 // User 直接对应数据库表结构

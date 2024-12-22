@@ -21,16 +21,19 @@ func (f *FollowServiceServer) Register(server *grpc.Server) {
 	followv1.RegisterFollowServiceServer(server, f)
 }
 
+// Follow 关注
 func (f *FollowServiceServer) Follow(ctx context.Context, request *followv1.FollowRequest) (*followv1.FollowResponse, error) {
 	err := f.svc.Follow(ctx, request.Follower, request.Followee)
 	return &followv1.FollowResponse{}, err
 }
 
+// CancelFollow 取消关注
 func (f *FollowServiceServer) CancelFollow(ctx context.Context, request *followv1.CancelFollowRequest) (*followv1.CancelFollowResponse, error) {
 	err := f.svc.CancelFollow(ctx, request.Follower, request.Followee)
 	return &followv1.CancelFollowResponse{}, err
 }
 
+// GetFollowee 获取关注者
 func (f *FollowServiceServer) GetFollowee(ctx context.Context, request *followv1.GetFolloweeRequest) (*followv1.GetFolloweeResponse, error) {
 	list, err := f.svc.GetFollowee(ctx, request.Follower, request.Offset, request.Limit)
 	if err != nil {
@@ -43,6 +46,7 @@ func (f *FollowServiceServer) GetFollowee(ctx context.Context, request *followv1
 	return &followv1.GetFolloweeResponse{FollowRelations: res}, nil
 }
 
+// FollowInfo 获取关注关系
 func (f *FollowServiceServer) FollowInfo(ctx context.Context, request *followv1.FollowInfoRequest) (*followv1.FollowInfoResponse, error) {
 	res, err := f.svc.FollowInfo(ctx, request.Follower, request.Followee)
 	if err != nil {
@@ -51,6 +55,7 @@ func (f *FollowServiceServer) FollowInfo(ctx context.Context, request *followv1.
 	return &followv1.FollowInfoResponse{FollowRelation: f.convertToView(res)}, nil
 }
 
+// GetFollower 获取粉丝
 func (f *FollowServiceServer) GetFollower(ctx context.Context, request *followv1.GetFollowerRequest) (*followv1.GetFollowerResponse, error) {
 	list, err := f.svc.GetFollower(ctx, request.Followee)
 	res := make([]*followv1.FollowRelation, 0, len(list))

@@ -41,6 +41,21 @@ func (m *MockUserService) EXPECT() *MockUserServiceMockRecorder {
 	return m.recorder
 }
 
+// BatchGetUser mocks base method.
+func (m *MockUserService) BatchGetUser(ctx context.Context, ids []int64) ([]domain.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BatchGetUser", ctx, ids)
+	ret0, _ := ret[0].([]domain.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BatchGetUser indicates an expected call of BatchGetUser.
+func (mr *MockUserServiceMockRecorder) BatchGetUser(ctx, ids any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchGetUser", reflect.TypeOf((*MockUserService)(nil).BatchGetUser), ctx, ids)
+}
+
 // EditNoSensitive mocks base method.
 func (m *MockUserService) EditNoSensitive(ctx context.Context, user domain.User) error {
 	m.ctrl.T.Helper()
