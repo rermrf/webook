@@ -318,6 +318,7 @@ func (h *UserHandler) Edit(ctx *gin.Context, req EditRequest) (ginx.Result, erro
 }
 
 type Profile struct {
+	Id       int64  `json:"id"`
 	Email    string `json:"email"`
 	Phone    string `json:"phone"`
 	Nickname string `json:"nickname"`

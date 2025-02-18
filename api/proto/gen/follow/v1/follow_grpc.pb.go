@@ -31,7 +31,9 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type FollowServiceClient interface {
+	// 关注
 	Follow(ctx context.Context, in *FollowRequest, opts ...grpc.CallOption) (*FollowResponse, error)
+	// 取消关注
 	CancelFollow(ctx context.Context, in *CancelFollowRequest, opts ...grpc.CallOption) (*CancelFollowResponse, error)
 	// 获得某个人的关注列表
 	GetFollowee(ctx context.Context, in *GetFolloweeRequest, opts ...grpc.CallOption) (*GetFolloweeResponse, error)
@@ -115,7 +117,9 @@ func (c *followServiceClient) GetFollowStatic(ctx context.Context, in *GetFollow
 // All implementations must embed UnimplementedFollowServiceServer
 // for forward compatibility.
 type FollowServiceServer interface {
+	// 关注
 	Follow(context.Context, *FollowRequest) (*FollowResponse, error)
+	// 取消关注
 	CancelFollow(context.Context, *CancelFollowRequest) (*CancelFollowResponse, error)
 	// 获得某个人的关注列表
 	GetFollowee(context.Context, *GetFolloweeRequest) (*GetFolloweeResponse, error)

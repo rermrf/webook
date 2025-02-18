@@ -73,6 +73,8 @@ func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 	pub.POST("/collect", ginx.WrapBodyAndToken[LikeReq, ijwt.UserClaims](h.l, h.Like))
 
 	pub.POST("/reward", ginx.WrapBodyAndToken(h.l, h.Reward))
+	// 获取交互数据
+	pub.GET("/interactive", ginx.WrapBodyAndToken(h.l, h.GetInteractive))
 }
 
 //type ReaderHandler struct {
@@ -90,6 +92,31 @@ func (h *ArticleHandler) Like(ctx *gin.Context, req LikeReq, uc ijwt.UserClaims)
 		})
 	} else {
 		_, err = h.intrSvc.CancelLike(ctx.Request.Context(), &intrv1.CancelLikeRequest{
+			Biz:   h.biz,
+			BizId: req.Id,
+			Uid:   uc.UserId,
+		})
+	}
+
+	if err != nil {
+		return ginx.Result{
+			Code: 5,
+			Msg:  "系统错误",
+		}, err
+	}
+	return ginx.Result{Msg: "OK"}, nil
+}
+
+func (h *ArticleHandler) Collect(ctx *gin.Context, req CollectReq, uc ijwt.UserClaims) (ginx.Result, error) {
+	var err error
+	if req.Collect {
+		_, err = h.intrSvc.Collect(ctx.Request.Context(), &intrv1.CollectRequest{
+			Biz:   h.biz,
+			BizId: req.Id,
+			Uid:   uc.UserId,
+		})
+	} else {
+		_, err = h.intrSvc.CancelCollect(ctx.Request.Context(), &intrv1.CancelCollectRequest{
 			Biz:   h.biz,
 			BizId: req.Id,
 			Uid:   uc.UserId,
@@ -369,6 +396,34 @@ func (h *ArticleHandler) Reward(ctx *gin.Context, req RewardReq, uc ijwt.UserCla
 			// 代表的是这一次打赏的id，后续在前端可通过这个 id 验证支付
 			"rid": resp.Rid,
 		},
+	}, nil
+}
+
+func (h *ArticleHandler) GetInteractive(ctx *gin.Context, req InteractiveReq, uc ijwt.UserClaims) (ginx.Result, error) {
+	resp, err := h.intrSvc.Get(ctx.Request.Context(), &intrv1.GetRequest{
+		Biz:   h.biz,
+		BizId: req.Id,
+		Uid:   uc.UserId,
+	})
+	if err != nil {
+		return ginx.Result{
+			Code: 5,
+			Msg:  "系统错误",
+		}, nil
+	}
+	res := InteractiveResp{
+		Biz:        resp.GetIntr().GetBiz(),
+		BizId:      resp.GetIntr().GetBizId(),
+		ReadCnt:    resp.GetIntr().GetReadCnt(),
+		LikeCnt:    resp.GetIntr().GetLikeCnt(),
+		CollectCnt: resp.GetIntr().GetCollectCnt(),
+		Liked:      resp.GetIntr().GetLiked(),
+		Collected:  resp.GetIntr().GetCollected(),
+	}
+	return ginx.Result{
+		Code: 2,
+		Msg:  "ok",
+		Data: res,
 	}, nil
 }
 

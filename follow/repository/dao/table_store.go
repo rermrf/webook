@@ -48,7 +48,7 @@ func (t *TableStoreFollowDao) FollowRelationList(ctx context.Context, follower, 
 	return followRelations, nil
 }
 
-func (t *TableStoreFollowDao) FollowerRelationList(ctx context.Context, followee int64) ([]FollowRelation, error) {
+func (t *TableStoreFollowDao) FollowerRelationList(ctx context.Context, followee, offset, limit int64) ([]FollowRelation, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -76,7 +76,7 @@ func (t *TableStoreFollowDao) CreateFollowRelation(ctx context.Context, c Follow
 	// 设置
 	change.SetCondition(tablestore.RowExistenceExpectation_IGNORE)
 	// 只能用 int64
-	change.PutColumn("status", int64(c.Satus))
+	change.PutColumn("status", int64(c.Status))
 	change.PutColumn("ctime", now)
 	change.PutColumn("utime", now)
 	req.UpdateRowChange = change

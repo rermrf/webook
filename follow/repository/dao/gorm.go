@@ -17,7 +17,7 @@ func NewGORMFollowDao(db *gorm.DB) FollowDao {
 
 func (d *GORMFollowDao) FollowRelationList(ctx context.Context, follower, offset, limit int64) ([]FollowRelation, error) {
 	var res []FollowRelation
-	err := d.db.WithContext(ctx).
+	err := d.db.WithContext(ctx).Table("follow_relations").
 		Where("follower = ? AND status = ?", follower, FollowRelationStatusActive).
 		Offset(int(offset)).
 		Limit(int(limit)).
@@ -25,10 +25,12 @@ func (d *GORMFollowDao) FollowRelationList(ctx context.Context, follower, offset
 	return res, err
 }
 
-func (d *GORMFollowDao) FollowerRelationList(ctx context.Context, followee int64) ([]FollowRelation, error) {
+func (d *GORMFollowDao) FollowerRelationList(ctx context.Context, followee, offset, limit int64) ([]FollowRelation, error) {
 	var res []FollowRelation
-	err := d.db.WithContext(ctx).
+	err := d.db.WithContext(ctx).Table("follow_relations").
 		Where("followee = ? AND status = ?", followee, FollowRelationStatusActive).
+		Offset(int(offset)).
+		Limit(int(limit)).
 		Find(&res).Error
 	return res, err
 }
@@ -46,7 +48,7 @@ func (d *GORMFollowDao) CreateFollowRelation(ctx context.Context, f FollowRelati
 	now := time.Now().UnixMilli()
 	f.Ctime = now
 	f.Ctime = now
-	f.Satus = FollowRelationStatusActive
+	f.Status = FollowRelationStatusActive
 	return d.db.WithContext(ctx).Clauses(clause.OnConflict{
 		DoUpdates: clause.Assignments(map[string]interface{}{
 			// 这代表的是关注了-取消关注-再关注
@@ -60,7 +62,7 @@ func (d *GORMFollowDao) CreateFollowRelation(ctx context.Context, f FollowRelati
 func (d *GORMFollowDao) UpdateStatus(ctx context.Context, follower int64, followee int64, status uint8) error {
 	// 当前 status 就是 inactive 的呢？
 	// 不需要多此一举去检测我这个数据在不在，状态对不对
-	return d.db.WithContext(ctx).
+	return d.db.WithContext(ctx).Table("follow_relations").
 		Where("follower = ? AND followee = ?", follower, followee).
 		Updates(map[string]interface{}{
 			"status": status,
@@ -70,7 +72,7 @@ func (d *GORMFollowDao) UpdateStatus(ctx context.Context, follower int64, follow
 
 func (d *GORMFollowDao) CntFollower(ctx context.Context, uid int64) (int64, error) {
 	var cnt int64
-	err := d.db.WithContext(ctx).
+	err := d.db.WithContext(ctx).Table("follow_relations").
 		Select("count(follower)").
 		// 如果要是没有额外索引，不用怀疑，就是全盘扫描
 		// 可以考虑在 followee 额外创建一个索引
@@ -81,7 +83,7 @@ func (d *GORMFollowDao) CntFollower(ctx context.Context, uid int64) (int64, erro
 func (d *GORMFollowDao) CntFollowee(ctx context.Context, uid int64) (int64, error) {
 	var cnt int64
 	err := d.db.WithContext(ctx).
-		Select("count(followee)").
+		Select("count(followee)").Table("follow_relations").
 		// 这里能够利用到 <follower, followee> 的联合唯一索引
 		Where("follower = ? AND status = ?", uid, FollowRelationStatusActive).Count(&cnt).Error
 	return cnt, err

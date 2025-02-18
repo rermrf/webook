@@ -31,7 +31,7 @@ func Init() *app.App {
 	client := ioc.InitEtcd()
 	followServiceClient := ioc.InitFollowClient(client)
 	v := ioc.RegisterHandler(feedEventRepository, followServiceClient)
-	feedService := service.NewFeedService(feedEventRepository, v)
+	feedService := service.NewFeedService(feedEventRepository, v, followServiceClient)
 	feedEventGrpcServer := grpc.NewFeedEventGrpcServer(feedService)
 	server := ioc.InitGRPCServer(feedEventGrpcServer, loggerV1)
 	saramaClient := ioc.InitKafka()

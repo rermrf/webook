@@ -16,5 +16,5 @@ type FollowRepository interface {
 	InactiveFollowRelation(ctx context.Context, follower int64, followee int64) error
 	GetFollowStatics(ctx context.Context, uid int64) (domain.FollowStatics, error)
 	// GetFollower 获取某人粉丝
-	GetFollower(ctx context.Context, followee int64) ([]domain.FollowRelation, error)
+	GetFollower(ctx context.Context, followee, offset, limit int64) ([]domain.FollowRelation, error)
 }

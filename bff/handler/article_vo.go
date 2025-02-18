@@ -50,7 +50,27 @@ type LikeReq struct {
 	Id   int64 `json:"id"`
 }
 
+type CollectReq struct {
+	// 点赞和取消点赞都复用这个接口
+	Collect bool  `json:"collect"`
+	Id      int64 `json:"id"`
+}
+
 type RewardReq struct {
 	Id  int64 `json:"id"`
 	Amt int64 `json:"amt"`
+}
+
+type InteractiveReq struct {
+	Id int64 `json:"id"`
+}
+
+type InteractiveResp struct {
+	Biz        string
+	BizId      int64
+	ReadCnt    int64
+	LikeCnt    int64
+	CollectCnt int64
+	Liked      bool
+	Collected  bool
 }

@@ -24,15 +24,15 @@ func (c *CachedFollowRepository) GetFollowee(ctx context.Context, follower, offs
 	if err != nil {
 		return nil, err
 	}
-	return c.genFollowRelationList(followerList), nil
+	return c.getFollowRelationList(followerList), nil
 }
 
-func (c *CachedFollowRepository) GetFollower(ctx context.Context, followee int64) ([]domain.FollowRelation, error) {
-	followerList, err := c.dao.FollowerRelationList(ctx, followee)
+func (c *CachedFollowRepository) GetFollower(ctx context.Context, followee, offset, limit int64) ([]domain.FollowRelation, error) {
+	followerList, err := c.dao.FollowerRelationList(ctx, followee, offset, limit)
 	if err != nil {
 		return nil, err
 	}
-	return c.genFollowRelationList(followerList), nil
+	return c.getFollowRelationList(followerList), nil
 }
 
 func (c *CachedFollowRepository) FollowInfo(ctx context.Context, follower, followee int64) (domain.FollowRelation, error) {
@@ -84,7 +84,7 @@ func (c *CachedFollowRepository) GetFollowStatics(ctx context.Context, uid int64
 	return res, nil
 }
 
-func (c *CachedFollowRepository) genFollowRelationList(list []dao.FollowRelation) []domain.FollowRelation {
+func (c *CachedFollowRepository) getFollowRelationList(list []dao.FollowRelation) []domain.FollowRelation {
 	res := make([]domain.FollowRelation, 0, len(list))
 	for _, v := range list {
 		res = append(res, c.toDomain(v))

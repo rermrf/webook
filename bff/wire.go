@@ -25,6 +25,11 @@ var GormArticleSet = wire.NewSet(
 	handler.NewArticleHandler,
 )
 
+// FollowSet 关注相关依赖
+var FollowSet = wire.NewSet(
+	handler.NewFollowHandler,
+)
+
 var ThirdPartySet = wire.NewSet(
 	ioc.InitRedis,
 	ioc.InitDB,
@@ -61,6 +66,7 @@ var grpcClientSet = wire.NewSet(
 	ioc.InitRankingGRPCClient,
 	ioc.InitOAuth2GRPCClient,
 	ioc.InitRewardGRPCClient,
+	ioc.InitFollowGRPCClient,
 )
 
 func InitApp() *App {
@@ -70,6 +76,7 @@ func InitApp() *App {
 		ioc.InitGin,
 		ioc.InitMiddlewares,
 		UserSet,
+		FollowSet,
 
 		//CodeSet,
 		ThirdPartySet,

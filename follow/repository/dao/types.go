@@ -11,7 +11,7 @@ type FollowDao interface {
 	UpdateStatus(ctx context.Context, follower int64, followee int64, status uint8) error
 	CntFollower(ctx context.Context, uid int64) (int64, error)
 	CntFollowee(ctx context.Context, uid int64) (int64, error)
-	FollowerRelationList(ctx context.Context, followee int64) ([]FollowRelation, error)
+	FollowerRelationList(ctx context.Context, followee, offset, limit int64) ([]FollowRelation, error)
 }
 
 // FollowRelation 这个是类似于点赞的表设计
@@ -29,7 +29,7 @@ type FollowRelation struct {
 
 	// 对于关注来说，就是插入或者将这个状态更新为可用状态
 	// 对于取消关注来说，将这个状态更新为不可用状态
-	Satus uint8
+	Status uint8
 
 	Ctime int64
 	Utime int64

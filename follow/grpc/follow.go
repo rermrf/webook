@@ -57,7 +57,7 @@ func (f *FollowServiceServer) FollowInfo(ctx context.Context, request *followv1.
 
 // GetFollower 获取粉丝
 func (f *FollowServiceServer) GetFollower(ctx context.Context, request *followv1.GetFollowerRequest) (*followv1.GetFollowerResponse, error) {
-	list, err := f.svc.GetFollower(ctx, request.Followee)
+	list, err := f.svc.GetFollower(ctx, request.Followee, request.Offset, request.Limit)
 	res := make([]*followv1.FollowRelation, 0, len(list))
 	for _, v := range list {
 		res = append(res, f.convertToView(v))
