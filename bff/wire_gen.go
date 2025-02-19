@@ -39,7 +39,8 @@ func InitApp() *App {
 	articleServiceClient := ioc.InitArticleGRPCClientV1(client)
 	interactiveServiceClient := ioc.InitIntrGRPCClientV2(client)
 	rewardServiceClient := ioc.InitRewardGRPCClient(client)
-	articleHandler := handler.NewArticleHandler(articleServiceClient, loggerV1, interactiveServiceClient, rewardServiceClient)
+	commentServiceClient := ioc.InitCommentGRPCClient(client)
+	articleHandler := handler.NewArticleHandler(articleServiceClient, loggerV1, interactiveServiceClient, rewardServiceClient, commentServiceClient)
 	followServiceClient := ioc.InitFollowGRPCClient(client)
 	followHandler := handler.NewFollowHandler(followServiceClient, userServiceClient, loggerV1)
 	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler, followHandler)
@@ -81,4 +82,4 @@ var OAuth2Set = wire.NewSet(handler.NewOAuth2WechatHandler)
 
 var KafkaSet = wire.NewSet(ioc.InitKafka, ioc.NewConsumer, ioc.NewSyncProducer, events2.NewKafkaProducer)
 
-var grpcClientSet = wire.NewSet(ioc.InitIntrGRPCClientV2, ioc.InitUserGRPCClient, ioc.InitArticleGRPCClientV1, ioc.InitSMSGRPCClient, ioc.InitCodeGRPCClient, ioc.InitRankingGRPCClient, ioc.InitOAuth2GRPCClient, ioc.InitRewardGRPCClient, ioc.InitFollowGRPCClient)
+var grpcClientSet = wire.NewSet(ioc.InitIntrGRPCClientV2, ioc.InitUserGRPCClient, ioc.InitArticleGRPCClientV1, ioc.InitSMSGRPCClient, ioc.InitCodeGRPCClient, ioc.InitRankingGRPCClient, ioc.InitOAuth2GRPCClient, ioc.InitRewardGRPCClient, ioc.InitFollowGRPCClient, ioc.InitCommentGRPCClient)

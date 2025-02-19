@@ -62,7 +62,7 @@ type RewardReq struct {
 }
 
 type InteractiveReq struct {
-	Id int64 `json:"id"`
+	Id int64 `form:"id"`
 }
 
 type InteractiveResp struct {
@@ -73,4 +73,30 @@ type InteractiveResp struct {
 	CollectCnt int64
 	Liked      bool
 	Collected  bool
+}
+
+type GetCommentReq struct {
+	Id int64 `form:"id"`
+	// 从最小评论的id起
+	MinId int64 `form:"min_id"`
+	Limit int64 `form:"limit"`
+}
+
+type Comment struct {
+	Id      int64  `json:"id"`
+	BizId   int64  `json:"biz_id"`
+	Content string `json:"content"`
+	Uid     int64  `json:"uid"`
+	Ctime   int64  `json:"ctime"`
+}
+
+type GetCommentResp struct {
+	Comments []Comment
+}
+
+type CreateCommentReq struct {
+	Id       int64  `json:"id"`
+	Content  string `json:"content"`
+	ParentId int64  `json:"parent_id"`
+	RootId   int64  `json:"root_id"`
 }

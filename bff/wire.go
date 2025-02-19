@@ -67,6 +67,7 @@ var grpcClientSet = wire.NewSet(
 	ioc.InitOAuth2GRPCClient,
 	ioc.InitRewardGRPCClient,
 	ioc.InitFollowGRPCClient,
+	ioc.InitCommentGRPCClient,
 )
 
 func InitApp() *App {

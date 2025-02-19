@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 	articlev1 "webook/api/proto/gen/article/v1"
+	commentv1 "webook/api/proto/gen/comment/v1"
 	intrv1 "webook/api/proto/gen/intr/v1"
 	rewardv1 "webook/api/proto/gen/reward/v1"
 	"webook/article/domain"
@@ -40,20 +41,22 @@ import (
 //}
 
 type ArticleHandler struct {
-	svc     articlev1.ArticleServiceClient
-	intrSvc intrv1.InteractiveServiceClient
-	reward  rewardv1.RewardServiceClient
-	l       logger.LoggerV1
-	biz     string
+	svc        articlev1.ArticleServiceClient
+	intrSvc    intrv1.InteractiveServiceClient
+	reward     rewardv1.RewardServiceClient
+	commentSvc commentv1.CommentServiceClient
+	l          logger.LoggerV1
+	biz        string
 }
 
-func NewArticleHandler(svc articlev1.ArticleServiceClient, l logger.LoggerV1, intrSvc intrv1.InteractiveServiceClient, reward rewardv1.RewardServiceClient) *ArticleHandler {
+func NewArticleHandler(svc articlev1.ArticleServiceClient, l logger.LoggerV1, intrSvc intrv1.InteractiveServiceClient, reward rewardv1.RewardServiceClient, commentSvc commentv1.CommentServiceClient) *ArticleHandler {
 	return &ArticleHandler{
-		svc:     svc,
-		intrSvc: intrSvc,
-		l:       l,
-		biz:     "article",
-		reward:  reward,
+		svc:        svc,
+		intrSvc:    intrSvc,
+		commentSvc: commentSvc,
+		l:          l,
+		biz:        "article",
+		reward:     reward,
 	}
 }
 
@@ -70,11 +73,15 @@ func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 	pub.GET("/:id", ginx.WrapClaims(h.l, h.PubDetail))
 
 	pub.POST("/like", ginx.WrapBodyAndToken(h.l, h.Like))
-	pub.POST("/collect", ginx.WrapBodyAndToken[LikeReq, ijwt.UserClaims](h.l, h.Like))
+	pub.POST("/collect", ginx.WrapBodyAndToken[CollectReq, ijwt.UserClaims](h.l, h.Collect))
 
 	pub.POST("/reward", ginx.WrapBodyAndToken(h.l, h.Reward))
 	// 获取交互数据
 	pub.GET("/interactive", ginx.WrapBodyAndToken(h.l, h.GetInteractive))
+	// 获取评论数据
+	pub.GET("/comment", ginx.WrapBody(h.l, h.GetComment))
+	// 添加评论，传入父 parent 的id，那么就是代表回复了某个评论
+	pub.POST("/comment", ginx.WrapBodyAndToken(h.l, h.CreateComment))
 }
 
 //type ReaderHandler struct {
@@ -400,6 +407,8 @@ func (h *ArticleHandler) Reward(ctx *gin.Context, req RewardReq, uc ijwt.UserCla
 }
 
 func (h *ArticleHandler) GetInteractive(ctx *gin.Context, req InteractiveReq, uc ijwt.UserClaims) (ginx.Result, error) {
+	//idStr := ctx.Param("id")
+	//id, err := strconv.ParseInt(idStr, 10, 64)
 	resp, err := h.intrSvc.Get(ctx.Request.Context(), &intrv1.GetRequest{
 		Biz:   h.biz,
 		BizId: req.Id,
@@ -424,6 +433,69 @@ func (h *ArticleHandler) GetInteractive(ctx *gin.Context, req InteractiveReq, uc
 		Code: 2,
 		Msg:  "ok",
 		Data: res,
+	}, nil
+}
+
+func (h *ArticleHandler) GetComment(ctx *gin.Context, req GetCommentReq) (ginx.Result, error) {
+	var minId int64 = 0
+	var limit int64 = 100
+	if req.MinId >= 0 {
+		minId = req.MinId
+	}
+	if req.Limit >= 0 {
+		limit = req.Limit
+	}
+	resp, err := h.commentSvc.GetCommentList(ctx.Request.Context(), &commentv1.GetCommentListRequest{
+		Biz:   h.biz,
+		Bizid: req.Id,
+		MinId: minId,
+		Limit: limit,
+	})
+	if err != nil {
+		return ginx.Result{
+			Code: 5,
+			Msg:  "系统错误",
+		}, nil
+	}
+	return ginx.Result{
+		Code: 2,
+		Msg:  "ok",
+		Data: resp.GetComments(),
+	}, nil
+}
+
+func (h *ArticleHandler) CreateComment(ctx *gin.Context, req CreateCommentReq, uc ijwt.UserClaims) (ginx.Result, error) {
+	var parent *commentv1.Comment = nil
+	var root *commentv1.Comment = nil
+	if req.ParentId != 0 {
+		parent = &commentv1.Comment{
+			Id: req.ParentId,
+		}
+	}
+	if req.RootId != 0 {
+		root = &commentv1.Comment{
+			Id: req.RootId,
+		}
+	}
+	_, err := h.commentSvc.CreateComment(ctx.Request.Context(), &commentv1.CreateCommentRequest{
+		Comment: &commentv1.Comment{
+			Uid:           uc.UserId,
+			Biz:           h.biz,
+			Bizid:         req.Id,
+			Content:       req.Content,
+			ParentComment: parent,
+			RootComment:   root,
+		},
+	})
+	if err != nil {
+		return ginx.Result{
+			Code: 5,
+			Msg:  "系统错误",
+		}, nil
+	}
+	return ginx.Result{
+		Code: 2,
+		Msg:  "ok",
 	}, nil
 }
 
