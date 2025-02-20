@@ -15,6 +15,7 @@ type CommentDao interface {
 	// Delete 删除本节点及其对于的子节点
 	Delete(ctx context.Context, c Comment) error
 	FindOneByIds(ctx context.Context, ids []int64) ([]Comment, error)
+	GetCommentCntById(ctx context.Context, biz string, bizId int64) (int64, error)
 	FindRepliesByRid(ctx context.Context, rid int64, maxId int64, limit int64) ([]Comment, error)
 }
 

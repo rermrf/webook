@@ -84,6 +84,10 @@ func (c *commentRepository) GetCommentByIds(ctx context.Context, ids []int64) ([
 	return comments, nil
 }
 
+func (c *commentRepository) GetCommentCnt(ctx context.Context, biz string, bizId int64) (int64, error) {
+	return c.dao.GetCommentCntById(ctx, biz, bizId)
+}
+
 func (c *commentRepository) GetMoreReplies(ctx context.Context, rid int64, maxId int64, limit int64) ([]domain.Comment, error) {
 	cs, err := c.dao.FindRepliesByRid(ctx, rid, maxId, limit)
 	if err != nil {

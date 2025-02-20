@@ -15,5 +15,6 @@ type CommentRepository interface {
 	CreateComment(ctx context.Context, comment domain.Comment) error
 	// GetCommentByIds 获取单条评论 支持批量获取
 	GetCommentByIds(ctx context.Context, ids []int64) ([]domain.Comment, error)
+	GetCommentCnt(ctx context.Context, biz string, bizId int64) (int64, error)
 	GetMoreReplies(ctx context.Context, rid int64, maxId int64, limit int64) ([]domain.Comment, error)
 }

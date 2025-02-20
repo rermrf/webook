@@ -40,7 +40,7 @@ func InitApp() *App {
 	interactiveServiceClient := ioc.InitIntrGRPCClientV2(client)
 	rewardServiceClient := ioc.InitRewardGRPCClient(client)
 	commentServiceClient := ioc.InitCommentGRPCClient(client)
-	articleHandler := handler.NewArticleHandler(articleServiceClient, loggerV1, interactiveServiceClient, rewardServiceClient, commentServiceClient)
+	articleHandler := handler.NewArticleHandler(articleServiceClient, loggerV1, interactiveServiceClient, rewardServiceClient, commentServiceClient, userServiceClient)
 	followServiceClient := ioc.InitFollowGRPCClient(client)
 	followHandler := handler.NewFollowHandler(followServiceClient, userServiceClient, loggerV1)
 	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler, followHandler)

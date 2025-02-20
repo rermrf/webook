@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	articlev1 "webook/api/proto/gen/article/v1"
 	"webook/article/domain"
 	"webook/article/service"
@@ -89,5 +90,7 @@ func (a *ArticleGRPCServer) toV(art domain.Article) *articlev1.Article {
 			Name: art.Author.Name,
 		},
 		Status: int32(art.Status.ToUint8()),
+		Ctime:  timestamppb.New(art.Ctime),
+		Utime:  timestamppb.New(art.Utime),
 	}
 }

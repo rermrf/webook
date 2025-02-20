@@ -81,13 +81,22 @@ type GetCommentReq struct {
 	MinId int64 `form:"min_id"`
 	Limit int64 `form:"limit"`
 }
+type GetCommentCntReq struct {
+	Id int64 `form:"id"`
+}
+
+type GetCommentCntResp struct {
+	Cnt int64 `json:"cnt"`
+}
 
 type Comment struct {
-	Id      int64  `json:"id"`
-	BizId   int64  `json:"biz_id"`
-	Content string `json:"content"`
-	Uid     int64  `json:"uid"`
-	Ctime   int64  `json:"ctime"`
+	Id int64 `json:"id"`
+	//BizId   int64  `json:"biz_id"`
+	Content  string `json:"content"`
+	Uid      int64  `json:"uid"`
+	ParentId int64  `json:"parent_id"`
+	RootId   int64  `json:"root_id"`
+	Ctime    int64  `json:"ctime"`
 }
 
 type GetCommentResp struct {

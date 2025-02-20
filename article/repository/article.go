@@ -68,8 +68,8 @@ func (r *CachedArticleRepository) GetPublishedById(ctx context.Context, id int64
 		Title:   art.Title,
 		Content: art.Content,
 		Status:  domain.ArticleStatus(art.Status),
-		Author:  domain.Author{
-			//Id:   user.Id,
+		Author: domain.Author{
+			Id: art.AuthorId,
 			//Name: user.Nickname,
 		},
 		Ctime: time.UnixMilli(art.Ctime),

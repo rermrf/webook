@@ -19,7 +19,7 @@ func (d *GORMCommentDao) Insert(ctx context.Context, u Comment) error {
 
 func (d *GORMCommentDao) FindByBiz(ctx context.Context, biz string, bizId, minId, limit int64) ([]Comment, error) {
 	var res []Comment
-	err := d.db.WithContext(ctx).Where("biz = ? AND biz_id = ? AND id < ? AND pid IS NULL", biz, bizId, minId).Limit(int(limit)).Debug().Find(&res).Error
+	err := d.db.WithContext(ctx).Where("biz = ? AND biz_id = ? AND id < ? AND pid IS NULL", biz, bizId, minId).Limit(int(limit)).Find(&res).Error
 	return res, err
 }
 
@@ -60,6 +60,12 @@ func (d *GORMCommentDao) FindOneByIds(ctx context.Context, ids []int64) ([]Comme
 		Where("id IN (?)", ids).
 		Find(&res).Error
 	return res, err
+}
+
+func (d *GORMCommentDao) GetCommentCntById(ctx context.Context, biz string, bizId int64) (int64, error) {
+	var cnt int64
+	err := d.db.WithContext(ctx).Where("biz = ? AND biz_id = ?", biz, bizId).Find(&Comment{}).Count(&cnt).Error
+	return cnt, err
 }
 
 func (d *GORMCommentDao) FindRepliesByRid(ctx context.Context, rid int64, maxId int64, limit int64) ([]Comment, error) {

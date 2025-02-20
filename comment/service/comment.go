@@ -19,6 +19,11 @@ func (c *commentService) GetCommentList(ctx context.Context, biz string, bizId, 
 	return list, err
 }
 
+func (c *commentService) GetCommentCnt(ctx context.Context, biz string, bizId int64) (int64, error) {
+	cnt, err := c.repo.GetCommentCnt(ctx, biz, bizId)
+	return cnt, err
+}
+
 func (c *commentService) DeleteComment(ctx context.Context, id int64) error {
 	return c.repo.DeleteComment(ctx, domain.Comment{
 		Id: id,

@@ -12,6 +12,7 @@ import (
 	commentv1 "webook/api/proto/gen/comment/v1"
 	intrv1 "webook/api/proto/gen/intr/v1"
 	rewardv1 "webook/api/proto/gen/reward/v1"
+	userv1 "webook/api/proto/gen/user/v1"
 	"webook/article/domain"
 	ijwt "webook/bff/handler/jwt"
 	"webook/pkg/ginx"
@@ -45,15 +46,17 @@ type ArticleHandler struct {
 	intrSvc    intrv1.InteractiveServiceClient
 	reward     rewardv1.RewardServiceClient
 	commentSvc commentv1.CommentServiceClient
+	userSvc    userv1.UserServiceClient
 	l          logger.LoggerV1
 	biz        string
 }
 
-func NewArticleHandler(svc articlev1.ArticleServiceClient, l logger.LoggerV1, intrSvc intrv1.InteractiveServiceClient, reward rewardv1.RewardServiceClient, commentSvc commentv1.CommentServiceClient) *ArticleHandler {
+func NewArticleHandler(svc articlev1.ArticleServiceClient, l logger.LoggerV1, intrSvc intrv1.InteractiveServiceClient, reward rewardv1.RewardServiceClient, commentSvc commentv1.CommentServiceClient, userSvc userv1.UserServiceClient) *ArticleHandler {
 	return &ArticleHandler{
 		svc:        svc,
 		intrSvc:    intrSvc,
 		commentSvc: commentSvc,
+		userSvc:    userSvc,
 		l:          l,
 		biz:        "article",
 		reward:     reward,
@@ -80,6 +83,7 @@ func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 	pub.GET("/interactive", ginx.WrapBodyAndToken(h.l, h.GetInteractive))
 	// 获取评论数据
 	pub.GET("/comment", ginx.WrapBody(h.l, h.GetComment))
+	pub.GET("/comment_cnt", ginx.WrapBody(h.l, h.GetCommentCnt))
 	// 添加评论，传入父 parent 的id，那么就是代表回复了某个评论
 	pub.POST("/comment", ginx.WrapBodyAndToken(h.l, h.CreateComment))
 }
@@ -183,7 +187,7 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context, uc ijwt.UserClaims) (ginx.R
 			Uid:   uc.UserId,
 		})
 		if err != nil {
-			// 几率日志
+			// 记录日志
 			h.l.Error("查询文章相关数据失败", logger.Error(err))
 		}
 		return nil
@@ -208,6 +212,16 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context, uc ijwt.UserClaims) (ginx.R
 	//}()
 
 	intr := getResp.Intr
+	// 读取作者信息
+	userResp, err := h.userSvc.Profile(ctx.Request.Context(), &userv1.ProfileRequest{
+		Id: art.Author.Id,
+	})
+	if err != nil {
+		if err != nil {
+			// 记录日志
+			h.l.Error("查询文章作者相关数据失败", logger.Error(err))
+		}
+	}
 
 	// 这个功能是不是可以让前端，主动发一个 HTTP 请求，来增加一个计数？
 	return ginx.Result{
@@ -218,7 +232,7 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context, uc ijwt.UserClaims) (ginx.R
 			Content: art.Content,
 			// 要把作者信息带出去
 			AuthorId:   art.Author.Id,
-			AuthorName: art.Author.Name,
+			AuthorName: userResp.GetUser().NickName,
 			Ctime:      art.Ctime.Format(time.DateTime),
 			Utime:      art.Utime.Format(time.DateTime),
 			Liked:      intr.Liked,
@@ -439,10 +453,10 @@ func (h *ArticleHandler) GetInteractive(ctx *gin.Context, req InteractiveReq, uc
 func (h *ArticleHandler) GetComment(ctx *gin.Context, req GetCommentReq) (ginx.Result, error) {
 	var minId int64 = 0
 	var limit int64 = 100
-	if req.MinId >= 0 {
+	if req.MinId > 0 {
 		minId = req.MinId
 	}
-	if req.Limit >= 0 {
+	if req.Limit > 0 {
 		limit = req.Limit
 	}
 	resp, err := h.commentSvc.GetCommentList(ctx.Request.Context(), &commentv1.GetCommentListRequest{
@@ -457,10 +471,52 @@ func (h *ArticleHandler) GetComment(ctx *gin.Context, req GetCommentReq) (ginx.R
 			Msg:  "系统错误",
 		}, nil
 	}
+	res := GetCommentResp{
+		Comments: make([]Comment, len(resp.GetComments())),
+	}
+	for i, c := range resp.GetComments() {
+		var pid int64 = 0
+		var rid int64 = 0
+		if c.ParentComment != nil {
+			pid = c.ParentComment.Id
+		}
+		if c.RootComment != nil {
+			rid = c.RootComment.Id
+		}
+		res.Comments[i] = Comment{
+			Id: c.Id,
+			//BizId:	c.Bizid,
+			Content:  c.Content,
+			Uid:      c.Uid,
+			ParentId: pid,
+			RootId:   rid,
+			Ctime:    c.Ctime.AsTime().UnixMilli(),
+		}
+	}
 	return ginx.Result{
 		Code: 2,
 		Msg:  "ok",
-		Data: resp.GetComments(),
+		Data: res,
+	}, nil
+}
+
+func (h *ArticleHandler) GetCommentCnt(ctx *gin.Context, req GetCommentCntReq) (ginx.Result, error) {
+	resp, err := h.commentSvc.GetCommentCnt(ctx.Request.Context(), &commentv1.GetCommentCntRequest{
+		Biz:   h.biz,
+		Bizid: req.Id,
+	})
+	if err != nil {
+		return ginx.Result{
+			Code: 5,
+			Msg:  "系统错误",
+		}, nil
+	}
+	return ginx.Result{
+		Code: 2,
+		Msg:  "ok",
+		Data: GetCommentCntResp{
+			Cnt: resp.GetCnt(),
+		},
 	}, nil
 }
 

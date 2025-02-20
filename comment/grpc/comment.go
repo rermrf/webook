@@ -30,12 +30,22 @@ func (c *CommentServiceServer) GetCommentList(ctx context.Context, request *comm
 		// 从当前最新的评论开始取
 		minID = math.MaxInt64
 	}
-	domainComments, err := c.svc.GetCommentList(ctx, request.GetBiz(), request.GetBizid(), request.GetMinId(), request.GetLimit())
+	domainComments, err := c.svc.GetCommentList(ctx, request.GetBiz(), request.GetBizid(), minID, request.GetLimit())
 	if err != nil {
 		return nil, err
 	}
 	return &commentv1.GetCommentListResponse{
 		Comments: c.toDTO(domainComments),
+	}, nil
+}
+
+func (c *CommentServiceServer) GetCommentCnt(ctx context.Context, request *commentv1.GetCommentCntRequest) (*commentv1.GetCommentCntResponse, error) {
+	cnt, err := c.svc.GetCommentCnt(ctx, request.GetBiz(), request.GetBizid())
+	if err != nil {
+		return nil, err
+	}
+	return &commentv1.GetCommentCntResponse{
+		Cnt: cnt,
 	}, nil
 }
 

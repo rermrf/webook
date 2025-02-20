@@ -13,5 +13,6 @@ type CommentService interface {
 	DeleteComment(ctx context.Context, id int64) error
 	// CreateComment 创建评论
 	CreateComment(ctx context.Context, comment domain.Comment) error
+	GetCommentCnt(ctx context.Context, biz string, bizId int64) (int64, error)
 	GetMoreReplies(ctx context.Context, rid int64, maxID int64, limit int64) ([]domain.Comment, error)
 }

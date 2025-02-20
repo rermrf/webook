@@ -8,6 +8,7 @@ import "google/protobuf/timestamp.proto";
 service CommentService {
   // GetCommentList 获取一级评论
   rpc GetCommentList (GetCommentListRequest) returns (GetCommentListResponse);
+  rpc GetCommentCnt (GetCommentCntRequest) returns (GetCommentCntResponse);
   rpc DeleteComment (DeleteCommentRequest) returns (DeleteCommentResponse);
   rpc CreateComment (CreateCommentRequest) returns (CreateCommentResponse);
   rpc GetMoreReplies (GetMoreRepliesRequest) returns (GetMoreRepliesResponse);
@@ -23,6 +24,15 @@ message GetCommentListRequest {
 
 message GetCommentListResponse {
   repeated Comment comments = 1;
+}
+
+message GetCommentCntRequest {
+  int64 bizid = 1;
+  string biz = 2;
+}
+
+message GetCommentCntResponse {
+  int64 cnt = 1;
 }
 
 message DeleteCommentRequest {
