@@ -18,13 +18,14 @@ import (
 	"webook/pkg/ratelimit"
 )
 
-func InitGin(mdls []gin.HandlerFunc, hdl *handler.UserHandler, oauth2WechatHdl *handler.OAuth2WechatHandler, articleHdl *handler.ArticleHandler, followHdl *handler.FollowHandler) *gin.Engine {
+func InitGin(mdls []gin.HandlerFunc, hdl *handler.UserHandler, oauth2WechatHdl *handler.OAuth2WechatHandler, articleHdl *handler.ArticleHandler, followHdl *handler.FollowHandler, searchHdl *handler.SearchHandler) *gin.Engine {
 	server := gin.Default()
 	server.Use(mdls...)
 	hdl.RegisterRoutes(server)
 	oauth2WechatHdl.RegisterRoutes(server)
 	articleHdl.RegisterRoutes(server)
 	followHdl.RegisterRoutes(server)
+	searchHdl.RegisterRoutes(server)
 	(&handler.ObservabilityHandler{}).RegisterRoutes(server)
 	return server
 }

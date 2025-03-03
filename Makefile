@@ -11,6 +11,14 @@ docker:
 	@docker rmi -f rermrf/webook:v0.0.1
 	@docker build -t rermrf/webook:v0.0.1 .
 
+APPS := user article interactive sms code search bff follow comment
+.PHONY: build $(APPS)
+build: $(APPS)
+$(APPS): %:
+	@#echo "Cleaning older build..."
+	@rm ./cmd/$@ || true
+	@GOOS=linux GOARCH=arm64 go build -o ./cmd ./$@
+
 .PHONY: grpc
 grpc:
 	@buf generate ./api/proto

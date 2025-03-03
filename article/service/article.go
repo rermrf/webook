@@ -142,6 +142,19 @@ func (s *articleService) Publish(ctx context.Context, art domain.Article) (int64
 	//id, err := s.repo.Create(ctx, art)
 	//// 线上库
 	id, err := s.repo.Sync(ctx, art)
+	if err == nil {
+		go func() {
+			err := s.producer.ProduceSyncEvent(ctx, events.SyncArticleEvent{
+				Id:      id,
+				Title:   art.Title,
+				Status:  int32(art.Status),
+				Content: art.Content,
+			})
+			if err != nil {
+				s.l.Error("同步文章到搜索错误", logger.Error(err), logger.Int64("uid", art.Id))
+			}
+		}()
+	}
 	return id, err
 }
 

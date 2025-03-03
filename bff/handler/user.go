@@ -254,8 +254,21 @@ type LoginRequest struct {
 }
 
 func (h *UserHandler) LoginJWT(ctx *gin.Context, req LoginRequest) (ginx.Result, error) {
+	ok, err := h.emailExp.MatchString(req.Email)
+	if err != nil {
+		return ginx.Result{Msg: "系统错误"}, nil
+	}
+	if !ok {
+		return ginx.Result{Msg: "邮箱格式不正确"}, nil
+	}
+	ok, err = h.passwordExp.MatchString(req.Password)
+	if err != nil {
+		return ginx.Result{Msg: "系统错误"}, errors.New("密码匹配错误")
+	}
+	if !ok {
+		return ginx.Result{Msg: "密码格式不正确"}, nil
+	}
 	resp, err := h.svc.Login(ctx, &userv1.LoginRequest{Email: req.Email, Password: req.Password})
-
 	// TODO 利用 grpc 来传递错误码
 	//if errors.Is(err, service2.ErrInvalidUserOrPassword) {
 	//	return ginx.Result{

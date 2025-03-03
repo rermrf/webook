@@ -49,3 +49,7 @@ grpc:
     reward:
       target: "etcd:///service/user"
       secure: false
+    follow:
+      secure: false
+    search:
+      secure: false

@@ -33,7 +33,7 @@ func NewGormArticleDao(db *gorm.DB) ArticleDao {
 func (dao GormArticleDao) ListPub(ctx context.Context, startTime time.Time, offset int, limit int) ([]Article, error) {
 	var res []Article
 	err := dao.db.WithContext(ctx).
-		Where("utime < ?", startTime.UnixMilli()).
+		Where("utime > ?", startTime.UnixMilli()).
 		Order("utime desc").
 		Offset(offset).
 		Limit(limit).

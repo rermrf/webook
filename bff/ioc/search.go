@@ -6,15 +6,15 @@ import (
 	"go.etcd.io/etcd/client/v3/naming/resolver"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	userv1 "webook/api/proto/gen/user/v1"
+	searchv1 "webook/api/proto/gen/search/v1"
 )
 
-func InitUserGRPCClient(client *etcdv3.Client) userv1.UserServiceClient {
+func InitSearchGRPCClient(client *etcdv3.Client) searchv1.SearchServiceClient {
 	type Config struct {
 		Secure bool `yaml:"secure"`
 	}
 	var cfg Config
-	err := viper.UnmarshalKey("grpc.client.user", &cfg)
+	err := viper.UnmarshalKey("grpc.client.follow", &cfg)
 	if err != nil {
 		panic(err)
 	}
@@ -23,19 +23,18 @@ func InitUserGRPCClient(client *etcdv3.Client) userv1.UserServiceClient {
 	if err != nil {
 		panic(err)
 	}
+
 	opts := []grpc.DialOption{grpc.WithResolvers(bd)}
 	if cfg.Secure {
 		// 加载证书之类的东西
 		// 启用 HTTPS
 	} else {
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
-		// 在此添加 grpc 客户端拦截器
-		//opts = append(opts, grpc.WithChainUnaryInterceptor(ratelimit.NewInterceptorBuilder().BuildClientInterceptor()))
 	}
 
-	cc, err := grpc.NewClient("etcd:///service/user", opts...)
+	cc, err := grpc.NewClient("etcd:///service/search", opts...)
 	if err != nil {
 		panic(err)
 	}
-	return userv1.NewUserServiceClient(cc)
+	return searchv1.NewSearchServiceClient(cc)
 }

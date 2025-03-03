@@ -30,6 +30,10 @@ var FollowSet = wire.NewSet(
 	handler.NewFollowHandler,
 )
 
+var SearchSet = wire.NewSet(
+	handler.NewSearchHandler,
+)
+
 var ThirdPartySet = wire.NewSet(
 	ioc.InitRedis,
 	ioc.InitDB,
@@ -68,6 +72,7 @@ var grpcClientSet = wire.NewSet(
 	ioc.InitRewardGRPCClient,
 	ioc.InitFollowGRPCClient,
 	ioc.InitCommentGRPCClient,
+	ioc.InitSearchGRPCClient,
 )
 
 func InitApp() *App {
@@ -78,6 +83,7 @@ func InitApp() *App {
 		ioc.InitMiddlewares,
 		UserSet,
 		FollowSet,
+		SearchSet,
 
 		//CodeSet,
 		ThirdPartySet,

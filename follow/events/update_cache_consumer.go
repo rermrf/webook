@@ -41,7 +41,7 @@ func (c *MysqlBinlogConsumer) Consume(msg *sarama.ConsumerMessage, val canalx.Me
 	defer cancel()
 	for _, data := range val.Data {
 		var err error
-		switch data.Satus {
+		switch data.Status {
 		case uint8(dao.FollowRelationStatusActive):
 			err = c.repo.Cache().Follow(ctx, data.Follower, data.Followee)
 		case uint8(dao.FollowRelationStatusInactive):

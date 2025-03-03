@@ -43,7 +43,9 @@ func InitApp() *App {
 	articleHandler := handler.NewArticleHandler(articleServiceClient, loggerV1, interactiveServiceClient, rewardServiceClient, commentServiceClient, userServiceClient)
 	followServiceClient := ioc.InitFollowGRPCClient(client)
 	followHandler := handler.NewFollowHandler(followServiceClient, userServiceClient, loggerV1)
-	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler, followHandler)
+	searchServiceClient := ioc.InitSearchGRPCClient(client)
+	searchHandler := handler.NewSearchHandler(loggerV1, searchServiceClient)
+	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler, followHandler, searchHandler)
 	saramaClient := ioc.InitKafka()
 	db := ioc.InitDB(loggerV1)
 	interactiveDao := dao.NewGORMInteractiveDao(db)
@@ -74,6 +76,8 @@ var GormArticleSet = wire.NewSet(handler.NewArticleHandler)
 // FollowSet 关注相关依赖
 var FollowSet = wire.NewSet(handler.NewFollowHandler)
 
+var SearchSet = wire.NewSet(handler.NewSearchHandler)
+
 var ThirdPartySet = wire.NewSet(ioc.InitRedis, ioc.InitDB, ioc.InitLogger, jwt.NewRedisJWTHandler, ioc.InitEtcd)
 
 var InteractiveSet = wire.NewSet(service.NewInteractiveService, repository.NewCachedInteractiveRepository, dao.NewGORMInteractiveDao, cache.NewRedisInteractiveCache, events.NewInteractiveReadBatchConsumer)
@@ -82,4 +86,4 @@ var OAuth2Set = wire.NewSet(handler.NewOAuth2WechatHandler)
 
 var KafkaSet = wire.NewSet(ioc.InitKafka, ioc.NewConsumer, ioc.NewSyncProducer, events2.NewKafkaProducer)
 
-var grpcClientSet = wire.NewSet(ioc.InitIntrGRPCClientV2, ioc.InitUserGRPCClient, ioc.InitArticleGRPCClientV1, ioc.InitSMSGRPCClient, ioc.InitCodeGRPCClient, ioc.InitRankingGRPCClient, ioc.InitOAuth2GRPCClient, ioc.InitRewardGRPCClient, ioc.InitFollowGRPCClient, ioc.InitCommentGRPCClient)
+var grpcClientSet = wire.NewSet(ioc.InitIntrGRPCClientV2, ioc.InitUserGRPCClient, ioc.InitArticleGRPCClientV1, ioc.InitSMSGRPCClient, ioc.InitCodeGRPCClient, ioc.InitRankingGRPCClient, ioc.InitOAuth2GRPCClient, ioc.InitRewardGRPCClient, ioc.InitFollowGRPCClient, ioc.InitCommentGRPCClient, ioc.InitSearchGRPCClient)

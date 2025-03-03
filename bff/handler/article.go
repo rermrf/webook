@@ -73,6 +73,7 @@ func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 	g.GET("/detail/:id", ginx.WrapClaims(h.l, h.Detail))
 
 	pub := g.Group("/pub")
+	pub.GET("/articles", ginx.WrapBodyAndToken(h.l, h.PubList))
 	pub.GET("/:id", ginx.WrapClaims(h.l, h.PubDetail))
 
 	pub.POST("/like", ginx.WrapBodyAndToken(h.l, h.Like))
@@ -327,7 +328,18 @@ func (h *ArticleHandler) Publish(ctx *gin.Context, req ArticleReq, uc ijwt.UserC
 }
 
 func (h *ArticleHandler) Edit(ctx *gin.Context, req ArticleReq, uc ijwt.UserClaims) (ginx.Result, error) {
-	// TODO: 检测输入
+	// id不为0说明为更新文章
+	if req.Id != 0 {
+		artResp, err := h.svc.GetById(ctx.Request.Context(), &articlev1.GetByIdRequest{
+			Id: req.Id,
+		})
+		if err != nil {
+			return ginx.Result{Code: 5, Msg: "该帖子并不存在"}, nil
+		}
+		if artResp.GetArticle().GetAuthor().GetId() != uc.UserId {
+			return ginx.Result{Code: 5, Msg: "你不能修改非自己的文章"}, nil
+		}
+	}
 	// 调用 service 的代码
 	art := req.toDomain(req, &uc)
 	id, err := h.svc.Save(ctx.Request.Context(), &articlev1.SaveRequest{Article: &articlev1.Article{
@@ -552,6 +564,64 @@ func (h *ArticleHandler) CreateComment(ctx *gin.Context, req CreateCommentReq, u
 	return ginx.Result{
 		Code: 2,
 		Msg:  "ok",
+	}, nil
+}
+
+func (h *ArticleHandler) PubList(ctx *gin.Context, req GetPubListReq, uc ijwt.UserClaims) (ginx.Result, error) {
+	limit := req.Limit
+	if req.Limit <= 0 {
+		limit = 100
+	}
+	resp, err := h.svc.ListPub(ctx.Request.Context(), &articlev1.ListPubRequest{
+		Limit:     limit,
+		Offset:    req.Offset,
+		StartTime: timestamppb.New(time.Now().AddDate(0, -1, 0)),
+	})
+	if err != nil {
+		return ginx.Result{
+			Code: 5,
+			Msg:  "系统错误",
+		}, err
+	}
+	var res []ArticleVO
+	for _, art := range resp.GetArticles() {
+		// 读取作者信息
+		userResp, err := h.userSvc.Profile(ctx.Request.Context(), &userv1.ProfileRequest{
+			Id: art.Author.Id,
+		})
+		if err != nil {
+			// 记录日志
+			h.l.Error("查询文章作者相关数据失败", logger.Error(err))
+		}
+
+		intrResp, err := h.intrSvc.Get(ctx.Request.Context(), &intrv1.GetRequest{
+			Biz:   h.biz,
+			BizId: art.Id,
+			Uid:   uc.UserId,
+		})
+		if err != nil {
+			// 可能没有数据
+		}
+		res = append(res, ArticleVO{
+			Id:         art.Id,
+			Title:      art.Title,
+			Content:    art.Content,
+			AuthorId:   art.Author.Id,
+			AuthorName: userResp.GetUser().NickName,
+			ReadCnt:    intrResp.GetIntr().GetReadCnt(),
+			LikeCnt:    intrResp.GetIntr().GetLikeCnt(),
+			CollectCnt: intrResp.GetIntr().GetCollectCnt(),
+			Liked:      intrResp.GetIntr().GetLiked(),
+			Collected:  intrResp.GetIntr().GetCollected(),
+			Status:     uint8(art.GetStatus()),
+			Ctime:      art.GetCtime().AsTime().Format(time.DateTime),
+			Utime:      art.GetUtime().AsTime().Format(time.DateTime),
+		})
+	}
+	return ginx.Result{
+		Code: 2,
+		Msg:  "ok",
+		Data: res,
 	}, nil
 }
 

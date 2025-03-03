@@ -109,3 +109,9 @@ type CreateCommentReq struct {
 	ParentId int64  `json:"parent_id"`
 	RootId   int64  `json:"root_id"`
 }
+
+type GetPubListReq struct {
+	Offset int32 `form:"offset"`
+	Limit  int32 `form:"limit"`
+	//startTime int64 `form:"start_time"`
+}
