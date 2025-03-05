@@ -64,7 +64,9 @@ func (svc *UserServiceImpl) SignUp(ctx context.Context, u domain.User) error {
 			Phone:    u.Phone,
 			Nickname: u.Nickname,
 		})
-		svc.l.Error("用户注册数据写入到 kafka 失败", logger.Error(err))
+		if err != nil {
+			svc.l.Error("用户注册数据写入到 kafka 失败", logger.Error(err))
+		}
 	}
 	return err
 }
@@ -93,7 +95,24 @@ func (svc *UserServiceImpl) Profile(ctx context.Context, id int64) (domain.User,
 }
 
 func (svc *UserServiceImpl) EditNoSensitive(ctx context.Context, user domain.User) error {
-	return svc.repo.UpdateNoSensitiveById(ctx, user)
+	err := svc.repo.UpdateNoSensitiveById(ctx, user)
+	if err == nil {
+		u, err := svc.repo.FindById(ctx, user.Id)
+		if err != nil {
+			svc.l.Error("同步用户数据至ES查询失败", logger.Error(err))
+		} else {
+			er := svc.producer.ProduceSyncEvent(ctx, events.SyncUserEvent{
+				Id:       u.Id,
+				Email:    u.Email,
+				Phone:    u.Phone,
+				Nickname: u.Nickname,
+			})
+			if er != nil {
+				svc.l.Error("用户注册数据写入到 kafka 失败", logger.Error(err))
+			}
+		}
+	}
+	return err
 }
 
 func (svc *UserServiceImpl) FindOrCreate(ctx context.Context, phone string) (domain.User, error) {

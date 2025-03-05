@@ -31,6 +31,8 @@ func InitUserGRPCClient(client *etcdv3.Client) userv1.UserServiceClient {
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		// 在此添加 grpc 客户端拦截器
 		//opts = append(opts, grpc.WithChainUnaryInterceptor(ratelimit.NewInterceptorBuilder().BuildClientInterceptor()))
+		// grpc 负载均衡
+		//opts = append(opts, grpc.WithResolvers())
 	}
 
 	cc, err := grpc.NewClient("etcd:///service/user", opts...)
