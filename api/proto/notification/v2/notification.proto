@@ -1,0 +1,325 @@
+syntax = "proto3";
+
+package notification.v2;
+option go_package = "/notification/v2;notificationv2";
+
+// ============================================================
+// 枚举定义
+// ============================================================
+
+// Channel 通知渠道
+enum Channel {
+  CHANNEL_UNSPECIFIED = 0;
+  CHANNEL_IN_APP = 1;  // 站内通知
+  CHANNEL_SMS = 2;     // 短信
+  CHANNEL_EMAIL = 3;   // 邮件
+}
+
+// SendStrategy 发送策略
+enum SendStrategy {
+  SEND_STRATEGY_UNSPECIFIED = 0;
+  SEND_STRATEGY_IMMEDIATE = 1;   // 立即发送
+  SEND_STRATEGY_SCHEDULED = 2;   // 定时发送(预留)
+}
+
+// NotificationStatus 通知状态
+enum NotificationStatus {
+  NOTIFICATION_STATUS_UNSPECIFIED = 0;
+  NOTIFICATION_STATUS_INIT = 1;     // 初始化
+  NOTIFICATION_STATUS_SENDING = 2;  // 发送中
+  NOTIFICATION_STATUS_SENT = 3;     // 已发送
+  NOTIFICATION_STATUS_FAILED = 4;   // 发送失败
+}
+
+// TransactionStatus 事务状态
+enum TransactionStatus {
+  TRANSACTION_STATUS_UNSPECIFIED = 0;
+  TRANSACTION_STATUS_PREPARED = 1;   // 已预提交
+  TRANSACTION_STATUS_CONFIRMED = 2;  // 已确认
+  TRANSACTION_STATUS_CANCELLED = 3;  // 已取消
+}
+
+// TransactionAction 事务回查结果
+enum TransactionAction {
+  TRANSACTION_ACTION_UNSPECIFIED = 0;
+  TRANSACTION_ACTION_COMMIT = 1;    // 确认发送
+  TRANSACTION_ACTION_ROLLBACK = 2;  // 回滚取消
+  TRANSACTION_ACTION_PENDING = 3;   // 处理中
+}
+
+// NotificationGroup 站内通知分组
+enum NotificationGroup {
+  NOTIFICATION_GROUP_UNSPECIFIED = 0;
+  NOTIFICATION_GROUP_INTERACTION = 1;  // 互动消息
+  NOTIFICATION_GROUP_REPLY = 2;        // 回复我的
+  NOTIFICATION_GROUP_MENTION = 3;      // @我的
+  NOTIFICATION_GROUP_FOLLOW = 4;       // 关注
+  NOTIFICATION_GROUP_SYSTEM = 5;       // 系统通知
+}
+
+// ============================================================
+// 消息定义
+// ============================================================
+
+// Notification 通知消息
+message Notification {
+  string key = 1;
+  repeated string receivers = 2;
+  Channel channel = 3;
+  string template_id = 4;
+  map<string, string> template_params = 5;
+  SendStrategy strategy = 6;
+  string receiver = 7;
+  NotificationGroup group_type = 8;
+  int64 source_id = 9;
+  string source_name = 10;
+  int64 target_id = 11;
+  string target_type = 12;
+  string target_title = 13;
+}
+
+// NotificationItem 通知列表项
+message NotificationItem {
+  int64 id = 1;
+  string key = 2;
+  string biz_id = 3;
+  Channel channel = 4;
+  string receiver = 5;
+  int64 user_id = 6;
+  string template_id = 7;
+  map<string, string> template_params = 8;
+  string content = 9;
+  NotificationStatus status = 10;
+  SendStrategy strategy = 11;
+  NotificationGroup group_type = 12;
+  int64 source_id = 13;
+  string source_name = 14;
+  int64 target_id = 15;
+  string target_type = 16;
+  string target_title = 17;
+  bool is_read = 18;
+  int64 ctime = 19;
+  int64 utime = 20;
+}
+
+// Template 通知模板
+message Template {
+  int64 id = 1;
+  string template_id = 2;
+  Channel channel = 3;
+  string name = 4;
+  string content = 5;
+  string description = 6;
+  int32 status = 7;
+  string sms_sign = 8;
+  string sms_provider_template_id = 9;
+  int64 ctime = 10;
+  int64 utime = 11;
+}
+
+// ============================================================
+// 请求/响应消息
+// ============================================================
+
+// Send 发送通知
+message SendRequest {
+  Notification notification = 1;
+}
+
+message SendResponse {
+}
+
+// BatchSend 批量发送通知
+message BatchSendRequest {
+  repeated Notification notifications = 1;
+}
+
+message BatchSendResponse {
+}
+
+// Prepare 事务预提交
+message PrepareRequest {
+  Notification notification = 1;
+  string biz_id = 2;
+  int64 check_back_timeout_ms = 3;
+}
+
+message PrepareResponse {
+}
+
+// Confirm 事务确认
+message ConfirmRequest {
+  string key = 1;
+}
+
+message ConfirmResponse {
+}
+
+// Cancel 事务取消
+message CancelRequest {
+  string key = 1;
+}
+
+message CancelResponse {
+}
+
+// CreateTemplate 创建模板
+message CreateTemplateRequest {
+  Template template = 1;
+}
+
+message CreateTemplateResponse {
+  int64 id = 1;
+}
+
+// UpdateTemplate 更新模板
+message UpdateTemplateRequest {
+  Template template = 1;
+}
+
+message UpdateTemplateResponse {
+}
+
+// GetTemplate 获取模板
+message GetTemplateRequest {
+  string template_id = 1;
+}
+
+message GetTemplateResponse {
+  Template template = 1;
+}
+
+// ListTemplates 模板列表
+message ListTemplatesRequest {
+  int32 offset = 1;
+  int32 limit = 2;
+}
+
+message ListTemplatesResponse {
+  repeated Template templates = 1;
+}
+
+// ListNotifications 通知列表
+message ListNotificationsRequest {
+  int64 user_id = 1;
+  int32 offset = 2;
+  int32 limit = 3;
+}
+
+message ListNotificationsResponse {
+  repeated NotificationItem notifications = 1;
+}
+
+// ListByGroup 按分组获取通知列表
+message ListByGroupRequest {
+  int64 user_id = 1;
+  NotificationGroup group = 2;
+  int32 offset = 3;
+  int32 limit = 4;
+}
+
+message ListByGroupResponse {
+  repeated NotificationItem notifications = 1;
+}
+
+// ListUnread 获取未读通知列表
+message ListUnreadRequest {
+  int64 user_id = 1;
+  int32 offset = 2;
+  int32 limit = 3;
+}
+
+message ListUnreadResponse {
+  repeated NotificationItem notifications = 1;
+}
+
+// MarkAsRead 标记单条通知已读
+message MarkAsReadRequest {
+  int64 user_id = 1;
+  int64 id = 2;
+}
+
+message MarkAsReadResponse {
+}
+
+// MarkAllAsRead 标记全部通知已读
+message MarkAllAsReadRequest {
+  int64 user_id = 1;
+}
+
+message MarkAllAsReadResponse {
+}
+
+// GetUnreadCount 获取未读数统计
+message GetUnreadCountRequest {
+  int64 user_id = 1;
+}
+
+message GetUnreadCountResponse {
+  int64 total = 1;
+  map<int32, int64> by_group = 2;
+}
+
+// Delete 删除通知
+message DeleteRequest {
+  int64 user_id = 1;
+  int64 id = 2;
+}
+
+message DeleteResponse {
+}
+
+// DeleteAll 删除所有通知
+message DeleteAllRequest {
+  int64 user_id = 1;
+}
+
+message DeleteAllResponse {
+}
+
+// ============================================================
+// 服务定义
+// ============================================================
+
+service NotificationService {
+  // Send 发送通知
+  rpc Send(SendRequest) returns (SendResponse);
+  // BatchSend 批量发送通知
+  rpc BatchSend(BatchSendRequest) returns (BatchSendResponse);
+
+  // Prepare 事务预提交
+  rpc Prepare(PrepareRequest) returns (PrepareResponse);
+  // Confirm 事务确认
+  rpc Confirm(ConfirmRequest) returns (ConfirmResponse);
+  // Cancel 事务取消
+  rpc Cancel(CancelRequest) returns (CancelResponse);
+
+  // CreateTemplate 创建模板
+  rpc CreateTemplate(CreateTemplateRequest) returns (CreateTemplateResponse);
+  // UpdateTemplate 更新模板
+  rpc UpdateTemplate(UpdateTemplateRequest) returns (UpdateTemplateResponse);
+  // GetTemplate 获取模板
+  rpc GetTemplate(GetTemplateRequest) returns (GetTemplateResponse);
+  // ListTemplates 模板列表
+  rpc ListTemplates(ListTemplatesRequest) returns (ListTemplatesResponse);
+
+  // ListNotifications 通知列表
+  rpc ListNotifications(ListNotificationsRequest) returns (ListNotificationsResponse);
+  // ListByGroup 按分组获取通知列表
+  rpc ListByGroup(ListByGroupRequest) returns (ListByGroupResponse);
+  // ListUnread 获取未读通知列表
+  rpc ListUnread(ListUnreadRequest) returns (ListUnreadResponse);
+
+  // MarkAsRead 标记单条通知已读
+  rpc MarkAsRead(MarkAsReadRequest) returns (MarkAsReadResponse);
+  // MarkAllAsRead 标记全部通知已读
+  rpc MarkAllAsRead(MarkAllAsReadRequest) returns (MarkAllAsReadResponse);
+
+  // GetUnreadCount 获取未读数统计
+  rpc GetUnreadCount(GetUnreadCountRequest) returns (GetUnreadCountResponse);
+
+  // Delete 删除通知
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+  // DeleteAll 删除所有通知
+  rpc DeleteAll(DeleteAllRequest) returns (DeleteAllResponse);
+}

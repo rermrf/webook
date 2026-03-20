@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package notification.v2;
+option go_package = "/notification/v2;notificationv2";
+
+import "notification/v2/notification.proto";
+
+// TransactionChecker 事务回查服务
+service TransactionChecker {
+  // CheckTransaction 回查事务状态
+  rpc CheckTransaction(CheckTransactionRequest) returns (CheckTransactionResponse);
+}
+
+// CheckTransactionRequest 事务回查请求
+message CheckTransactionRequest {
+  string key = 1;
+}
+
+// CheckTransactionResponse 事务回查响应
+message CheckTransactionResponse {
+  TransactionAction action = 1;
+}
