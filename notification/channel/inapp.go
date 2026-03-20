@@ -13,7 +13,7 @@ type InAppSender struct {
 	repo repository.NotificationRepository
 }
 
-func NewInAppSender(repo repository.NotificationRepository) Sender {
+func NewInAppSender(repo repository.NotificationRepository) *InAppSender {
 	return &InAppSender{
 		repo: repo,
 	}

@@ -1,0 +1,40 @@
+package main
+
+import (
+	"context"
+
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
+)
+
+func main() {
+	initViper()
+	app := InitApp()
+
+	// 启动消费者
+	for _, consumer := range app.consumers {
+		err := consumer.Start()
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	// 启动事务回查调度器
+	go app.scheduler.Start(context.Background())
+
+	// 启动 gRPC 服务
+	err := app.server.Serve()
+	if err != nil {
+		panic(err)
+	}
+}
+
+func initViper() {
+	cfile := pflag.String("config", "config/dev.yaml", "配置文件路径")
+	pflag.Parse()
+	viper.SetConfigFile(*cfile)
+	err := viper.ReadInConfig()
+	if err != nil {
+		panic(err)
+	}
+}

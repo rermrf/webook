@@ -13,7 +13,7 @@ type SMSSender struct {
 	tplRepo  repository.TemplateRepository
 }
 
-func NewSMSSender(provider SMSProvider, tplRepo repository.TemplateRepository) Sender {
+func NewSMSSender(provider SMSProvider, tplRepo repository.TemplateRepository) *SMSSender {
 	return &SMSSender{
 		provider: provider,
 		tplRepo:  tplRepo,

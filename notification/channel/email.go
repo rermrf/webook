@@ -9,7 +9,7 @@ import (
 // EmailSender 邮件渠道发送器（占位实现）
 type EmailSender struct{}
 
-func NewEmailSender() Sender {
+func NewEmailSender() *EmailSender {
 	return &EmailSender{}
 }
 
