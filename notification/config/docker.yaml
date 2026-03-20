@@ -1,0 +1,29 @@
+# Notification 服务 Docker 配置
+db:
+  mysql:
+    dsn: "root:root@tcp(mysql:3306)/webook_notification?charset=utf8mb4&parseTime=True&loc=Local"
+
+redis:
+  addr: "redis:6379"
+
+kafka:
+  addrs:
+    - "kafka:9092"
+
+grpc:
+  server:
+    port: 8100
+    etcdAddrs:
+      - "etcd:2379"
+
+etcd:
+  addrs:
+    - "etcd:2379"
+
+sms:
+  provider: "aliyun"
+  aliyun:
+    accessKeyId: ""
+    accessKeySecret: ""
+    signName: ""
+    endpoint: ""

@@ -1,0 +1,32 @@
+db:
+  mysql:
+    dsn: "root:root@tcp(localhost:13306)/webook?charset=utf8mb4&parseTime=True&loc=Local"
+
+redis:
+  addr: "localhost:6379"
+
+kafka:
+  addrs:
+    - "localhost:9094"
+
+grpc:
+  server:
+    port: 8095
+    etcdAddrs:
+      - "localhost:12379"
+
+log:
+  level: debug
+  development: true
+
+etcd:
+  addrs:
+    - "localhost:12379"
+
+sms:
+  provider: "aliyun"
+  aliyun:
+    accessKeyId: ""
+    accessKeySecret: ""
+    signName: ""
+    endpoint: ""
