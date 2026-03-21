@@ -1,0 +1,12 @@
+mongo:
+  uri: "mongodb://mongo:27017"
+  dbName: "webook_im"
+
+redis:
+  addr: "redis:6379"
+
+grpc:
+  server:
+    port: 8101
+    etcdAddrs:
+      - "etcd:2379"
