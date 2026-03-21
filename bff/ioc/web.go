@@ -1,11 +1,6 @@
 package ioc
 
 import (
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/redis/go-redis/v9"
-	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"strings"
 	"time"
 	"webook/bff/handler"
@@ -16,9 +11,15 @@ import (
 	limitbuilder "webook/pkg/ginx/middlewares/ratelimit"
 	logger2 "webook/pkg/logger"
 	"webook/pkg/ratelimit"
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/redis/go-redis/v9"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
 
-func InitGin(mdls []gin.HandlerFunc, hdl *handler.UserHandler, oauth2WechatHdl *handler.OAuth2WechatHandler, articleHdl *handler.ArticleHandler, followHdl *handler.FollowHandler, searchHdl *handler.SearchHandler) *gin.Engine {
+func InitGin(mdls []gin.HandlerFunc, hdl *handler.UserHandler, oauth2WechatHdl *handler.OAuth2WechatHandler, articleHdl *handler.ArticleHandler, followHdl *handler.FollowHandler, searchHdl *handler.SearchHandler, notificationHdl *handler.NotificationHandler, creditHdl *handler.CreditHandler, tagHdl *handler.TagHandler, feedHdl *handler.FeedHandler, rankingHdl *handler.RankingHandler, imHdl *handler.IMHandler) *gin.Engine {
 	server := gin.Default()
 	server.Use(mdls...)
 	hdl.RegisterRoutes(server)
@@ -26,6 +27,12 @@ func InitGin(mdls []gin.HandlerFunc, hdl *handler.UserHandler, oauth2WechatHdl *
 	articleHdl.RegisterRoutes(server)
 	followHdl.RegisterRoutes(server)
 	searchHdl.RegisterRoutes(server)
+	notificationHdl.RegisterRoutes(server)
+	creditHdl.RegisterRoutes(server)
+	tagHdl.RegisterRoutes(server)
+	feedHdl.RegisterRoutes(server)
+	rankingHdl.RegisterRoutes(server)
+	imHdl.RegisterRoutes(server)
 	(&handler.ObservabilityHandler{}).RegisterRoutes(server)
 	return server
 }
@@ -77,7 +84,7 @@ func InitMiddlewares(redisClient redis.Cmdable, jwtHandler ijwt.Handler, l logge
 
 func corsHdl() gin.HandlerFunc {
 	return cors.New(cors.Config{
-		// AllowOrigins: []string{"http://localhost:3000"},
+		AllowOrigins: []string{"http://localhost:3000"},
 		AllowMethods: cors.DefaultConfig().AllowMethods,
 		AllowHeaders: []string{"Content-Type", "Authorization"},
 		// 不加这个，前端拿不到

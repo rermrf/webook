@@ -3,8 +3,8 @@
 package main
 
 import (
-	"github.com/google/wire"
 	article3 "webook/article/events"
+	bffevents "webook/bff/events"
 	"webook/bff/handler"
 	ijwt "webook/bff/handler/jwt"
 	"webook/bff/ioc"
@@ -13,6 +13,8 @@ import (
 	cache2 "webook/interactive/repository/cache"
 	dao2 "webook/interactive/repository/dao"
 	service2 "webook/interactive/service"
+
+	"github.com/google/wire"
 )
 
 // User 相关依赖
@@ -32,6 +34,35 @@ var FollowSet = wire.NewSet(
 
 var SearchSet = wire.NewSet(
 	handler.NewSearchHandler,
+)
+
+// TagSet 标签相关依赖
+var TagSet = wire.NewSet(
+	handler.NewTagHandler,
+	ioc.InitTagGRPCClient,
+)
+
+// FeedSet Feed 相关依赖
+var FeedSet = wire.NewSet(
+	handler.NewFeedHandler,
+	ioc.InitFeedGRPCClient,
+)
+
+// RankingSet 排行榜相关依赖
+var RankingSet = wire.NewSet(
+	handler.NewRankingHandler,
+)
+
+// NotificationSet 通知相关依赖
+var NotificationSet = wire.NewSet(
+	handler.NewNotificationHandler,
+	ioc.InitNotificationGRPCClient,
+	ioc.InitSSEHub,
+)
+
+// NotificationProducerSet 通知事件生产者
+var NotificationProducerSet = wire.NewSet(
+	bffevents.NewSaramaNotificationProducer,
 )
 
 var ThirdPartySet = wire.NewSet(
@@ -73,6 +104,18 @@ var grpcClientSet = wire.NewSet(
 	ioc.InitFollowGRPCClient,
 	ioc.InitCommentGRPCClient,
 	ioc.InitSearchGRPCClient,
+	ioc.InitCreditGRPCClient,
+)
+
+var CreditSet = wire.NewSet(
+	handler.NewCreditHandler,
+)
+
+// IMSet IM 私信相关依赖
+var IMSet = wire.NewSet(
+	handler.NewIMHandler,
+	ioc.InitIMGRPCClient,
+	ioc.InitIMHub,
 )
 
 func InitApp() *App {
@@ -84,6 +127,13 @@ func InitApp() *App {
 		UserSet,
 		FollowSet,
 		SearchSet,
+		NotificationSet,
+		NotificationProducerSet,
+		CreditSet,
+		IMSet,
+		TagSet,
+		FeedSet,
+		RankingSet,
 
 		//CodeSet,
 		ThirdPartySet,

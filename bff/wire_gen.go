@@ -8,11 +8,12 @@ package main
 
 import (
 	"github.com/google/wire"
-	events2 "webook/article/events"
+	events3 "webook/article/events"
+	"webook/bff/events"
 	"webook/bff/handler"
 	"webook/bff/handler/jwt"
 	"webook/bff/ioc"
-	"webook/interactive/events"
+	events2 "webook/interactive/events"
 	"webook/interactive/repository"
 	"webook/interactive/repository/cache"
 	"webook/interactive/repository/dao"
@@ -33,27 +34,42 @@ func InitApp() *App {
 	client := ioc.InitEtcd()
 	userServiceClient := ioc.InitUserGRPCClient(client)
 	codeServiceClient := ioc.InitCodeGRPCClient(client)
-	userHandler := handler.NewUserHandler(userServiceClient, codeServiceClient, cmdable, jwtHandler, loggerV1)
+	followServiceClient := ioc.InitFollowGRPCClient(client)
+	articleServiceClient := ioc.InitArticleGRPCClientV1(client)
+	userHandler := handler.NewUserHandler(userServiceClient, codeServiceClient, followServiceClient, articleServiceClient, cmdable, jwtHandler, loggerV1)
 	oauth2ServiceClient := ioc.InitOAuth2GRPCClient(client)
 	oAuth2WechatHandler := handler.NewOAuth2WechatHandler(oauth2ServiceClient, userServiceClient, jwtHandler)
-	articleServiceClient := ioc.InitArticleGRPCClientV1(client)
 	interactiveServiceClient := ioc.InitIntrGRPCClientV2(client)
 	rewardServiceClient := ioc.InitRewardGRPCClient(client)
 	commentServiceClient := ioc.InitCommentGRPCClient(client)
-	articleHandler := handler.NewArticleHandler(articleServiceClient, loggerV1, interactiveServiceClient, rewardServiceClient, commentServiceClient, userServiceClient)
-	followServiceClient := ioc.InitFollowGRPCClient(client)
-	followHandler := handler.NewFollowHandler(followServiceClient, userServiceClient, loggerV1)
-	searchServiceClient := ioc.InitSearchGRPCClient(client)
-	searchHandler := handler.NewSearchHandler(loggerV1, searchServiceClient)
-	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler, followHandler, searchHandler)
+	tagServiceClient := ioc.InitTagGRPCClient(client)
 	saramaClient := ioc.InitKafka()
+	syncProducer := ioc.NewSyncProducer(saramaClient)
+	notificationProducer := events.NewSaramaNotificationProducer(syncProducer)
+	articleHandler := handler.NewArticleHandler(articleServiceClient, loggerV1, interactiveServiceClient, rewardServiceClient, commentServiceClient, userServiceClient, followServiceClient, tagServiceClient, notificationProducer)
+	followHandler := handler.NewFollowHandler(followServiceClient, userServiceClient, notificationProducer, loggerV1)
+	searchServiceClient := ioc.InitSearchGRPCClient(client)
+	rankingServiceClient := ioc.InitRankingGRPCClient(client)
+	searchHandler := handler.NewSearchHandler(loggerV1, searchServiceClient, userServiceClient, interactiveServiceClient, followServiceClient, rankingServiceClient)
+	notificationServiceClient := ioc.InitNotificationGRPCClient(client)
+	hub := ioc.InitSSEHub(cmdable, loggerV1)
+	notificationHandler := handler.NewNotificationHandler(notificationServiceClient, hub, loggerV1)
+	creditServiceClient := ioc.InitCreditGRPCClient(client)
+	creditHandler := handler.NewCreditHandler(creditServiceClient, loggerV1)
+	tagHandler := handler.NewTagHandler(tagServiceClient, loggerV1)
+	feedSvcClient := ioc.InitFeedGRPCClient(client)
+	feedHandler := handler.NewFeedHandler(feedSvcClient, articleServiceClient, userServiceClient, interactiveServiceClient, commentServiceClient, tagServiceClient, loggerV1)
+	rankingHandler := handler.NewRankingHandler(rankingServiceClient, interactiveServiceClient, commentServiceClient, loggerV1)
+	imServiceClient := ioc.InitIMGRPCClient(client)
+	imHub := ioc.InitIMHub(cmdable, imServiceClient, loggerV1)
+	imHandler := handler.NewIMHandler(imServiceClient, imHub, loggerV1)
+	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler, followHandler, searchHandler, notificationHandler, creditHandler, tagHandler, feedHandler, rankingHandler, imHandler)
 	db := ioc.InitDB(loggerV1)
 	interactiveDao := dao.NewGORMInteractiveDao(db)
 	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
 	interactiveRepository := repository.NewCachedInteractiveRepository(interactiveDao, interactiveCache, loggerV1)
-	interactiveReadBatchConsumer := events.NewInteractiveReadBatchConsumer(saramaClient, loggerV1, interactiveRepository)
+	interactiveReadBatchConsumer := events2.NewInteractiveReadBatchConsumer(saramaClient, loggerV1, interactiveRepository)
 	v2 := ioc.NewConsumer(interactiveReadBatchConsumer)
-	rankingServiceClient := ioc.InitRankingGRPCClient(client)
 	rlockClient := ioc.InitRLockClient(cmdable)
 	rankingJob := ioc.InitRankingJob(rankingServiceClient, rlockClient, loggerV1)
 	cron := ioc.InitJob(loggerV1, rankingJob)
@@ -78,12 +94,32 @@ var FollowSet = wire.NewSet(handler.NewFollowHandler)
 
 var SearchSet = wire.NewSet(handler.NewSearchHandler)
 
+// TagSet 标签相关依赖
+var TagSet = wire.NewSet(handler.NewTagHandler, ioc.InitTagGRPCClient)
+
+// FeedSet Feed 相关依赖
+var FeedSet = wire.NewSet(handler.NewFeedHandler, ioc.InitFeedGRPCClient)
+
+// RankingSet 排行榜相关依赖
+var RankingSet = wire.NewSet(handler.NewRankingHandler)
+
+// NotificationSet 通知相关依赖
+var NotificationSet = wire.NewSet(handler.NewNotificationHandler, ioc.InitNotificationGRPCClient, ioc.InitSSEHub)
+
+// NotificationProducerSet 通知事件生产者
+var NotificationProducerSet = wire.NewSet(events.NewSaramaNotificationProducer)
+
 var ThirdPartySet = wire.NewSet(ioc.InitRedis, ioc.InitDB, ioc.InitLogger, jwt.NewRedisJWTHandler, ioc.InitEtcd)
 
-var InteractiveSet = wire.NewSet(service.NewInteractiveService, repository.NewCachedInteractiveRepository, dao.NewGORMInteractiveDao, cache.NewRedisInteractiveCache, events.NewInteractiveReadBatchConsumer)
+var InteractiveSet = wire.NewSet(service.NewInteractiveService, repository.NewCachedInteractiveRepository, dao.NewGORMInteractiveDao, cache.NewRedisInteractiveCache, events2.NewInteractiveReadBatchConsumer)
 
 var OAuth2Set = wire.NewSet(handler.NewOAuth2WechatHandler)
 
-var KafkaSet = wire.NewSet(ioc.InitKafka, ioc.NewConsumer, ioc.NewSyncProducer, events2.NewKafkaProducer)
+var KafkaSet = wire.NewSet(ioc.InitKafka, ioc.NewConsumer, ioc.NewSyncProducer, events3.NewKafkaProducer)
 
-var grpcClientSet = wire.NewSet(ioc.InitIntrGRPCClientV2, ioc.InitUserGRPCClient, ioc.InitArticleGRPCClientV1, ioc.InitSMSGRPCClient, ioc.InitCodeGRPCClient, ioc.InitRankingGRPCClient, ioc.InitOAuth2GRPCClient, ioc.InitRewardGRPCClient, ioc.InitFollowGRPCClient, ioc.InitCommentGRPCClient, ioc.InitSearchGRPCClient)
+var grpcClientSet = wire.NewSet(ioc.InitIntrGRPCClientV2, ioc.InitUserGRPCClient, ioc.InitArticleGRPCClientV1, ioc.InitSMSGRPCClient, ioc.InitCodeGRPCClient, ioc.InitRankingGRPCClient, ioc.InitOAuth2GRPCClient, ioc.InitRewardGRPCClient, ioc.InitFollowGRPCClient, ioc.InitCommentGRPCClient, ioc.InitSearchGRPCClient, ioc.InitCreditGRPCClient)
+
+var CreditSet = wire.NewSet(handler.NewCreditHandler)
+
+// IMSet IM 私信相关依赖
+var IMSet = wire.NewSet(handler.NewIMHandler, ioc.InitIMGRPCClient, ioc.InitIMHub)
