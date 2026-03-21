@@ -50,7 +50,8 @@ func InitApp() *App {
 	v2 := ioc.NewConsumers(notificationEventConsumer, likeEventConsumer, collectEventConsumer, commentEventConsumer, followEventConsumer)
 	clientv3Client := ioc.InitETCDClient()
 	checkBackScheduler := ioc.InitCheckBackScheduler(transactionRepository, notificationService, clientv3Client, loggerV1)
-	cron := ioc.InitCronJobs(loggerV1, checkBackScheduler)
+	scheduledSendJob := ioc.InitScheduledSendJob(notificationRepository, v, loggerV1)
+	cron := ioc.InitCronJobs(loggerV1, checkBackScheduler, scheduledSendJob)
 	app := &App{
 		server:    server,
 		consumers: v2,
@@ -69,6 +70,6 @@ var channelSet = wire.NewSet(channel.NewInAppSender, channel.NewSMSSender, chann
 
 var notificationSet = wire.NewSet(grpc.NewNotificationServiceServer, service.NewNotificationService, repository.NewCachedNotificationRepository, repository.NewTransactionRepository, dao.NewGORMNotificationDAO, dao.NewGORMTransactionDAO, cache.NewRedisNotificationCache)
 
-var schedulerSet = wire.NewSet(ioc.InitCheckBackScheduler, ioc.InitCronJobs)
+var schedulerSet = wire.NewSet(ioc.InitCheckBackScheduler, ioc.InitScheduledSendJob, ioc.InitCronJobs)
 
 var consumerSet = wire.NewSet(events.NewNotificationEventConsumer, events.NewLikeEventConsumer, events.NewCollectEventConsumer, events.NewCommentEventConsumer, events.NewFollowEventConsumer, ioc.NewConsumers)

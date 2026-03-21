@@ -50,6 +50,7 @@ var notificationSet = wire.NewSet(
 
 var schedulerSet = wire.NewSet(
 	ioc.InitCheckBackScheduler,
+	ioc.InitScheduledSendJob,
 	ioc.InitCronJobs,
 )
 

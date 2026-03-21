@@ -13,6 +13,7 @@ type Notification struct {
 	Content        string
 	Status         NotificationStatus
 	Strategy       SendStrategy
+	ScheduledTime  int64 // 延迟发送的指定时间点（Unix 毫秒），0 表示立即发送
 	GroupType      NotificationGroup
 	SourceId       int64
 	SourceName     string

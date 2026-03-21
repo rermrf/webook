@@ -19,7 +19,7 @@ enum Channel {
 enum SendStrategy {
   SEND_STRATEGY_UNSPECIFIED = 0;
   SEND_STRATEGY_IMMEDIATE = 1;   // 立即发送
-  SEND_STRATEGY_SCHEDULED = 2;   // 定时发送(预留)
+  SEND_STRATEGY_SCHEDULED = 2;   // 延迟发送（指定时间点）
 }
 
 // NotificationStatus 通知状态
@@ -76,6 +76,8 @@ message Notification {
   int64 target_id = 11;
   string target_type = 12;
   string target_title = 13;
+  // 延迟发送的指定时间点（Unix 毫秒），仅 strategy=SCHEDULED 时有效
+  int64 scheduled_time = 14;
 }
 
 // NotificationItem 通知列表项

@@ -22,6 +22,7 @@ type NotificationDAO interface {
 	UpdateStatus(ctx context.Context, id int64, status uint8) error
 	Delete(ctx context.Context, userId int64, id int64) error
 	DeleteByUserId(ctx context.Context, userId int64) error
+	FindScheduledReady(ctx context.Context, now int64, limit int) ([]Notification, error)
 }
 
 type GORMNotificationDAO struct {
@@ -172,6 +173,16 @@ func (d *GORMNotificationDAO) DeleteByUserId(ctx context.Context, userId int64) 
 		Delete(&Notification{}).Error
 }
 
+func (d *GORMNotificationDAO) FindScheduledReady(ctx context.Context, now int64, limit int) ([]Notification, error) {
+	var res []Notification
+	err := d.db.WithContext(ctx).
+		Where("strategy = ? AND status = ? AND scheduled_time <= ?", 2, 1, now).
+		Order("scheduled_time ASC").
+		Limit(limit).
+		Find(&res).Error
+	return res, err
+}
+
 // Notification 通知表
 // 索引设计：
 // 1. uk_key_channel: (key_field, channel) - 唯一索引，幂等性保证
@@ -191,6 +202,7 @@ type Notification struct {
 	Content        string `gorm:"type:text"`
 	Status         uint8
 	Strategy       uint8
+	ScheduledTime  int64  `gorm:"index:idx_scheduled"`
 	GroupType      uint8  `gorm:"index:idx_user_group"`
 	SourceId       int64
 	SourceName     string `gorm:"type:varchar(128)"`

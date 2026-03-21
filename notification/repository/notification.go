@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"webook/notification/domain"
 	"webook/notification/repository/cache"
@@ -24,6 +25,7 @@ type NotificationRepository interface {
 	UpdateStatus(ctx context.Context, id int64, status domain.NotificationStatus) error
 	Delete(ctx context.Context, userId int64, id int64) error
 	DeleteAll(ctx context.Context, userId int64) error
+	FindScheduledReady(ctx context.Context, limit int) ([]domain.Notification, error)
 }
 
 type CachedNotificationRepository struct {
@@ -247,6 +249,15 @@ func (r *CachedNotificationRepository) publishSSE(userId int64, n domain.Notific
 	}
 }
 
+func (r *CachedNotificationRepository) FindScheduledReady(ctx context.Context, limit int) ([]domain.Notification, error) {
+	now := time.Now().UnixMilli()
+	entities, err := r.dao.FindScheduledReady(ctx, now, limit)
+	if err != nil {
+		return nil, err
+	}
+	return r.toDomainList(entities), nil
+}
+
 func (r *CachedNotificationRepository) toEntity(n domain.Notification) dao.Notification {
 	params := ""
 	if len(n.TemplateParams) > 0 {
@@ -264,6 +275,7 @@ func (r *CachedNotificationRepository) toEntity(n domain.Notification) dao.Notif
 		Content:        n.Content,
 		Status:         uint8(n.Status),
 		Strategy:       uint8(n.Strategy),
+		ScheduledTime:  n.ScheduledTime,
 		GroupType:      uint8(n.GroupType),
 		SourceId:       n.SourceId,
 		SourceName:     n.SourceName,
@@ -291,6 +303,7 @@ func (r *CachedNotificationRepository) toDomain(e dao.Notification) domain.Notif
 		Content:        e.Content,
 		Status:         domain.NotificationStatus(e.Status),
 		Strategy:       domain.SendStrategy(e.Strategy),
+		ScheduledTime:  e.ScheduledTime,
 		GroupType:      domain.NotificationGroup(e.GroupType),
 		SourceId:       e.SourceId,
 		SourceName:     e.SourceName,

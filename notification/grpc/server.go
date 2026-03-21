@@ -253,6 +253,7 @@ func (s *NotificationServiceServer) toDomain(n *notificationv2.Notification) dom
 		TemplateId:     n.GetTemplateId(),
 		TemplateParams: n.GetTemplateParams(),
 		Strategy:       domain.SendStrategy(n.GetStrategy()),
+		ScheduledTime:  n.GetScheduledTime(),
 		GroupType:      domain.NotificationGroup(n.GetGroupType()),
 		SourceId:       n.GetSourceId(),
 		SourceName:     n.GetSourceName(),

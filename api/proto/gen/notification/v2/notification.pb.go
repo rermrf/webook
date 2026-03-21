@@ -80,7 +80,7 @@ type SendStrategy int32
 const (
 	SendStrategy_SEND_STRATEGY_UNSPECIFIED SendStrategy = 0
 	SendStrategy_SEND_STRATEGY_IMMEDIATE   SendStrategy = 1 // 立即发送
-	SendStrategy_SEND_STRATEGY_SCHEDULED   SendStrategy = 2 // 定时发送(预留)
+	SendStrategy_SEND_STRATEGY_SCHEDULED   SendStrategy = 2 // 延迟发送（指定时间点）
 )
 
 // Enum value maps for SendStrategy.
@@ -361,8 +361,10 @@ type Notification struct {
 	TargetId       int64                  `protobuf:"varint,11,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
 	TargetType     string                 `protobuf:"bytes,12,opt,name=target_type,json=targetType,proto3" json:"target_type,omitempty"`
 	TargetTitle    string                 `protobuf:"bytes,13,opt,name=target_title,json=targetTitle,proto3" json:"target_title,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// 延迟发送的指定时间点（Unix 毫秒），仅 strategy=SCHEDULED 时有效
+	ScheduledTime int64 `protobuf:"varint,14,opt,name=scheduled_time,json=scheduledTime,proto3" json:"scheduled_time,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Notification) Reset() {
@@ -484,6 +486,13 @@ func (x *Notification) GetTargetTitle() string {
 		return x.TargetTitle
 	}
 	return ""
+}
+
+func (x *Notification) GetScheduledTime() int64 {
+	if x != nil {
+		return x.ScheduledTime
+	}
+	return 0
 }
 
 // NotificationItem 通知列表项
@@ -2349,7 +2358,7 @@ var File_notification_v2_notification_proto protoreflect.FileDescriptor
 
 const file_notification_v2_notification_proto_rawDesc = "" +
 	"\n" +
-	"\"notification/v2/notification.proto\x12\x0fnotification.v2\"\xeb\x04\n" +
+	"\"notification/v2/notification.proto\x12\x0fnotification.v2\"\x92\x05\n" +
 	"\fNotification\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x1c\n" +
 	"\treceivers\x18\x02 \x03(\tR\treceivers\x122\n" +
@@ -2368,7 +2377,8 @@ const file_notification_v2_notification_proto_rawDesc = "" +
 	"\ttarget_id\x18\v \x01(\x03R\btargetId\x12\x1f\n" +
 	"\vtarget_type\x18\f \x01(\tR\n" +
 	"targetType\x12!\n" +
-	"\ftarget_title\x18\r \x01(\tR\vtargetTitle\x1aA\n" +
+	"\ftarget_title\x18\r \x01(\tR\vtargetTitle\x12%\n" +
+	"\x0escheduled_time\x18\x0e \x01(\x03R\rscheduledTime\x1aA\n" +
 	"\x13TemplateParamsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xb1\x06\n" +

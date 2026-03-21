@@ -87,7 +87,11 @@ func (s *notificationService) Send(ctx context.Context, n domain.Notification) (
 		}
 		n.Content = content
 	}
-	// 5. 路由到对应渠道的 sender
+	// 5. 延迟发送：只写 DB 不调用 Sender，等待定时任务扫描发送
+	if n.Strategy == domain.SendStrategyScheduled && n.ScheduledTime > 0 {
+		return s.repo.Create(ctx, n)
+	}
+	// 6. 立即发送：路由到对应渠道的 sender
 	sender, ok := s.senders[n.Channel]
 	if !ok {
 		return 0, fmt.Errorf("不支持的渠道: %s", n.Channel)

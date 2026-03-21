@@ -5,9 +5,11 @@ import (
 	"github.com/spf13/viper"
 	clientv3 "go.etcd.io/etcd/client/v3"
 
+	"webook/notification/domain"
 	"webook/notification/repository"
 	"webook/notification/scheduler"
 	"webook/notification/service"
+	"webook/notification/service/channel"
 	"webook/pkg/cronjobx"
 	"webook/pkg/logger"
 )
@@ -39,11 +41,24 @@ func InitCheckBackScheduler(
 	return scheduler.NewCheckBackScheduler(txRepo, svc, etcdClient, l)
 }
 
-func InitCronJobs(l logger.LoggerV1, checkBack *scheduler.CheckBackScheduler) *cron.Cron {
+func InitScheduledSendJob(
+	repo repository.NotificationRepository,
+	senders map[domain.Channel]channel.Sender,
+	l logger.LoggerV1,
+) *scheduler.ScheduledSendJob {
+	return scheduler.NewScheduledSendJob(repo, senders, l)
+}
+
+func InitCronJobs(l logger.LoggerV1, checkBack *scheduler.CheckBackScheduler, scheduledSend *scheduler.ScheduledSendJob) *cron.Cron {
 	res := cron.New(cron.WithSeconds())
 	cdb := cronjobx.NewCronJobBuilder(l)
 	// 每 10 秒执行一次事务回查
 	_, err := res.AddJob("*/10 * * * * ?", cdb.Build(checkBack))
+	if err != nil {
+		panic(err)
+	}
+	// 每 5 秒扫描一次到期的延迟发送通知
+	_, err = res.AddJob("*/5 * * * * ?", cdb.Build(scheduledSend))
 	if err != nil {
 		panic(err)
 	}
