@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"time"
 	"webook/pkg/logger"
 	"webook/tag/domain"
 	"webook/tag/repository/cache"
@@ -24,34 +23,41 @@ func (r *CachedTagRepository) CreateTag(ctx context.Context, tag domain.Tag) (in
 	if err != nil {
 		return 0, err
 	}
-	err = r.cache.Append(ctx, tag.Uid, tag)
-	if err != nil {
-		r.l.Error("缓存tag失败", logger.Int64("id", id), logger.Error(err))
+	// 新标签创建后，清除全局标签缓存
+	er := r.cache.DelAllTags(ctx)
+	if er != nil {
+		r.l.Error("清除全局标签缓存失败", logger.Int64("id", id), logger.Error(er))
 	}
 	return id, nil
 }
 
-func (r *CachedTagRepository) BindTagToBiz(ctx context.Context, uid int64, biz string, bizId int64, tagIds []int64) error {
+func (r *CachedTagRepository) BindTagToBiz(ctx context.Context, biz string, bizId int64, tagIds []int64) error {
 	tagBizs := make([]dao.TagBiz, 0, len(tagIds))
 	for _, tagId := range tagIds {
 		tagBizs = append(tagBizs, dao.TagBiz{
 			Tid:   tagId,
 			BizId: bizId,
 			Biz:   biz,
-			Uid:   uid,
 		})
 	}
-	// 覆盖式地打标签，新的标签完成覆盖老的标签
-	return r.dao.CreateTagBiz(ctx, tagBizs)
+	err := r.dao.CreateTagBiz(ctx, tagBizs)
+	if err != nil {
+		return err
+	}
+	// 清除该资源的标签缓存
+	er := r.cache.DelBizTags(ctx, biz, bizId)
+	if er != nil {
+		r.l.Error("清除资源标签缓存失败", logger.Error(er))
+	}
+	return nil
 }
 
-func (r *CachedTagRepository) GetTags(ctx context.Context, uid int64) ([]domain.Tag, error) {
-	res, err := r.cache.GetTags(ctx, uid)
+func (r *CachedTagRepository) GetTags(ctx context.Context) ([]domain.Tag, error) {
+	res, err := r.cache.GetAllTags(ctx)
 	if err == nil {
 		return res, nil
 	}
-	// 下面也是慢路径，你同样可以降级的时候不执行
-	tags, err := r.dao.GetTagsByUid(ctx, uid)
+	tags, err := r.dao.GetAllTags(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -59,11 +65,19 @@ func (r *CachedTagRepository) GetTags(ctx context.Context, uid int64) ([]domain.
 	for _, tag := range tags {
 		res = append(res, r.toDomain(tag))
 	}
-	err = r.cache.Append(ctx, uid, res...)
-	if err != nil {
-		r.l.Error("缓存tag失败", logger.Error(err))
+	er := r.cache.SetAllTags(ctx, res)
+	if er != nil {
+		r.l.Error("缓存全局标签失败", logger.Error(er))
 	}
 	return res, nil
+}
+
+func (r *CachedTagRepository) GetTagById(ctx context.Context, id int64) (domain.Tag, error) {
+	tag, err := r.dao.GetTagById(ctx, id)
+	if err != nil {
+		return domain.Tag{}, err
+	}
+	return r.toDomain(tag), nil
 }
 
 func (r *CachedTagRepository) GetTagsById(ctx context.Context, ids []int64) ([]domain.Tag, error) {
@@ -78,9 +92,56 @@ func (r *CachedTagRepository) GetTagsById(ctx context.Context, ids []int64) ([]d
 	return res, nil
 }
 
-func (r *CachedTagRepository) GetBizTags(ctx context.Context, uid int64, biz string, bizId int64) ([]domain.Tag, error) {
-	// 这里要不要缓存
-	tags, err := r.dao.GetTagsByBiz(ctx, uid, biz, bizId)
+func (r *CachedTagRepository) GetBizTags(ctx context.Context, biz string, bizId int64) ([]domain.Tag, error) {
+	res, err := r.cache.GetBizTags(ctx, biz, bizId)
+	if err == nil {
+		return res, nil
+	}
+	tags, err := r.dao.GetTagsByBiz(ctx, biz, bizId)
+	if err != nil {
+		return nil, err
+	}
+	res = make([]domain.Tag, 0, len(tags))
+	for _, tag := range tags {
+		res = append(res, r.toDomain(tag))
+	}
+	er := r.cache.SetBizTags(ctx, biz, bizId, res)
+	if er != nil {
+		r.l.Error("缓存资源标签失败", logger.Error(er))
+	}
+	return res, nil
+}
+
+func (r *CachedTagRepository) GetBizIdsByTag(ctx context.Context, biz string, tagId int64, offset, limit int, sortBy string) ([]int64, error) {
+	return r.dao.GetBizIdsByTag(ctx, biz, tagId, offset, limit, sortBy)
+}
+
+func (r *CachedTagRepository) CountBizByTag(ctx context.Context, biz string, tagId int64) (int64, error) {
+	return r.dao.CountBizByTag(ctx, biz, tagId)
+}
+
+func (r *CachedTagRepository) toEntity(tag domain.Tag) dao.Tag {
+	return dao.Tag{
+		Id:          tag.Id,
+		Name:        tag.Name,
+		Description: tag.Description,
+	}
+}
+
+func (r *CachedTagRepository) FollowTag(ctx context.Context, uid, tagId int64) error {
+	return r.dao.FollowTag(ctx, uid, tagId)
+}
+
+func (r *CachedTagRepository) UnfollowTag(ctx context.Context, uid, tagId int64) error {
+	return r.dao.UnfollowTag(ctx, uid, tagId)
+}
+
+func (r *CachedTagRepository) CheckTagFollow(ctx context.Context, uid, tagId int64) (bool, error) {
+	return r.dao.CheckTagFollow(ctx, uid, tagId)
+}
+
+func (r *CachedTagRepository) GetUserFollowedTags(ctx context.Context, uid int64, offset, limit int) ([]domain.Tag, error) {
+	tags, err := r.dao.GetUserFollowedTags(ctx, uid, offset, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -91,56 +152,27 @@ func (r *CachedTagRepository) GetBizTags(ctx context.Context, uid int64, biz str
 	return res, nil
 }
 
-// PreloadUserTags 在 toB 的场景下，你可以提前预加载缓存
-func (r *CachedTagRepository) PreloadUserTags(ctx context.Context) error {
-	// 我们要存的是 uid => 我的所有标签 [{tag1}, {}]
-	// 你这边分批次预加载
-	// 数据里面取出来，调用append
-	offset := 0
-	batch := 100
-	for {
-		dbCtx, cancel := context.WithTimeout(ctx, time.Second)
-		// 在这里还有一点点优化的手段，就是 GetTags 的时候，order by uid
-		tags, err := r.dao.GetTags(dbCtx, offset, batch)
-		cancel()
-		if err != nil {
-			// 你也可以 continue
-			r.l.Error("预加载缓存获取 Tag 失败", logger.Error(err))
-			return err
-		}
-
-		// 按照 uid 进行分组，一个 uid 执行一次 append
-
-		// 这些 tag 是归属不同的用户
+func (r *CachedTagRepository) BatchGetBizTags(ctx context.Context, biz string, bizIds []int64) (map[int64][]domain.Tag, error) {
+	tagMap, err := r.dao.BatchGetTagsByBiz(ctx, biz, bizIds)
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[int64][]domain.Tag, len(tagMap))
+	for bizId, tags := range tagMap {
+		domainTags := make([]domain.Tag, 0, len(tags))
 		for _, tag := range tags {
-			rctx, cancel := context.WithTimeout(ctx, time.Second)
-			err = r.cache.Append(rctx, tag.Uid, r.toDomain(tag))
-			cancel()
-			if err != nil {
-				// 可以终端也可以继续
-				r.l.Error("预加载缓存失败", logger.Error(err))
-				continue
-			}
+			domainTags = append(domainTags, r.toDomain(tag))
 		}
-		if len(tags) < batch {
-			return nil
-		}
-		offset = offset + batch
+		result[bizId] = domainTags
 	}
-}
-
-func (r *CachedTagRepository) toEntity(tag domain.Tag) dao.Tag {
-	return dao.Tag{
-		Id:   tag.Id,
-		Name: tag.Name,
-		Uid:  tag.Uid,
-	}
+	return result, nil
 }
 
 func (r *CachedTagRepository) toDomain(tag dao.Tag) domain.Tag {
 	return domain.Tag{
-		Id:   tag.Id,
-		Name: tag.Name,
-		Uid:  tag.Uid,
+		Id:            tag.Id,
+		Name:          tag.Name,
+		Description:   tag.Description,
+		FollowerCount: tag.FollowerCount,
 	}
 }
