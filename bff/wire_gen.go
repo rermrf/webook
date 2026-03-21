@@ -56,7 +56,7 @@ func InitApp() *App {
 	notificationHandler := handler.NewNotificationHandler(notificationServiceClient, hub, loggerV1)
 	creditServiceClient := ioc.InitCreditGRPCClient(client)
 	creditHandler := handler.NewCreditHandler(creditServiceClient, loggerV1)
-	tagHandler := handler.NewTagHandler(tagServiceClient, loggerV1)
+	tagHandler := handler.NewTagHandler(tagServiceClient, articleServiceClient, loggerV1)
 	feedSvcClient := ioc.InitFeedGRPCClient(client)
 	feedHandler := handler.NewFeedHandler(feedSvcClient, articleServiceClient, userServiceClient, interactiveServiceClient, commentServiceClient, tagServiceClient, loggerV1)
 	rankingHandler := handler.NewRankingHandler(rankingServiceClient, interactiveServiceClient, commentServiceClient, loggerV1)
