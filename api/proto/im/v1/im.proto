@@ -1,0 +1,99 @@
+syntax = "proto3";
+
+package im.v1;
+option go_package = "/im/v1;imv1";
+
+service IMService {
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
+  rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
+  rpc MarkAsRead(MarkAsReadRequest) returns (MarkAsReadResponse);
+  rpc RecallMessage(RecallMessageRequest) returns (RecallMessageResponse);
+  rpc ListConversations(ListConversationsRequest) returns (ListConversationsResponse);
+  rpc GetConversation(GetConversationRequest) returns (GetConversationResponse);
+  rpc GetUnreadCount(GetUnreadCountRequest) returns (GetUnreadCountResponse);
+}
+
+message SendMessageRequest {
+  int64 sender_id = 1;
+  int64 receiver_id = 2;
+  uint32 msg_type = 3;
+  string content = 4;
+}
+
+message SendMessageResponse {
+  string message_id = 1;
+  string conversation_id = 2;
+  int64 ctime = 3;
+}
+
+message ListMessagesRequest {
+  string conversation_id = 1;
+  int64 cursor = 2;
+  int32 limit = 3;
+}
+
+message ListMessagesResponse {
+  repeated MessageItem messages = 1;
+  bool has_more = 2;
+}
+
+message MarkAsReadRequest {
+  int64 user_id = 1;
+  string conversation_id = 2;
+}
+
+message MarkAsReadResponse {}
+
+message RecallMessageRequest {
+  int64 user_id = 1;
+  string message_id = 2;
+}
+
+message RecallMessageResponse {}
+
+message ListConversationsRequest {
+  int64 user_id = 1;
+  int64 cursor = 2;
+  int32 limit = 3;
+}
+
+message ListConversationsResponse {
+  repeated ConversationItem conversations = 1;
+  bool has_more = 2;
+}
+
+message GetConversationRequest {
+  string conversation_id = 1;
+}
+
+message GetConversationResponse {
+  ConversationItem conversation = 1;
+}
+
+message GetUnreadCountRequest {
+  int64 user_id = 1;
+}
+
+message GetUnreadCountResponse {
+  int64 total = 1;
+  map<string, int64> by_conversation = 2;
+}
+
+message MessageItem {
+  string id = 1;
+  string conversation_id = 2;
+  int64 sender_id = 3;
+  int64 receiver_id = 4;
+  uint32 msg_type = 5;
+  string content = 6;
+  uint32 status = 7;
+  int64 ctime = 8;
+}
+
+message ConversationItem {
+  string conversation_id = 1;
+  repeated int64 members = 2;
+  MessageItem last_msg = 3;
+  int64 unread_count = 4;
+  int64 utime = 5;
+}
