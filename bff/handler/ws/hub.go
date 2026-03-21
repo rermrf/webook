@@ -137,6 +137,55 @@ func (h *IMHub) HandleSend(client *IMClient, msg *ClientMessage) {
 	h.redis.Publish(ctx, "im:msg:"+resp.ConversationId, payload)
 }
 
+// HandleRecall 处理消息撤回
+func (h *IMHub) HandleRecall(client *IMClient, msg *ClientMessage) {
+	ctx := context.Background()
+	_, err := h.imSvc.RecallMessage(ctx, &imv1.RecallMessageRequest{
+		UserId:    client.UserId,
+		MessageId: msg.MessageID,
+	})
+	if err != nil {
+		h.sendToClient(client, &ServerMessage{
+			Action: "error",
+			Code:   5,
+			Msg:    "撤回失败: " + err.Error(),
+		})
+		return
+	}
+
+	// 向发送方确认撤回成功
+	h.sendToClient(client, &ServerMessage{
+		Action:         "recall",
+		ConversationID: msg.ConversationID,
+		MessageID:      msg.MessageID,
+	})
+
+	// 通过 Redis Pub/Sub 通知接收方撤回
+	recallMsg := &ServerMessage{
+		Action:         "recall",
+		ConversationID: msg.ConversationID,
+		MessageID:      msg.MessageID,
+	}
+	pushData, err := json.Marshal(recallMsg)
+	if err != nil {
+		h.l.Error("序列化撤回消息失败", logger.Error(err))
+		return
+	}
+	envelope := struct {
+		UserId int64           `json:"user_id"`
+		Data   json.RawMessage `json:"data"`
+	}{
+		UserId: msg.ReceiverId,
+		Data:   pushData,
+	}
+	payload, err := json.Marshal(envelope)
+	if err != nil {
+		h.l.Error("序列化 Redis 撤回消息失败", logger.Error(err))
+		return
+	}
+	h.redis.Publish(ctx, "im:msg:"+msg.ConversationID, payload)
+}
+
 // HandleHeartbeat 处理心跳
 func (h *IMHub) HandleHeartbeat(client *IMClient) {
 	ctx := context.Background()

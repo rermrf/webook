@@ -71,6 +71,8 @@ func (c *IMClient) ReadPump() {
 		switch msg.Action {
 		case "send":
 			c.hub.HandleSend(c, &msg)
+		case "recall":
+			c.hub.HandleRecall(c, &msg)
 		case "heartbeat":
 			c.hub.HandleHeartbeat(c)
 		case "ack":

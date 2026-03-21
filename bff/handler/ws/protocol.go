@@ -2,7 +2,7 @@ package ws
 
 // ClientMessage 客户端 → 服务端
 type ClientMessage struct {
-	Action         string `json:"action"`                    // send | ack | typing | heartbeat
+	Action         string `json:"action"`                    // send | ack | typing | heartbeat | recall
 	ConversationID string `json:"conversation_id,omitempty"`
 	MsgType        uint8  `json:"msg_type,omitempty"`
 	Content        string `json:"content,omitempty"`
