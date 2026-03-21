@@ -234,7 +234,7 @@ func (r *CachedNotificationRepository) publishSSE(userId int64, n domain.Notific
 
 	payload, err := json.Marshal(map[string]any{
 		"user_id": userId,
-		"data":    data,
+		"data":    json.RawMessage(data),
 	})
 	if err != nil {
 		r.l.Error("序列化SSE payload失败", logger.Error(err))
