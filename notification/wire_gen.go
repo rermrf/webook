@@ -8,7 +8,6 @@ package main
 
 import (
 	"github.com/google/wire"
-	"webook/notification/channel"
 	"webook/notification/events"
 	"webook/notification/grpc"
 	"webook/notification/ioc"
@@ -16,6 +15,7 @@ import (
 	"webook/notification/repository/cache"
 	"webook/notification/repository/dao"
 	"webook/notification/service"
+	"webook/notification/service/channel"
 )
 
 // Injectors from wire.go:
@@ -50,10 +50,11 @@ func InitApp() *App {
 	v2 := ioc.NewConsumers(notificationEventConsumer, likeEventConsumer, collectEventConsumer, commentEventConsumer, followEventConsumer)
 	clientv3Client := ioc.InitETCDClient()
 	checkBackScheduler := ioc.InitCheckBackScheduler(transactionRepository, notificationService, clientv3Client, loggerV1)
+	cron := ioc.InitCronJobs(loggerV1, checkBackScheduler)
 	app := &App{
 		server:    server,
 		consumers: v2,
-		scheduler: checkBackScheduler,
+		cron:      cron,
 	}
 	return app
 }
@@ -68,6 +69,6 @@ var channelSet = wire.NewSet(channel.NewInAppSender, channel.NewSMSSender, chann
 
 var notificationSet = wire.NewSet(grpc.NewNotificationServiceServer, service.NewNotificationService, repository.NewCachedNotificationRepository, repository.NewTransactionRepository, dao.NewGORMNotificationDAO, dao.NewGORMTransactionDAO, cache.NewRedisNotificationCache)
 
-var schedulerSet = wire.NewSet(ioc.InitCheckBackScheduler)
+var schedulerSet = wire.NewSet(ioc.InitCheckBackScheduler, ioc.InitCronJobs)
 
 var consumerSet = wire.NewSet(events.NewNotificationEventConsumer, events.NewLikeEventConsumer, events.NewCollectEventConsumer, events.NewCommentEventConsumer, events.NewFollowEventConsumer, ioc.NewConsumers)

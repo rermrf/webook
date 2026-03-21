@@ -16,13 +16,14 @@ import (
 	"webook/pkg/logger"
 )
 
+// CheckBackScheduler 事务回查调度器
+// 实现 cronjobx.Job 接口，由外部 cron 调度器驱动执行
 type CheckBackScheduler struct {
 	txRepo        repository.TransactionRepository
 	svc           service.NotificationService
 	etcdClient    *clientv3.Client
 	l             logger.LoggerV1
 	maxRetry      int
-	scanInterval  time.Duration
 	retryInterval time.Duration
 }
 
@@ -38,33 +39,26 @@ func NewCheckBackScheduler(
 		etcdClient:    etcdClient,
 		l:             l,
 		maxRetry:      5,
-		scanInterval:  10 * time.Second,
 		retryInterval: 10 * time.Second,
 	}
 }
 
-func (s *CheckBackScheduler) Start(ctx context.Context) {
-	ticker := time.NewTicker(s.scanInterval)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			s.scan(ctx)
-		}
-	}
+// Name 实现 cronjobx.Job 接口
+func (s *CheckBackScheduler) Name() string {
+	return "notification_checkback"
 }
 
-func (s *CheckBackScheduler) scan(ctx context.Context) {
+// Run 实现 cronjobx.Job 接口，执行一次回查扫描
+func (s *CheckBackScheduler) Run(ctx context.Context) error {
 	txs, err := s.txRepo.FindPreparedTimeout(ctx, 100)
 	if err != nil {
 		s.l.Error("扫描超时事务失败", logger.Error(err))
-		return
+		return err
 	}
 	for _, tx := range txs {
 		s.checkOne(ctx, tx)
 	}
+	return nil
 }
 
 func (s *CheckBackScheduler) checkOne(ctx context.Context, tx domain.Transaction) {

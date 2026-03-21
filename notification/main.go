@@ -1,8 +1,6 @@
 package main
 
 import (
-	"context"
-
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -19,8 +17,8 @@ func main() {
 		}
 	}
 
-	// 启动事务回查调度器
-	go app.scheduler.Start(context.Background())
+	// 启动定时任务
+	app.cron.Start()
 
 	// 启动 gRPC 服务
 	err := app.server.Serve()

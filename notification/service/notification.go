@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"webook/notification/channel"
+	"webook/notification/service/channel"
 	"webook/notification/domain"
 	"webook/notification/repository"
 )

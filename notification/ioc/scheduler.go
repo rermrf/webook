@@ -1,12 +1,14 @@
 package ioc
 
 import (
+	"github.com/robfig/cron/v3"
 	"github.com/spf13/viper"
 	clientv3 "go.etcd.io/etcd/client/v3"
 
 	"webook/notification/repository"
 	"webook/notification/scheduler"
 	"webook/notification/service"
+	"webook/pkg/cronjobx"
 	"webook/pkg/logger"
 )
 
@@ -35,4 +37,15 @@ func InitCheckBackScheduler(
 	l logger.LoggerV1,
 ) *scheduler.CheckBackScheduler {
 	return scheduler.NewCheckBackScheduler(txRepo, svc, etcdClient, l)
+}
+
+func InitCronJobs(l logger.LoggerV1, checkBack *scheduler.CheckBackScheduler) *cron.Cron {
+	res := cron.New(cron.WithSeconds())
+	cdb := cronjobx.NewCronJobBuilder(l)
+	// 每 10 秒执行一次事务回查
+	_, err := res.AddJob("*/10 * * * * ?", cdb.Build(checkBack))
+	if err != nil {
+		panic(err)
+	}
+	return res
 }

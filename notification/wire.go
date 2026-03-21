@@ -4,7 +4,6 @@ package main
 
 import (
 	"github.com/google/wire"
-	"webook/notification/channel"
 	"webook/notification/events"
 	"webook/notification/grpc"
 	"webook/notification/ioc"
@@ -12,6 +11,7 @@ import (
 	"webook/notification/repository/cache"
 	"webook/notification/repository/dao"
 	"webook/notification/service"
+	"webook/notification/service/channel"
 )
 
 var thirdPartySet = wire.NewSet(
@@ -50,6 +50,7 @@ var notificationSet = wire.NewSet(
 
 var schedulerSet = wire.NewSet(
 	ioc.InitCheckBackScheduler,
+	ioc.InitCronJobs,
 )
 
 var consumerSet = wire.NewSet(

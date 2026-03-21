@@ -1,7 +1,7 @@
 package main
 
 import (
-	"webook/notification/scheduler"
+	"github.com/robfig/cron/v3"
 	"webook/pkg/grpcx"
 	"webook/pkg/saramax"
 )
@@ -9,5 +9,5 @@ import (
 type App struct {
 	server    *grpcx.Server
 	consumers []saramax.Consumer
-	scheduler *scheduler.CheckBackScheduler
+	cron      *cron.Cron
 }

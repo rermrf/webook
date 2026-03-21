@@ -1,7 +1,7 @@
 package ioc
 
 import (
-	"webook/notification/channel"
+	"webook/notification/service/channel"
 	"webook/notification/domain"
 )
 
