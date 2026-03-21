@@ -21,9 +21,15 @@ etcd:
     - "etcd:2379"
 
 sms:
-  provider: "aliyun"
+  provider: "aliyun"  # aliyun | tencent
   aliyun:
     accessKeyId: ""
     accessKeySecret: ""
     signName: ""
     endpoint: ""
+  tencent:
+    secretId: ""
+    secretKey: ""
+    appId: ""
+    signName: ""
+    region: "ap-guangzhou"
