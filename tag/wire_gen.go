@@ -28,7 +28,9 @@ func InitTagGRPCServer() *grpcx.Server {
 	tagRepository := repository.NewCachedTagRepository(tagDao, tagCache, loggerV1)
 	client := ioc.InitKafka()
 	producer := ioc.InitProducer(client)
-	tagService := service.NewTagService(tagRepository, producer, loggerV1)
+	etcdClient := ioc.InitEtcd()
+	interactiveServiceClient := ioc.InitIntrGRPCClient(etcdClient)
+	tagService := service.NewTagService(tagRepository, producer, interactiveServiceClient, loggerV1)
 	tagServiceServer := grpc.NewTagServiceServer(tagService)
 	server := ioc.InitGRPCServer(tagServiceServer, loggerV1)
 	return server

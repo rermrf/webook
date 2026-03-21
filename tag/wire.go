@@ -25,6 +25,7 @@ func InitTagGRPCServer() *grpcx.Server {
 		thirdPartySet,
 		ioc.InitGRPCServer,
 		ioc.InitProducer,
+		ioc.InitIntrGRPCClient,
 		grpc.NewTagServiceServer,
 		service.NewTagService,
 		ioc.InitRepository,
