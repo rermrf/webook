@@ -64,10 +64,11 @@ func (r *CachedArticleRepository) GetPublishedById(ctx context.Context, id int64
 	//	return domain.Article{}, err
 	//}
 	res := domain.Article{
-		Id:      art.Id,
-		Title:   art.Title,
-		Content: art.Content,
-		Status:  domain.ArticleStatus(art.Status),
+		Id:       art.Id,
+		Title:    art.Title,
+		Content:  art.Content,
+		CoverUrl: art.CoverUrl,
+		Status:   domain.ArticleStatus(art.Status),
 		Author: domain.Author{
 			Id: art.AuthorId,
 			//Name: user.Nickname,
@@ -186,6 +187,7 @@ func (r *CachedArticleRepository) toEntity(art domain.Article) dao.Article {
 		Id:       art.Id,
 		Title:    art.Title,
 		Content:  art.Content,
+		CoverUrl: art.CoverUrl,
 		AuthorId: art.Author.Id,
 		Status:   art.Status.ToUint8(),
 	}
@@ -206,10 +208,11 @@ func (r *CachedArticleRepository) Cache() cache.ArticleCache {
 
 func (r *CachedArticleRepository) ToDomain(art dao.Article) domain.Article {
 	return domain.Article{
-		Id:      art.Id,
-		Title:   art.Title,
-		Content: art.Content,
-		Status:  domain.ArticleStatus(art.Status),
+		Id:       art.Id,
+		Title:    art.Title,
+		Content:  art.Content,
+		CoverUrl: art.CoverUrl,
+		Status:   domain.ArticleStatus(art.Status),
 		Author: domain.Author{
 			Id: art.AuthorId,
 		},

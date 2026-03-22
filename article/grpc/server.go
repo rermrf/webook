@@ -71,7 +71,8 @@ func (a *ArticleGRPCServer) toDTO(art *articlev1.Article) domain.Article {
 	return domain.Article{
 		Id:      art.GetId(),
 		Title:   art.GetTitle(),
-		Content: art.GetContent(),
+		Content:  art.GetContent(),
+		CoverUrl: art.GetCoverUrl(),
 		Author: domain.Author{
 			Id:   art.GetAuthor().GetId(),
 			Name: art.GetAuthor().GetName(),
@@ -84,7 +85,8 @@ func (a *ArticleGRPCServer) toV(art domain.Article) *articlev1.Article {
 	return &articlev1.Article{
 		Id:      art.Id,
 		Title:   art.Title,
-		Content: art.Content,
+		Content:  art.Content,
+		CoverUrl: art.CoverUrl,
 		Author: &articlev1.Author{
 			Id:   art.Author.Id,
 			Name: art.Author.Name,

@@ -5,7 +5,8 @@ import "time"
 type Article struct {
 	Id      int64
 	Title   string
-	Content string
+	Content  string
+	CoverUrl string
 	// Author 要从用户来
 	Author Author
 	Status ArticleStatus

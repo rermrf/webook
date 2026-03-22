@@ -194,7 +194,8 @@ func (dao GormArticleDao) UpdateById(ctx context.Context, art Article) error {
 type Article struct {
 	Id      int64  `gorm:"primaryKey;autoIncrement" bson:"id,omitempty"`
 	Title   string `gorm:"type:varchar(1024)" bson:"title,omitempty"`
-	Content string `gorm:"type:BLOB" bson:"content,omitempty"`
+	Content  string `gorm:"type:BLOB" bson:"content,omitempty"`
+	CoverUrl string `gorm:"type:varchar(512);default:''" bson:"cover_url,omitempty"`
 	// 如何设置索引
 	// 在帖子这里，什么样查询场景
 	// 1. 对于创作者来说，看草稿箱，看到所有自己的文章
