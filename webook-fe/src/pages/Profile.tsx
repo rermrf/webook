@@ -114,6 +114,16 @@ export default function Profile() {
     },
   })
 
+  // Fetch credit balance for own profile
+  const { data: creditBalance } = useQuery({
+    queryKey: ['credit-balance'],
+    queryFn: async () => {
+      const res = await api.get<number>('/credit/balance')
+      return res.data
+    },
+    enabled: isOwnProfile,
+  })
+
   // Backend: GET /follow/static?followee=ID  returns { followees, followers }
   // Only needed for own profile (other's profile already has follower_count/following_count)
   const { data: followStats } = useQuery({
@@ -362,6 +372,9 @@ export default function Profile() {
               <span className="text-sm text-gray-700">积分钱包</span>
             </div>
             <div className="flex items-center gap-1">
+              {creditBalance != null && (
+                <span className="text-blue-500 text-sm font-medium">{creditBalance}</span>
+              )}
               <ChevronRight className="w-4 h-4 text-gray-300" />
             </div>
           </button>
@@ -425,10 +438,14 @@ export default function Profile() {
                 {collectedIds.map((bizId) => (
                   <div
                     key={bizId}
-                    className="px-4 py-3 border-b border-gray-50 active:bg-gray-50 cursor-pointer"
-                    onClick={() => navigate(`/article/${bizId}`)}
+                    className="py-3 border-b border-gray-50"
                   >
-                    <p className="text-sm text-gray-700">文章 #{bizId}</p>
+                    <a
+                      className="text-gray-800 hover:text-blue-500 text-sm px-4 cursor-pointer"
+                      onClick={() => navigate(`/article/${bizId}`)}
+                    >
+                      文章 #{bizId} →
+                    </a>
                   </div>
                 ))}
               </div>
@@ -447,10 +464,14 @@ export default function Profile() {
                 {likedIds.map((bizId) => (
                   <div
                     key={bizId}
-                    className="px-4 py-3 border-b border-gray-50 active:bg-gray-50 cursor-pointer"
-                    onClick={() => navigate(`/article/${bizId}`)}
+                    className="py-3 border-b border-gray-50"
                   >
-                    <p className="text-sm text-gray-700">文章 #{bizId}</p>
+                    <a
+                      className="text-gray-800 hover:text-blue-500 text-sm px-4 cursor-pointer"
+                      onClick={() => navigate(`/article/${bizId}`)}
+                    >
+                      文章 #{bizId} →
+                    </a>
                   </div>
                 ))}
               </div>
@@ -469,10 +490,14 @@ export default function Profile() {
                 {historyIds.map((bizId) => (
                   <div
                     key={bizId}
-                    className="px-4 py-3 border-b border-gray-50 active:bg-gray-50 cursor-pointer"
-                    onClick={() => navigate(`/article/${bizId}`)}
+                    className="py-3 border-b border-gray-50"
                   >
-                    <p className="text-sm text-gray-700">文章 #{bizId}</p>
+                    <a
+                      className="text-gray-800 hover:text-blue-500 text-sm px-4 cursor-pointer"
+                      onClick={() => navigate(`/article/${bizId}`)}
+                    >
+                      文章 #{bizId} →
+                    </a>
                   </div>
                 ))}
               </div>

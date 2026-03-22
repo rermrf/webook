@@ -223,7 +223,7 @@ export default function TagDetail() {
                     <FileText className="w-4 h-4 text-blue-400" />
                   </div>
                   <span className="text-sm text-gray-700 truncate">
-                    文章 #{artId}
+                    查看文章详情
                   </span>
                 </div>
                 <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />

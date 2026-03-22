@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Button, Chip, Spinner } from '@heroui/react'
-import { ArrowLeft, FileText, PenLine } from 'lucide-react'
+import { ArrowLeft, FileText } from 'lucide-react'
 import { api } from '../services/api'
 
 // Backend ArticleVO from /articles/list: id, title, abstract, status, ctime, utime
@@ -66,14 +66,12 @@ export default function Drafts() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <h1 className="text-base font-medium text-gray-900">草稿箱</h1>
-          <Button
-            isIconOnly
-            variant="ghost"
-            size="sm"
-            onPress={() => navigate('/write')}
+          <button
+            className="text-blue-500 text-sm font-medium"
+            onClick={() => navigate('/write')}
           >
-            <PenLine className="w-5 h-5 text-gray-500" />
-          </Button>
+            编辑
+          </button>
         </div>
       </header>
 

@@ -19,10 +19,12 @@ function UserRow({
   user,
   onToggleFollow,
   isPending,
+  isMutual,
 }: {
   user: FollowUser
   onToggleFollow: () => void
   isPending: boolean
+  isMutual?: boolean
 }) {
   const navigate = useNavigate()
 
@@ -56,9 +58,9 @@ function UserRow({
         variant={user.followed ? 'outline' : 'primary'}
         onPress={onToggleFollow}
         isDisabled={isPending}
-        className="min-w-[64px] shrink-0"
+        className={`min-w-[64px] shrink-0 ${isMutual ? 'border-blue-500 text-blue-500' : ''}`}
       >
-        {user.followed ? '已关注' : '关注'}
+        {isMutual ? '互关' : user.followed ? '已关注' : '关注'}
       </Button>
     </div>
   )
@@ -205,6 +207,7 @@ export default function FollowList() {
                   })
                 }
                 isPending={toggleFollowMutation.isPending}
+                isMutual={activeTab === 'follower' && user.followed}
               />
             ))}
           </div>
