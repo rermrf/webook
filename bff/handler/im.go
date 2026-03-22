@@ -39,6 +39,7 @@ func (h *IMHandler) RegisterRoutes(server *gin.Engine) {
 	g.POST("/conversations/:id/read", ginx.WrapClaims(h.l, h.MarkAsRead))
 	g.GET("/unread-count", ginx.WrapClaims(h.l, h.GetUnreadCount))
 	g.GET("/online/:userId", ginx.WrapClaims(h.l, h.GetOnlineStatus))
+	g.POST("/send", ginx.WrapBodyAndToken[SendMessageReq, ijwt.UserClaims](h.l, h.SendMessage))
 }
 
 // WebSocket 处理 WebSocket 连接升级
@@ -249,4 +250,52 @@ func (h *IMHandler) GetOnlineStatus(c *gin.Context, uc ijwt.UserClaims) (ginx.Re
 		return ginx.Result{Code: 5, Msg: "系统错误"}, err
 	}
 	return ginx.Result{Data: map[string]bool{"online": resp.Online}}, nil
+}
+
+// SendMessageReq REST 发送消息请求
+type SendMessageReq struct {
+	ReceiverId int64  `json:"receiver_id"`
+	MsgType    uint32 `json:"msg_type"`
+	Content    string `json:"content"`
+}
+
+// SendMessage REST 发送消息接口（WebSocket 的替代方案）
+func (h *IMHandler) SendMessage(c *gin.Context, req SendMessageReq, uc ijwt.UserClaims) (ginx.Result, error) {
+	if req.ReceiverId == 0 {
+		return ginx.Result{Code: 4, Msg: "接收者不能为空"}, nil
+	}
+	if req.Content == "" {
+		return ginx.Result{Code: 4, Msg: "消息内容不能为空"}, nil
+	}
+	if req.MsgType == 0 {
+		req.MsgType = 1 // 默认文本消息
+	}
+
+	resp, err := h.svc.SendMessage(c.Request.Context(), &imv1.SendMessageRequest{
+		SenderId:   uc.UserId,
+		ReceiverId: req.ReceiverId,
+		MsgType:    req.MsgType,
+		Content:    req.Content,
+	})
+	if err != nil {
+		return ginx.Result{Code: 5, Msg: "系统错误"}, err
+	}
+
+	// 通过 Redis Pub/Sub 通知接收方（如果在线）
+	h.hub.PublishMessage(resp.ConversationId, req.ReceiverId, &ws.MessageData{
+		Id:         resp.MessageId,
+		SenderId:   uc.UserId,
+		ReceiverId: req.ReceiverId,
+		MsgType:    uint8(req.MsgType),
+		Content:    req.Content,
+		Ctime:      resp.Ctime,
+	})
+
+	return ginx.Result{
+		Data: map[string]interface{}{
+			"message_id":      resp.MessageId,
+			"conversation_id": resp.ConversationId,
+			"ctime":           resp.Ctime,
+		},
+	}, nil
 }

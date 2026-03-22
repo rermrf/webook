@@ -250,3 +250,31 @@ func (h *IMHub) sendToClient(client *IMClient, msg *ServerMessage) {
 		// 通道满了，跳过
 	}
 }
+
+// PublishMessage 通过 Redis Pub/Sub 推送消息给接收方（供 REST 接口调用）
+func (h *IMHub) PublishMessage(conversationId string, receiverId int64, msgData *MessageData) {
+	ctx := context.Background()
+	pushMsg := &ServerMessage{
+		Action:         "message",
+		ConversationID: conversationId,
+		Message:        msgData,
+	}
+	pushData, err := json.Marshal(pushMsg)
+	if err != nil {
+		h.l.Error("序列化推送消息失败", logger.Error(err))
+		return
+	}
+	envelope := struct {
+		UserId int64           `json:"user_id"`
+		Data   json.RawMessage `json:"data"`
+	}{
+		UserId: receiverId,
+		Data:   pushData,
+	}
+	payload, err := json.Marshal(envelope)
+	if err != nil {
+		h.l.Error("序列化 Redis 消息失败", logger.Error(err))
+		return
+	}
+	h.redis.Publish(ctx, "im:msg:"+conversationId, payload)
+}
