@@ -7,6 +7,12 @@ import ArticleDetail from './pages/ArticleDetail'
 import Profile from './pages/Profile'
 import Messages from './pages/Messages'
 import Search from './pages/Search'
+import ChatDetail from './pages/ChatDetail'
+import CreditWallet from './pages/CreditWallet'
+import ArticleEditor from './pages/ArticleEditor'
+import Drafts from './pages/Drafts'
+import EditProfile from './pages/EditProfile'
+import FollowList from './pages/FollowList'
 
 export default function App() {
   return (
@@ -21,6 +27,13 @@ export default function App() {
           <Route path="/user/:id" element={<Profile />} />
           <Route path="/messages" element={<Messages />} />
           <Route path="/search" element={<Search />} />
+          <Route path="/chat/:id" element={<ChatDetail />} />
+          <Route path="/credit" element={<CreditWallet />} />
+          <Route path="/write" element={<ArticleEditor />} />
+          <Route path="/write/:id" element={<ArticleEditor />} />
+          <Route path="/drafts" element={<Drafts />} />
+          <Route path="/edit-profile" element={<EditProfile />} />
+          <Route path="/follow/:id" element={<FollowList />} />
         </Route>
       </Routes>
     </BrowserRouter>
