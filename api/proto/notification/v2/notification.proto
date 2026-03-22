@@ -102,6 +102,7 @@ message NotificationItem {
   bool is_read = 18;
   int64 ctime = 19;
   int64 utime = 20;
+  string source_avatar_url = 21;
 }
 
 // Template 通知模板

@@ -497,29 +497,30 @@ func (x *Notification) GetScheduledTime() int64 {
 
 // NotificationItem 通知列表项
 type NotificationItem struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Id             int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Key            string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	BizId          string                 `protobuf:"bytes,3,opt,name=biz_id,json=bizId,proto3" json:"biz_id,omitempty"`
-	Channel        Channel                `protobuf:"varint,4,opt,name=channel,proto3,enum=notification.v2.Channel" json:"channel,omitempty"`
-	Receiver       string                 `protobuf:"bytes,5,opt,name=receiver,proto3" json:"receiver,omitempty"`
-	UserId         int64                  `protobuf:"varint,6,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	TemplateId     string                 `protobuf:"bytes,7,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
-	TemplateParams map[string]string      `protobuf:"bytes,8,rep,name=template_params,json=templateParams,proto3" json:"template_params,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Content        string                 `protobuf:"bytes,9,opt,name=content,proto3" json:"content,omitempty"`
-	Status         NotificationStatus     `protobuf:"varint,10,opt,name=status,proto3,enum=notification.v2.NotificationStatus" json:"status,omitempty"`
-	Strategy       SendStrategy           `protobuf:"varint,11,opt,name=strategy,proto3,enum=notification.v2.SendStrategy" json:"strategy,omitempty"`
-	GroupType      NotificationGroup      `protobuf:"varint,12,opt,name=group_type,json=groupType,proto3,enum=notification.v2.NotificationGroup" json:"group_type,omitempty"`
-	SourceId       int64                  `protobuf:"varint,13,opt,name=source_id,json=sourceId,proto3" json:"source_id,omitempty"`
-	SourceName     string                 `protobuf:"bytes,14,opt,name=source_name,json=sourceName,proto3" json:"source_name,omitempty"`
-	TargetId       int64                  `protobuf:"varint,15,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
-	TargetType     string                 `protobuf:"bytes,16,opt,name=target_type,json=targetType,proto3" json:"target_type,omitempty"`
-	TargetTitle    string                 `protobuf:"bytes,17,opt,name=target_title,json=targetTitle,proto3" json:"target_title,omitempty"`
-	IsRead         bool                   `protobuf:"varint,18,opt,name=is_read,json=isRead,proto3" json:"is_read,omitempty"`
-	Ctime          int64                  `protobuf:"varint,19,opt,name=ctime,proto3" json:"ctime,omitempty"`
-	Utime          int64                  `protobuf:"varint,20,opt,name=utime,proto3" json:"utime,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Id              int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Key             string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	BizId           string                 `protobuf:"bytes,3,opt,name=biz_id,json=bizId,proto3" json:"biz_id,omitempty"`
+	Channel         Channel                `protobuf:"varint,4,opt,name=channel,proto3,enum=notification.v2.Channel" json:"channel,omitempty"`
+	Receiver        string                 `protobuf:"bytes,5,opt,name=receiver,proto3" json:"receiver,omitempty"`
+	UserId          int64                  `protobuf:"varint,6,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	TemplateId      string                 `protobuf:"bytes,7,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
+	TemplateParams  map[string]string      `protobuf:"bytes,8,rep,name=template_params,json=templateParams,proto3" json:"template_params,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Content         string                 `protobuf:"bytes,9,opt,name=content,proto3" json:"content,omitempty"`
+	Status          NotificationStatus     `protobuf:"varint,10,opt,name=status,proto3,enum=notification.v2.NotificationStatus" json:"status,omitempty"`
+	Strategy        SendStrategy           `protobuf:"varint,11,opt,name=strategy,proto3,enum=notification.v2.SendStrategy" json:"strategy,omitempty"`
+	GroupType       NotificationGroup      `protobuf:"varint,12,opt,name=group_type,json=groupType,proto3,enum=notification.v2.NotificationGroup" json:"group_type,omitempty"`
+	SourceId        int64                  `protobuf:"varint,13,opt,name=source_id,json=sourceId,proto3" json:"source_id,omitempty"`
+	SourceName      string                 `protobuf:"bytes,14,opt,name=source_name,json=sourceName,proto3" json:"source_name,omitempty"`
+	TargetId        int64                  `protobuf:"varint,15,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
+	TargetType      string                 `protobuf:"bytes,16,opt,name=target_type,json=targetType,proto3" json:"target_type,omitempty"`
+	TargetTitle     string                 `protobuf:"bytes,17,opt,name=target_title,json=targetTitle,proto3" json:"target_title,omitempty"`
+	IsRead          bool                   `protobuf:"varint,18,opt,name=is_read,json=isRead,proto3" json:"is_read,omitempty"`
+	Ctime           int64                  `protobuf:"varint,19,opt,name=ctime,proto3" json:"ctime,omitempty"`
+	Utime           int64                  `protobuf:"varint,20,opt,name=utime,proto3" json:"utime,omitempty"`
+	SourceAvatarUrl string                 `protobuf:"bytes,21,opt,name=source_avatar_url,json=sourceAvatarUrl,proto3" json:"source_avatar_url,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *NotificationItem) Reset() {
@@ -690,6 +691,13 @@ func (x *NotificationItem) GetUtime() int64 {
 		return x.Utime
 	}
 	return 0
+}
+
+func (x *NotificationItem) GetSourceAvatarUrl() string {
+	if x != nil {
+		return x.SourceAvatarUrl
+	}
+	return ""
 }
 
 // Template 通知模板
@@ -2381,7 +2389,7 @@ const file_notification_v2_notification_proto_rawDesc = "" +
 	"\x0escheduled_time\x18\x0e \x01(\x03R\rscheduledTime\x1aA\n" +
 	"\x13TemplateParamsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xb1\x06\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xdd\x06\n" +
 	"\x10NotificationItem\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x10\n" +
 	"\x03key\x18\x02 \x01(\tR\x03key\x12\x15\n" +
@@ -2407,7 +2415,8 @@ const file_notification_v2_notification_proto_rawDesc = "" +
 	"\ftarget_title\x18\x11 \x01(\tR\vtargetTitle\x12\x17\n" +
 	"\ais_read\x18\x12 \x01(\bR\x06isRead\x12\x14\n" +
 	"\x05ctime\x18\x13 \x01(\x03R\x05ctime\x12\x14\n" +
-	"\x05utime\x18\x14 \x01(\x03R\x05utime\x1aA\n" +
+	"\x05utime\x18\x14 \x01(\x03R\x05utime\x12*\n" +
+	"\x11source_avatar_url\x18\x15 \x01(\tR\x0fsourceAvatarUrl\x1aA\n" +
 	"\x13TemplateParamsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xd7\x02\n" +

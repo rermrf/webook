@@ -1,0 +1,163 @@
+syntax = "proto3";
+
+package credit.v1;
+option go_package="credit/v1;creditv1";
+
+service CreditService {
+  // 查询积分余额
+  rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse);
+  // 查询积分流水
+  rpc GetFlows(GetFlowsRequest) returns (GetFlowsResponse);
+  // 积分获取（内部调用，由事件触发）
+  rpc EarnCredit(EarnCreditRequest) returns (EarnCreditResponse);
+  // 预充值，生成支付二维码
+  rpc PreRecharge(PreRechargeRequest) returns (PreRechargeResponse);
+  // 查询充值状态
+  rpc GetRecharge(GetRechargeRequest) returns (GetRechargeResponse);
+  // 积分打赏
+  rpc RewardCredit(RewardCreditRequest) returns (RewardCreditResponse);
+  // 查询打赏详情
+  rpc GetCreditReward(GetCreditRewardRequest) returns (GetCreditRewardResponse);
+  // 查询每日积分获取状态
+  rpc GetDailyStatus(GetDailyStatusRequest) returns (GetDailyStatusResponse);
+}
+
+// 查询余额
+message GetBalanceRequest {
+  int64 uid = 1;
+}
+
+message GetBalanceResponse {
+  int64 balance = 1;
+}
+
+// 查询流水
+message GetFlowsRequest {
+  int64 uid = 1;
+  int64 offset = 2;
+  int64 limit = 3;
+}
+
+message GetFlowsResponse {
+  repeated CreditFlow flows = 1;
+}
+
+message CreditFlow {
+  int64 id = 1;
+  string biz = 2;
+  int64 biz_id = 3;
+  int64 change_amt = 4;
+  int64 balance = 5;
+  string description = 6;
+  int64 ctime = 7;
+}
+
+// 积分获取
+message EarnCreditRequest {
+  int64 uid = 1;
+  // read/like/collect/comment
+  string biz = 2;
+  int64 biz_id = 3;
+}
+
+message EarnCreditResponse {
+  bool success = 1;
+  int64 earned_amt = 2;
+  int64 new_balance = 3;
+  // 达到每日上限时的提示信息
+  string message = 4;
+}
+
+// 预充值
+message PreRechargeRequest {
+  int64 uid = 1;
+  // 要购买的积分数量
+  int64 credit_amt = 2;
+}
+
+message PreRechargeResponse {
+  int64 recharge_id = 1;
+  // 支付二维码URL
+  string code_url = 2;
+  // 需要支付的金额（分）
+  int64 payment_amt = 3;
+}
+
+// 查询充值状态
+message GetRechargeRequest {
+  int64 recharge_id = 1;
+  int64 uid = 2;
+}
+
+message GetRechargeResponse {
+  RechargeStatus status = 1;
+  int64 credit_amt = 2;
+}
+
+enum RechargeStatus {
+  RechargeStatusUnknown = 0;
+  RechargeStatusInit = 1;
+  RechargeStatusPayed = 2;
+  RechargeStatusFailed = 3;
+}
+
+// 积分打赏
+message RewardCreditRequest {
+  // 打赏者
+  int64 uid = 1;
+  // 被打赏者（文章作者）
+  int64 target_uid = 2;
+  // 业务类型，如 article
+  string biz = 3;
+  // 业务ID，如文章ID
+  int64 biz_id = 4;
+  // 打赏积分数量
+  int64 amt = 5;
+}
+
+message RewardCreditResponse {
+  int64 reward_id = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+// 查询打赏详情
+message GetCreditRewardRequest {
+  int64 reward_id = 1;
+  int64 uid = 2;
+}
+
+message GetCreditRewardResponse {
+  CreditRewardStatus status = 1;
+  int64 amt = 2;
+}
+
+enum CreditRewardStatus {
+  CreditRewardStatusUnknown = 0;
+  CreditRewardStatusPending = 1;
+  CreditRewardStatusSuccess = 2;
+  CreditRewardStatusFailed = 3;
+}
+
+// 查询每日积分获取状态
+message GetDailyStatusRequest {
+  int64 uid = 1;
+  // 可选，指定业务类型
+  string biz = 2;
+}
+
+message GetDailyStatusResponse {
+  repeated DailyStatus statuses = 1;
+}
+
+message DailyStatus {
+  string biz = 1;
+  // 今日已获取次数
+  int64 earned_count = 2;
+  // 今日已获取积分
+  int64 earned_amt = 3;
+  // 每日上限
+  int64 daily_limit = 4;
+  // 剩余可获取积分
+  int64 remaining = 5;
+}

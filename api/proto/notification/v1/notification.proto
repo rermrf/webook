@@ -1,0 +1,158 @@
+syntax = "proto3";
+
+package notification.v1;
+option go_package = "/notification/v1;notificationv1";
+
+import "google/protobuf/timestamp.proto";
+
+service NotificationService {
+  // Send 发送通知（内部服务调用）
+  rpc Send(SendRequest) returns (SendResponse);
+  // BatchSend 批量发送通知
+  rpc BatchSend(BatchSendRequest) returns (BatchSendResponse);
+  // List 获取通知列表
+  rpc List(ListRequest) returns (ListResponse);
+  // ListByType 按类型获取通知列表
+  rpc ListByType(ListByTypeRequest) returns (ListByTypeResponse);
+  // ListUnread 获取未读通知列表
+  rpc ListUnread(ListUnreadRequest) returns (ListUnreadResponse);
+  // MarkAsRead 标记单条通知为已读
+  rpc MarkAsRead(MarkAsReadRequest) returns (MarkAsReadResponse);
+  // MarkAllAsRead 标记所有通知为已读
+  rpc MarkAllAsRead(MarkAllAsReadRequest) returns (MarkAllAsReadResponse);
+  // GetUnreadCount 获取未读数统计
+  rpc GetUnreadCount(GetUnreadCountRequest) returns (GetUnreadCountResponse);
+  // Delete 删除通知
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+  // DeleteAll 删除所有通知
+  rpc DeleteAll(DeleteAllRequest) returns (DeleteAllResponse);
+}
+
+// NotificationType 通知类型
+enum NotificationType {
+  NOTIFICATION_TYPE_UNKNOWN = 0;
+  NOTIFICATION_TYPE_LIKE = 1;     // 点赞
+  NOTIFICATION_TYPE_COLLECT = 2;  // 收藏
+  NOTIFICATION_TYPE_COMMENT = 3;  // 评论
+  NOTIFICATION_TYPE_REPLY = 4;    // 回复
+  NOTIFICATION_TYPE_FOLLOW = 5;   // 关注
+  NOTIFICATION_TYPE_MENTION = 6;  // @提及
+  NOTIFICATION_TYPE_FEED = 7;     // Feed更新
+  NOTIFICATION_TYPE_SYSTEM = 8;   // 系统通知
+}
+
+// Notification 通知
+message Notification {
+  int64 id = 1;
+  int64 user_id = 2;
+  NotificationType type = 3;
+  int64 source_id = 4;
+  string source_name = 5;
+  int64 target_id = 6;
+  string target_type = 7;
+  string target_title = 8;
+  string content = 9;
+  bool is_read = 10;
+  google.protobuf.Timestamp ctime = 11;
+}
+
+// SendRequest 发送通知请求
+message SendRequest {
+  int64 user_id = 1;
+  NotificationType type = 2;
+  int64 source_id = 3;
+  string source_name = 4;
+  int64 target_id = 5;
+  string target_type = 6;
+  string target_title = 7;
+  string content = 8;
+}
+
+message SendResponse {
+}
+
+// BatchSendRequest 批量发送通知请求
+message BatchSendRequest {
+  repeated SendRequest notifications = 1;
+}
+
+message BatchSendResponse {
+}
+
+// ListRequest 获取通知列表请求
+message ListRequest {
+  int64 user_id = 1;
+  int32 offset = 2;
+  int32 limit = 3;
+}
+
+message ListResponse {
+  repeated Notification notifications = 1;
+}
+
+// ListByTypeRequest 按类型获取通知列表请求
+message ListByTypeRequest {
+  int64 user_id = 1;
+  NotificationType type = 2;
+  int32 offset = 3;
+  int32 limit = 4;
+}
+
+message ListByTypeResponse {
+  repeated Notification notifications = 1;
+}
+
+// ListUnreadRequest 获取未读通知列表请求
+message ListUnreadRequest {
+  int64 user_id = 1;
+  int32 offset = 2;
+  int32 limit = 3;
+}
+
+message ListUnreadResponse {
+  repeated Notification notifications = 1;
+}
+
+// MarkAsReadRequest 标记已读请求
+message MarkAsReadRequest {
+  int64 user_id = 1;
+  int64 id = 2;
+}
+
+message MarkAsReadResponse {
+}
+
+// MarkAllAsReadRequest 标记全部已读请求
+message MarkAllAsReadRequest {
+  int64 user_id = 1;
+}
+
+message MarkAllAsReadResponse {
+}
+
+// GetUnreadCountRequest 获取未读数请求
+message GetUnreadCountRequest {
+  int64 user_id = 1;
+}
+
+message GetUnreadCountResponse {
+  int64 total = 1;
+  map<int32, int64> by_type = 2;  // key: NotificationType, value: count
+}
+
+// DeleteRequest 删除通知请求
+message DeleteRequest {
+  int64 user_id = 1;
+  int64 id = 2;
+}
+
+message DeleteResponse {
+}
+
+// DeleteAllRequest 删除所有通知请求
+message DeleteAllRequest {
+  int64 user_id = 1;
+}
+
+message DeleteAllResponse {
+}

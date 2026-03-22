@@ -1,0 +1,182 @@
+syntax = "proto3";
+
+package openapi.v1;
+option go_package = "/openapi/v1;openapiv1";
+
+// OpenAPIService 开放平台应用服务
+service OpenAPIService {
+  // 获取应用信息
+  rpc GetApp(GetAppRequest) returns (GetAppResponse);
+  // 获取已激活的应用
+  rpc GetActiveApp(GetActiveAppRequest) returns (GetActiveAppResponse);
+  // 验证应用密钥
+  rpc VerifySecret(VerifySecretRequest) returns (VerifySecretResponse);
+  // 验证API请求签名
+  rpc VerifySignature(VerifySignatureRequest) returns (VerifySignatureResponse);
+  // 验证易支付MD5签名
+  rpc VerifyEpaySign(VerifyEpaySignRequest) returns (VerifyEpaySignResponse);
+  // 获取应用密钥（用于签名生成）
+  rpc GetAppSecret(GetAppSecretRequest) returns (GetAppSecretResponse);
+  // 验证重定向URI
+  rpc VerifyRedirectURI(VerifyRedirectURIRequest) returns (VerifyRedirectURIResponse);
+  // 验证Scope
+  rpc VerifyScope(VerifyScopeRequest) returns (VerifyScopeResponse);
+  // 保存用户授权
+  rpc SaveAuthorization(SaveAuthorizationRequest) returns (SaveAuthorizationResponse);
+  // 获取用户授权
+  rpc GetAuthorization(GetAuthorizationRequest) returns (GetAuthorizationResponse);
+  // 撤销用户授权
+  rpc RevokeAuthorization(RevokeAuthorizationRequest) returns (RevokeAuthorizationResponse);
+  // 记录API调用
+  rpc LogAPICall(LogAPICallRequest) returns (LogAPICallResponse);
+}
+
+// App 应用信息
+message App {
+  int64 id = 1;
+  string app_id = 2;
+  string app_name = 3;
+  int64 user_id = 4;
+  int32 type = 5;       // 1=OAuth2, 2=API, 3=Both
+  int32 status = 6;     // 0=Pending, 1=Approved, 2=Rejected, 3=Disabled
+  string description = 7;
+  string homepage_url = 8;
+  string logo_url = 9;
+  repeated string redirect_uris = 10;
+  repeated string scopes = 11;
+  repeated string grant_types = 12;
+  string callback_url = 13;
+  repeated string ip_whitelist = 14;
+  int64 created_at = 15;
+  int64 updated_at = 16;
+}
+
+// Authorization 授权信息
+message Authorization {
+  int64 id = 1;
+  int64 user_id = 2;
+  string app_id = 3;
+  repeated string scopes = 4;
+  int64 created_at = 5;
+  int64 expires_at = 6;
+}
+
+message GetAppRequest {
+  string app_id = 1;
+}
+
+message GetAppResponse {
+  App app = 1;
+}
+
+message GetActiveAppRequest {
+  string app_id = 1;
+}
+
+message GetActiveAppResponse {
+  App app = 1;
+}
+
+message VerifySecretRequest {
+  string app_id = 1;
+  string secret = 2;
+}
+
+message VerifySecretResponse {
+  App app = 1;
+}
+
+// VerifySignatureRequest API签名验证请求
+message VerifySignatureRequest {
+  string app_id = 1;      // 应用ID
+  int64 timestamp = 2;    // 时间戳(秒)
+  string nonce = 3;       // 随机字符串
+  string body = 4;        // 请求体内容(用于计算签名)
+  string sign = 5;        // 客户端提交的签名
+  string client_ip = 6;   // 客户端IP(用于IP白名单验证)
+}
+
+// VerifySignatureResponse API签名验证响应
+message VerifySignatureResponse {
+  App app = 1;            // 验证通过后返回应用信息
+}
+
+message VerifyRedirectURIRequest {
+  string app_id = 1;
+  string redirect_uri = 2;
+}
+
+message VerifyRedirectURIResponse {
+  App app = 1;
+}
+
+message VerifyScopeRequest {
+  string app_id = 1;
+  repeated string scopes = 2;
+}
+
+message VerifyScopeResponse {
+  App app = 1;
+}
+
+message SaveAuthorizationRequest {
+  int64 user_id = 1;
+  string app_id = 2;
+  repeated string scopes = 3;
+}
+
+message SaveAuthorizationResponse {
+}
+
+message GetAuthorizationRequest {
+  int64 user_id = 1;
+  string app_id = 2;
+}
+
+message GetAuthorizationResponse {
+  Authorization authorization = 1;
+}
+
+message RevokeAuthorizationRequest {
+  int64 user_id = 1;
+  string app_id = 2;
+}
+
+message RevokeAuthorizationResponse {
+}
+
+message LogAPICallRequest {
+  string app_id = 1;
+  string endpoint = 2;
+  string method = 3;
+  int32 status = 4;
+  string ip = 5;
+  string user_agent = 6;
+  int64 duration = 7;
+}
+
+message LogAPICallResponse {
+}
+
+// VerifyEpaySignRequest 易支付MD5签名验证请求
+message VerifyEpaySignRequest {
+  string app_id = 1;                    // 商户ID
+  map<string, string> params = 2;       // 参与签名的参数
+  string sign = 3;                      // 客户端提交的签名
+}
+
+// VerifyEpaySignResponse 易支付MD5签名验证响应
+message VerifyEpaySignResponse {
+  App app = 1;                          // 验证通过后返回应用信息
+}
+
+// GetAppSecretRequest 获取应用密钥请求
+message GetAppSecretRequest {
+  string app_id = 1;                    // 应用ID
+}
+
+// GetAppSecretResponse 获取应用密钥响应
+message GetAppSecretResponse {
+  App app = 1;                          // 应用信息
+  string secret = 2;                    // 应用密钥
+}
