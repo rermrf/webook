@@ -105,6 +105,7 @@ type User struct {
 	WechatOpenID  sql.NullString `gorm:"unique"`
 	Nickname      string
 	AboutMe       string
+	AvatarUrl     string `gorm:"type:varchar(512);default:''"`
 	Birthday      int64
 	Ctime         int64
 	Utime         int64

@@ -168,9 +168,10 @@ func (repo *CachedUserRepository) domainToEntity(u domain.User) dao.User {
 			String: u.WechatInfo.UnionId,
 			Valid:  u.WechatInfo.UnionId != "",
 		},
-		Nickname: u.Nickname,
-		AboutMe:  u.AboutMe,
-		Birthday: u.Birthday.UnixMilli(),
+		Nickname:  u.Nickname,
+		AboutMe:   u.AboutMe,
+		AvatarUrl: u.AvatarUrl,
+		Birthday:  u.Birthday.UnixMilli(),
 	}
 }
 
@@ -183,10 +184,11 @@ func (repo *CachedUserRepository) entityToDomain(u dao.User) domain.User {
 			OpenId:  u.WechatOpenID.String,
 			UnionId: u.WechatUnionID.String,
 		},
-		Password: u.Password,
-		Nickname: u.Nickname,
-		AboutMe:  u.AboutMe,
-		Birthday: time.UnixMilli(u.Birthday),
+		Password:  u.Password,
+		Nickname:  u.Nickname,
+		AboutMe:   u.AboutMe,
+		AvatarUrl: u.AvatarUrl,
+		Birthday:  time.UnixMilli(u.Birthday),
 		Ctime:    time.UnixMilli(u.Ctime),
 	}
 }

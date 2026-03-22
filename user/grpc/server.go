@@ -80,8 +80,9 @@ func (u *UserGRPCServer) toDTO(user *userv1.User) domain.User {
 				OpenId:  user.GetWechatInfo().GetOpenId(),
 				UnionId: user.GetWechatInfo().GetUnionId(),
 			},
-			AboutMe:  user.GetAboutMe(),
-			Ctime:    user.GetCtime().AsTime(),
+			AboutMe:   user.GetAboutMe(),
+			AvatarUrl: user.GetAvatarUrl(),
+			Ctime:     user.GetCtime().AsTime(),
 			Birthday: user.GetBirthday().AsTime(),
 		}
 	}
@@ -99,8 +100,9 @@ func (u *UserGRPCServer) toV(user domain.User) *userv1.User {
 			OpenId:  user.WechatInfo.OpenId,
 			UnionId: user.WechatInfo.UnionId,
 		},
-		AboutMe:  user.AboutMe,
-		Ctime:    timestamppb.New(user.Ctime),
+		AboutMe:   user.AboutMe,
+		AvatarUrl: user.AvatarUrl,
+		Ctime:     timestamppb.New(user.Ctime),
 		Birthday: timestamppb.New(user.Birthday),
 	}
 }
