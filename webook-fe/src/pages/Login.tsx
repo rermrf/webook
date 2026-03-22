@@ -26,10 +26,11 @@ export default function Login() {
     return () => clearTimeout(timer)
   }, [countdown])
 
+  // Backend: POST /users/login_sms/code/send  body: { phone }
   const sendCode = useCallback(async () => {
     if (!phone || countdown > 0) return
     try {
-      await api.post('/code/send', { biz: 'login', phone })
+      await api.post('/users/login_sms/code/send', { phone })
       setCountdown(60)
       setError('')
     } catch {
@@ -37,6 +38,7 @@ export default function Login() {
     }
   }, [phone, countdown])
 
+  // Backend: POST /users/login_sms  body: { phone, code }
   const handleLogin = useCallback(async () => {
     if (!phone || !code) return
     setLoading(true)

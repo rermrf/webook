@@ -4,21 +4,23 @@ import { Button, Chip, Spinner } from '@heroui/react'
 import { ArrowLeft, FileText, PenLine } from 'lucide-react'
 import { api } from '../services/api'
 
+// Backend ArticleVO from /articles/list: id, title, abstract, status, ctime, utime
 interface DraftItem {
   id: number
   title: string
   abstract?: string
   status: number
-  ctime: number
-  utime: number
+  ctime: string
+  utime: string
 }
 
-function formatTime(timestamp: number): string {
-  const ts = timestamp < 1e12 ? timestamp * 1000 : timestamp
-  const date = new Date(ts)
-  const year = date.getFullYear()
-  const month = (date.getMonth() + 1).toString().padStart(2, '0')
-  const day = date.getDate().toString().padStart(2, '0')
+function formatTime(dateStr: string): string {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return ''
+  const year = d.getFullYear()
+  const month = (d.getMonth() + 1).toString().padStart(2, '0')
+  const day = d.getDate().toString().padStart(2, '0')
   return `${year}-${month}-${day}`
 }
 
@@ -38,12 +40,13 @@ function getStatusInfo(status: number): { label: string; color: string } {
 export default function Drafts() {
   const navigate = useNavigate()
 
+  // Backend: POST /articles/list  body: { offset, limit } (not page/page_size)
   const { data: articles, isLoading } = useQuery({
     queryKey: ['my-articles'],
     queryFn: async () => {
       const res = await api.post<DraftItem[]>('/articles/list', {
-        page: 1,
-        page_size: 50,
+        offset: 0,
+        limit: 50,
       })
       return res.data || []
     },

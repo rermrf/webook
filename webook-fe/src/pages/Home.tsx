@@ -1,27 +1,23 @@
 import { useState } from 'react'
-import { Chip, Spinner } from '@heroui/react'
+import { Spinner } from '@heroui/react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { Bell, Search, Heart, MessageCircle } from 'lucide-react'
 import { api } from '../services/api'
-import type { Article } from '../types'
+import type { Article, FeedEvent } from '../types'
 
 type TabKey = 'following' | 'recommended'
 
-interface ArticleListItem extends Article {
-  authorName?: string
-  authorAvatar?: string
-  tags?: { id: number; name: string }[]
-  interactive?: {
-    likeCnt: number
-    collectCnt: number
-    readCnt: number
-  }
+function parseDateTime(s: string): number {
+  if (!s) return 0
+  const d = new Date(s)
+  return isNaN(d.getTime()) ? 0 : d.getTime()
 }
 
-function formatTime(timestamp: number): string {
+function formatTime(dateStr: string): string {
+  const ts = parseDateTime(dateStr)
+  if (!ts) return ''
   const now = Date.now()
-  const ts = timestamp < 1e12 ? timestamp * 1000 : timestamp
   const diff = now - ts
   const minutes = Math.floor(diff / 60000)
   if (minutes < 1) return '刚刚'
@@ -34,7 +30,8 @@ function formatTime(timestamp: number): string {
   return `${date.getMonth() + 1}月${date.getDate()}日`
 }
 
-function ArticleCard({ article }: { article: ArticleListItem }) {
+// Backend ArticleVO: flat structure with snake_case fields
+function ArticleCard({ article }: { article: Article }) {
   const navigate = useNavigate()
 
   return (
@@ -45,10 +42,10 @@ function ArticleCard({ article }: { article: ArticleListItem }) {
       {/* Author info */}
       <div className="flex items-center gap-2 mb-2">
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center text-white text-xs font-medium shrink-0">
-          {(article.authorName || '匿名').charAt(0)}
+          {(article.author_name || '匿名').charAt(0)}
         </div>
         <span className="text-sm text-gray-700 font-medium">
-          {article.authorName || '匿名用户'}
+          {article.author_name || '匿名用户'}
         </span>
         <span className="text-xs text-gray-400">
           {formatTime(article.ctime)}
@@ -60,17 +57,6 @@ function ArticleCard({ article }: { article: ArticleListItem }) {
         {article.title}
       </h3>
 
-      {/* Tags */}
-      {article.tags && article.tags.length > 0 && (
-        <div className="flex gap-1.5 mb-2 flex-wrap">
-          {article.tags.slice(0, 3).map((tag) => (
-            <Chip key={tag.id} size="sm" variant="soft" color="accent">
-              {tag.name}
-            </Chip>
-          ))}
-        </div>
-      )}
-
       {/* Abstract */}
       {article.abstract && (
         <p className="text-sm text-gray-500 line-clamp-2 mb-2">
@@ -78,15 +64,59 @@ function ArticleCard({ article }: { article: ArticleListItem }) {
         </p>
       )}
 
-      {/* Stats */}
+      {/* Stats — flat fields: like_cnt, collect_cnt from backend ArticleVO */}
       <div className="flex items-center gap-4 text-gray-400">
         <div className="flex items-center gap-1">
           <Heart className="w-3.5 h-3.5" />
-          <span className="text-xs">{article.interactive?.likeCnt || 0}</span>
+          <span className="text-xs">{(article as Article & { like_cnt?: number }).like_cnt || 0}</span>
         </div>
         <div className="flex items-center gap-1">
           <MessageCircle className="w-3.5 h-3.5" />
-          <span className="text-xs">{article.interactive?.collectCnt || 0}</span>
+          <span className="text-xs">{(article as Article & { collect_cnt?: number }).collect_cnt || 0}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Feed articles use FeedArticleVO shape from backend
+function FeedArticleCard({ event }: { event: FeedEvent }) {
+  const navigate = useNavigate()
+  const article = event.article
+  if (!article) return null
+
+  return (
+    <div
+      className="px-4 py-3 border-b border-gray-50 active:bg-gray-50 cursor-pointer"
+      onClick={() => navigate(`/article/${article.id}`)}
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center text-white text-xs font-medium shrink-0">
+          {(article.author_name || '匿名').charAt(0)}
+        </div>
+        <span className="text-sm text-gray-700 font-medium">
+          {article.author_name || '匿名用户'}
+        </span>
+        <span className="text-xs text-gray-400">
+          {formatTime(article.ctime)}
+        </span>
+      </div>
+      <h3 className="text-base font-semibold text-gray-900 mb-1 line-clamp-2">
+        {article.title}
+      </h3>
+      {article.abstract && (
+        <p className="text-sm text-gray-500 line-clamp-2 mb-2">
+          {article.abstract}
+        </p>
+      )}
+      <div className="flex items-center gap-4 text-gray-400">
+        <div className="flex items-center gap-1">
+          <Heart className="w-3.5 h-3.5" />
+          <span className="text-xs">{article.like_cnt || 0}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <MessageCircle className="w-3.5 h-3.5" />
+          <span className="text-xs">{article.comment_cnt || 0}</span>
         </div>
       </div>
     </div>
@@ -97,25 +127,26 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<TabKey>('recommended')
   const navigate = useNavigate()
 
-  const { data: feedArticles, isLoading: feedLoading } = useQuery({
+  // Backend: GET /feed  returns FeedEventVO[] with nested article
+  const { data: feedEvents, isLoading: feedLoading } = useQuery({
     queryKey: ['feed'],
     queryFn: async () => {
-      const res = await api.get<ArticleListItem[]>('/feed')
+      const res = await api.get<FeedEvent[]>('/feed')
       return res.data || []
     },
     enabled: activeTab === 'following',
   })
 
+  // Backend: GET /articles/pub/articles  returns ArticleVO[] (flat, snake_case)
   const { data: recommendedArticles, isLoading: recommendedLoading } = useQuery({
     queryKey: ['articles', 'recommended'],
     queryFn: async () => {
-      const res = await api.get<ArticleListItem[]>('/articles/pub/articles')
+      const res = await api.get<Article[]>('/articles/pub/articles')
       return res.data || []
     },
     enabled: activeTab === 'recommended',
   })
 
-  const articles = activeTab === 'following' ? feedArticles : recommendedArticles
   const isLoading = activeTab === 'following' ? feedLoading : recommendedLoading
 
   return (
@@ -173,19 +204,27 @@ export default function Home() {
           <div className="flex items-center justify-center py-20">
             <Spinner size="lg" />
           </div>
-        ) : articles && articles.length > 0 ? (
+        ) : activeTab === 'following' ? (
+          feedEvents && feedEvents.length > 0 ? (
+            <div>
+              {feedEvents.map((event) => (
+                <FeedArticleCard key={event.id} event={event} />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+              <p className="text-sm">关注一些作者，这里会显示他们的最新文章</p>
+            </div>
+          )
+        ) : recommendedArticles && recommendedArticles.length > 0 ? (
           <div>
-            {articles.map((article) => (
+            {recommendedArticles.map((article) => (
               <ArticleCard key={article.id} article={article} />
             ))}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-            <p className="text-sm">
-              {activeTab === 'following'
-                ? '关注一些作者，这里会显示他们的最新文章'
-                : '暂无推荐内容'}
-            </p>
+            <p className="text-sm">暂无推荐内容</p>
           </div>
         )}
       </div>

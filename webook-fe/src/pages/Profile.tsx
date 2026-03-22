@@ -11,11 +11,18 @@ import {
   Heart,
 } from 'lucide-react'
 import { api } from '../services/api'
-import type { User, Article } from '../types'
+import type { User, UserProfile, FollowStats } from '../types'
 
-function formatTime(timestamp: number): string {
+function parseDateTime(s: string): number {
+  if (!s) return 0
+  const d = new Date(s)
+  return isNaN(d.getTime()) ? 0 : d.getTime()
+}
+
+function formatTime(dateStr: string): string {
+  const ts = parseDateTime(dateStr)
+  if (!ts) return ''
   const now = Date.now()
-  const ts = timestamp < 1e12 ? timestamp * 1000 : timestamp
   const diff = now - ts
   const minutes = Math.floor(diff / 60000)
   if (minutes < 1) return '刚刚'
@@ -34,19 +41,15 @@ function formatStatCount(count: number): string {
   return String(count)
 }
 
-interface FollowStatsData {
-  followee_count: number
-  follower_count: number
-}
-
-interface ArticleListItem extends Article {
-  authorName?: string
-  tags?: { id: number; name: string }[]
-  interactive?: {
-    likeCnt: number
-    collectCnt: number
-    readCnt: number
-  }
+// Backend ArticleVO list item (from /articles/list): id, title, abstract, status, ctime, utime
+interface ArticleListItem {
+  id: number;
+  title: string;
+  abstract?: string;
+  status: number;
+  ctime: string;
+  utime: string;
+  like_cnt?: number;
 }
 
 function ArticleListCard({ article, onClick }: { article: ArticleListItem; onClick: () => void }) {
@@ -65,10 +68,10 @@ function ArticleListCard({ article, onClick }: { article: ArticleListItem; onCli
       )}
       <div className="flex items-center gap-3 text-gray-400">
         <span className="text-xs">{formatTime(article.utime || article.ctime)}</span>
-        {article.interactive && (
+        {article.like_cnt !== undefined && article.like_cnt > 0 && (
           <span className="text-xs">
             <Heart className="w-3 h-3 inline mr-0.5" />
-            {article.interactive.likeCnt}
+            {article.like_cnt}
           </span>
         )}
       </div>
@@ -93,34 +96,41 @@ export default function Profile() {
   // Determine if viewing own profile
   const isOwnProfile = !routeId
 
-  // Fetch profile
+  // Backend: GET /users/profile (own) returns Profile struct
+  // Backend: GET /users/profile/:id (other) returns PublicProfile struct
+  // Profile json: id, email, phone, nickname, aboutMe, birthday, avatar_url, ctime
+  // PublicProfile json: id, nickname, aboutMe, follower_count, following_count, article_count, avatar_url, ctime
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['profile', routeId || 'me'],
     queryFn: async () => {
       const url = isOwnProfile ? '/users/profile' : `/users/profile/${routeId}`
-      const res = await api.get<User>(url)
-      return res.data
+      if (isOwnProfile) {
+        const res = await api.get<User>(url)
+        return res.data
+      } else {
+        const res = await api.get<UserProfile>(url)
+        return res.data
+      }
     },
   })
 
-  // Fetch follow stats
+  // Backend: GET /follow/static?followee=ID  returns { followees, followers }
+  // Only needed for own profile (other's profile already has follower_count/following_count)
   const { data: followStats } = useQuery({
     queryKey: ['follow-stats', profile?.id],
     queryFn: async () => {
-      const res = await api.post<FollowStatsData>('/follow/static', {
-        uid: profile!.id,
-      })
+      const res = await api.get<FollowStats>(`/follow/static?followee=${profile!.id}`)
       return res.data
     },
-    enabled: !!profile?.id,
+    enabled: isOwnProfile && !!profile?.id,
   })
 
-  // Check if following (for other's profile)
+  // Backend: GET /follow/check?followee=ID  returns { followed: bool }
   const { data: followStatus } = useQuery({
     queryKey: ['follow-check', profile?.id],
     queryFn: async () => {
-      const res = await api.get<{ follow: boolean }>(
-        `/follow/check?uid=${profile!.id}`
+      const res = await api.get<{ followed: boolean }>(
+        `/follow/check?followee=${profile!.id}`
       )
       return res.data
     },
@@ -128,9 +138,11 @@ export default function Profile() {
   })
 
   // Follow/unfollow mutation
+  // Backend: POST /follow/follow  body: { followee: id }
+  // Backend: POST /follow/cancel  body: { followee: id }
   const followMutation = useMutation({
     mutationFn: async () => {
-      const isFollowing = followStatus?.follow
+      const isFollowing = followStatus?.followed
       if (isFollowing) {
         await api.post('/follow/cancel', { followee: profile!.id })
       } else {
@@ -147,13 +159,14 @@ export default function Profile() {
     },
   })
 
-  // Fetch articles (own)
+  // Backend: POST /articles/list  body: { offset, limit }
+  // Returns ArticleVO[] (for own articles)
   const { data: articles, isLoading: articlesLoading } = useQuery({
     queryKey: ['profile-articles', profile?.id],
     queryFn: async () => {
       const res = await api.post<ArticleListItem[]>('/articles/list', {
-        page: 1,
-        page_size: 20,
+        offset: 0,
+        limit: 20,
       })
       return res.data || []
     },
@@ -220,7 +233,18 @@ export default function Profile() {
     )
   }
 
-  const isFollowing = followStatus?.follow ?? false
+  const isFollowing = followStatus?.followed ?? false
+
+  // Compute stats: for own profile use followStats (from /follow/static), for other's use PublicProfile fields
+  const followeesCount = isOwnProfile
+    ? (followStats?.followees ?? 0)
+    : ((profile as UserProfile)?.following_count ?? 0)
+  const followersCount = isOwnProfile
+    ? (followStats?.followers ?? 0)
+    : ((profile as UserProfile)?.follower_count ?? 0)
+  const articleCount = isOwnProfile
+    ? (articles?.length ?? 0)
+    : ((profile as UserProfile)?.article_count ?? 0)
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -254,7 +278,7 @@ export default function Profile() {
       {/* Profile Info */}
       <div className="flex flex-col items-center pt-6 pb-4 px-4">
         <Avatar size="lg" className="w-20 h-20 text-2xl mb-3">
-          {profile?.avatar && <Avatar.Image src={profile.avatar} />}
+          {profile?.avatar_url && <Avatar.Image src={profile.avatar_url} />}
           <Avatar.Fallback>
             {(profile?.nickname || '用户').charAt(0)}
           </Avatar.Fallback>
@@ -272,21 +296,21 @@ export default function Profile() {
         <div className="flex items-center justify-center gap-8 py-3 w-full">
           <div className="flex flex-col items-center">
             <span className="text-lg font-bold text-gray-900">
-              {formatStatCount(followStats?.followee_count ?? 0)}
+              {formatStatCount(followeesCount)}
             </span>
             <span className="text-xs text-gray-400">关注</span>
           </div>
           <div className="w-px h-8 bg-gray-200" />
           <div className="flex flex-col items-center">
             <span className="text-lg font-bold text-gray-900">
-              {formatStatCount(followStats?.follower_count ?? 0)}
+              {formatStatCount(followersCount)}
             </span>
             <span className="text-xs text-gray-400">粉丝</span>
           </div>
           <div className="w-px h-8 bg-gray-200" />
           <div className="flex flex-col items-center">
             <span className="text-lg font-bold text-gray-900">
-              {articles?.length ?? 0}
+              {articleCount}
             </span>
             <span className="text-xs text-gray-400">文章</span>
           </div>
@@ -338,7 +362,6 @@ export default function Profile() {
               <span className="text-sm text-gray-700">积分钱包</span>
             </div>
             <div className="flex items-center gap-1">
-              <span className="text-sm text-orange-500 font-medium">580</span>
               <ChevronRight className="w-4 h-4 text-gray-300" />
             </div>
           </button>

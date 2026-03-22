@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import { api } from '../services/api'
 import { formatTime } from '../utils/formatTime'
-import type { Comment } from '../types'
+import type { Comment, GetCommentResp } from '../types'
 
 interface ReplyTarget {
   id: number
@@ -21,36 +21,26 @@ interface ReplyTarget {
 
 function CommentItem({
   comment,
-  authorId,
   onReply,
 }: {
   comment: Comment
-  authorId?: number
   onReply: (target: ReplyTarget) => void
 }) {
-  const [showReplies, setShowReplies] = useState(false)
   const [liked, setLiked] = useState(false)
-
-  const isAuthor = authorId != null && comment.user?.id === authorId
 
   return (
     <div className="px-4 py-3">
       <div className="flex gap-3">
         {/* Avatar */}
         <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-medium shrink-0">
-          {(comment.user?.nickname || '用户').charAt(0)}
+          {(comment.user_name || '用户').charAt(0)}
         </div>
         <div className="flex-1 min-w-0">
-          {/* Name + Author tag + Time */}
+          {/* Name + Time */}
           <div className="flex items-center gap-2 mb-1">
             <span className="text-sm font-medium text-gray-900">
-              {comment.user?.nickname || '匿名用户'}
+              {comment.user_name || '匿名用户'}
             </span>
-            {isAuthor && (
-              <span className="px-1.5 py-0.5 text-[10px] font-medium bg-blue-50 text-blue-600 rounded">
-                作者
-              </span>
-            )}
             <span className="text-xs text-gray-400">
               {formatTime(comment.ctime)}
             </span>
@@ -79,8 +69,8 @@ function CommentItem({
               onClick={() =>
                 onReply({
                   id: comment.id,
-                  rootId: comment.rootId || comment.id,
-                  nickname: comment.user?.nickname || '匿名用户',
+                  rootId: comment.root_id || comment.id,
+                  nickname: comment.user_name || '匿名用户',
                 })
               }
             >
@@ -88,64 +78,6 @@ function CommentItem({
               <span>回复</span>
             </button>
           </div>
-
-          {/* Replies toggle */}
-          {comment.replyCnt > 0 && (
-            <button
-              className="mt-2 text-xs text-blue-500 font-medium"
-              onClick={() => setShowReplies(!showReplies)}
-            >
-              {showReplies
-                ? '收起回复'
-                : `查看 ${comment.replyCnt} 条回复`}
-            </button>
-          )}
-
-          {/* Reply list */}
-          {showReplies && comment.replies && comment.replies.length > 0 && (
-            <div className="mt-2 pl-2 border-l-2 border-gray-100 space-y-3">
-              {comment.replies.map((reply) => {
-                const replyIsAuthor =
-                  authorId != null && reply.user?.id === authorId
-                return (
-                  <div key={reply.id} className="flex gap-2">
-                    <div className="w-6 h-6 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-[10px] font-medium shrink-0">
-                      {(reply.user?.nickname || '用户').charAt(0)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-xs font-medium text-gray-900">
-                          {reply.user?.nickname || '匿名用户'}
-                        </span>
-                        {replyIsAuthor && (
-                          <span className="px-1 py-0.5 text-[10px] font-medium bg-blue-50 text-blue-600 rounded">
-                            作者
-                          </span>
-                        )}
-                        <span className="text-xs text-gray-400">
-                          {formatTime(reply.ctime)}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-700">{reply.content}</p>
-                      <button
-                        className="mt-1 flex items-center gap-1 text-xs text-gray-400 active:text-blue-500"
-                        onClick={() =>
-                          onReply({
-                            id: reply.id,
-                            rootId: comment.rootId || comment.id,
-                            nickname: reply.user?.nickname || '匿名用户',
-                          })
-                        }
-                      >
-                        <MessageCircle className="w-3 h-3" />
-                        <span>回复</span>
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
         </div>
       </div>
     </div>
@@ -160,32 +92,30 @@ export default function CommentDetail() {
   const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null)
   const [sortBy, setSortBy] = useState<'newest' | 'hottest'>('newest')
 
-  // Fetch comments
+  // Backend: GET /articles/pub/comment?id=X&min_id=0&limit=20
+  // Returns { Comments: Comment[] } where Comment has uid, user_name
   const {
     data: comments,
     isLoading,
   } = useQuery({
     queryKey: ['comments-detail', bizType, bizId],
     queryFn: async () => {
-      const res = await api.get<Comment[]>(
-        `/articles/pub/comment?biz=${bizType || 'article'}&biz_id=${bizId}&min_id=0&limit=20`
+      const res = await api.get<GetCommentResp>(
+        `/articles/pub/comment?id=${bizId}&min_id=0&limit=100`
       )
-      return res.data || []
+      return res.data?.Comments || []
     },
     enabled: !!bizId,
   })
 
-  // Submit comment mutation
+  // Backend: POST /articles/pub/comment  body: { id: bizId, content, parent_id, root_id }
   const commentMutation = useMutation({
     mutationFn: async (content: string) => {
       const body: Record<string, unknown> = {
-        biz: bizType || 'article',
-        biz_id: Number(bizId),
+        id: Number(bizId),
         content,
-      }
-      if (replyTarget) {
-        body.root_id = replyTarget.rootId
-        body.parent_id = replyTarget.id
+        parent_id: replyTarget?.id ?? 0,
+        root_id: replyTarget?.rootId ?? 0,
       }
       await api.post('/articles/pub/comment', body)
     },
@@ -205,7 +135,6 @@ export default function CommentDetail() {
 
   const handleReply = (target: ReplyTarget) => {
     setReplyTarget(target)
-    // Focus input
     const input = document.getElementById('comment-input') as HTMLInputElement
     input?.focus()
   }
@@ -217,7 +146,7 @@ export default function CommentDetail() {
   const sortedComments = comments
     ? sortBy === 'newest'
       ? [...comments].sort((a, b) => b.ctime - a.ctime)
-      : [...comments].sort((a, b) => b.replyCnt - a.replyCnt)
+      : [...comments]
     : []
 
   return (

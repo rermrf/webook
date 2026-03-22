@@ -1,72 +1,81 @@
-// User Types
+// User Types — matches backend Profile struct (user.go)
+// Backend json tags: id, email, phone, nickname, aboutMe, birthday, avatar_url, ctime
 export interface User {
   id: number;
   nickname: string;
   email?: string;
   phone?: string;
-  avatar?: string;
+  avatar_url?: string;
   aboutMe?: string;
   birthday?: string;
-  ctime?: number;
+  ctime?: string;
 }
 
+// Backend PublicProfile struct (user.go)
+// json tags: id, nickname, aboutMe, follower_count, following_count, article_count, avatar_url, ctime
 export interface UserProfile extends User {
-  followeeCount: number;
-  followerCount: number;
-  isFollowed?: boolean;
+  follower_count: number;
+  following_count: number;
+  article_count: number;
 }
 
-// Article Types
+// Article Types — matches backend ArticleVO struct (article_vo.go)
+// Backend json tags: id, title, abstract, content, author_id, author_name, cover_url, author_avatar_url, status, read_cnt, like_cnt, collect_cnt, liked, collected, author_followed, ctime, utime
 export interface Article {
   id: number;
   title: string;
   content: string;
   abstract?: string;
-  authorId: number;
-  authorName?: string;
-  status: ArticleStatus;
-  ctime: number;
-  utime: number;
+  author_id: number;
+  author_name?: string;
+  author_avatar_url?: string;
+  cover_url?: string;
+  status: number;
+  ctime: string;
+  utime: string;
 }
-
-export type ArticleStatus = 'draft' | 'published' | 'withdrawn';
 
 export interface ArticleDetail extends Article {
-  author: User;
-  interactive: ArticleInteractive;
-  tags?: Tag[];
-}
-
-export interface ArticleInteractive {
-  readCnt: number;
-  likeCnt: number;
-  collectCnt: number;
+  // Flat fields from backend ArticleVO
+  read_cnt: number;
+  like_cnt: number;
+  collect_cnt: number;
   liked: boolean;
   collected: boolean;
+  author_followed: boolean;
 }
 
-// Comment Types
+// Comment Types — matches backend Comment struct (article_vo.go)
+// Backend json tags: id, content, uid, user_name, user_avatar_url, parent_id, root_id, ctime
 export interface Comment {
   id: number;
   content: string;
-  userId: number;
-  user: User;
-  bizId: number;
-  rootId?: number;
-  parentId?: number;
-  replies?: Comment[];
-  replyCnt: number;
+  uid: number;
+  user_name: string;
+  user_avatar_url?: string;
+  parent_id: number;
+  root_id: number;
   ctime: number;
 }
 
-// Follow Types
-export interface FollowStats {
-  followeeCount: number;
-  followerCount: number;
+// Backend GetCommentResp: { Comments: Comment[] }
+export interface GetCommentResp {
+  Comments: Comment[];
 }
 
-export interface FollowUser extends User {
-  isFollowed: boolean;
+// Follow Types — matches backend GetFollowStatic response (follow.go)
+// Backend json tags: followees, followers
+export interface FollowStats {
+  followees: number;
+  followers: number;
+}
+
+// FollowUserVO from backend (follow.go): id, nickname, about_me, followed
+export interface FollowUser {
+  id: number;
+  nickname: string;
+  about_me: string;
+  followed: boolean;
 }
 
 // Tag Types
@@ -97,51 +106,116 @@ export interface UnreadCount {
   byType: Record<NotificationType, number>;
 }
 
-// Credit Types
-export interface CreditBalance {
-  balance: number;
-  totalEarned: number;
-  totalSpent: number;
-  monthlyEarned?: number;
-  monthlySpent?: number;
-}
-
+// Credit Types — matches backend CreditFlowVO (credit.go)
+// Backend json tags: id, biz, biz_id, change_amt, balance, description, ctime
 export interface CreditFlow {
   id: number;
-  amount: number;
-  type: 'earn' | 'spend';
+  biz: string;
+  biz_id: number;
+  change_amt: number;
+  balance: number;
   description: string;
-  bizType?: string;
   ctime: number;
 }
 
-// Feed Types
-export interface FeedItem {
+// Backend DailyStatusVO (credit.go): biz, earned_count, earned_amt, daily_limit, remaining
+export interface DailyStatus {
+  biz: string;
+  earned_count: number;
+  earned_amt: number;
+  daily_limit: number;
+  remaining: number;
+}
+
+// Feed Types — matches backend FeedEventVO (feed.go)
+// Backend json tags: id, user_id, type, content, article, ctime
+export interface FeedEvent {
   id: number;
-  type: 'article' | 'follow' | 'like';
-  content: Article | User;
+  user_id: number;
+  type: string;
+  content: string;
+  article?: FeedArticle;
   ctime: number;
 }
 
-// Ranking Types
-export interface RankingItem {
-  rank: number;
-  article: Article;
-  score: number;
+// Backend FeedArticleVO (feed.go): id, title, abstract, author_id, author_name, tags, like_cnt, comment_cnt, read_cnt, ctime
+export interface FeedArticle {
+  id: number;
+  title: string;
+  abstract: string;
+  author_id: number;
+  author_name: string;
+  tags: string[];
+  like_cnt: number;
+  comment_cnt: number;
+  read_cnt: number;
+  ctime: string;
 }
 
-// API Response Types
+// Ranking Types — matches backend HotArticleVO (ranking.go)
+// Backend json tags: id, title, author_id, author_name, like_cnt, comment_cnt, read_cnt, ctime
+export interface HotArticle {
+  id: number;
+  title: string;
+  author_id: number;
+  author_name: string;
+  like_cnt: number;
+  comment_cnt: number;
+  read_cnt: number;
+  ctime: string;
+}
+
+// Search Types — matches backend SearchResponse (search.go)
+// Backend json: { users: SearchUser[], articles: SearchArticle[] }
+export interface SearchResponse {
+  users: SearchUserResult[];
+  articles: SearchArticleResult[];
+}
+
+// Backend SearchUser: id, nickname, about_me, follower_count
+export interface SearchUserResult {
+  id: number;
+  nickname: string;
+  about_me: string;
+  follower_count: number;
+}
+
+// Backend SearchArticle: id, title, abstract, author_id, author_name, tags, like_cnt, ctime
+export interface SearchArticleResult {
+  id: number;
+  title: string;
+  abstract: string;
+  author_id: number;
+  author_name: string;
+  tags: string[];
+  like_cnt: number;
+  ctime: string;
+}
+
+// Recommend user — matches backend RecommendUserVO (user.go)
+// Backend json tags: id, nickname, about_me, article_count, follower_count, avatar_url, followed
+export interface RecommendUser {
+  id: number;
+  nickname: string;
+  about_me: string;
+  article_count: number;
+  follower_count: number;
+  avatar_url: string;
+  followed: boolean;
+}
+
+// Hot keyword — matches backend HotKeyword (search.go)
+// Backend json: { keyword: string }
+export interface HotKeyword {
+  keyword: string;
+}
+
+// API Response Types — matches backend ginx.Result
+// Backend json tags: code, msg, data
 export interface ApiResponse<T> {
   code: number;
   msg?: string;
   data?: T;
-}
-
-export interface PaginatedResponse<T> {
-  list: T[];
-  total: number;
-  page: number;
-  pageSize: number;
 }
 
 // Auth Types
@@ -154,6 +228,7 @@ export interface SignupRequest {
   email: string;
   password: string;
   confirmPassword: string;
+  nickname: string;
 }
 
 export interface SmsLoginRequest {

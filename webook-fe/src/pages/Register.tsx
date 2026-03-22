@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { TextField, Input, Button, Label, Link } from '@heroui/react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 import { api } from '../services/api'
 
 export default function Register() {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [phone, setPhone] = useState('')
   const [code, setCode] = useState('')
   const [countdown, setCountdown] = useState(0)
@@ -18,10 +20,12 @@ export default function Register() {
     return () => clearTimeout(timer)
   }, [countdown])
 
+  // Backend: POST /users/login_sms/code/send  body: { phone }
+  // Registration reuses the SMS login flow (first-time SMS login = registration)
   const sendCode = useCallback(async () => {
     if (!phone || countdown > 0) return
     try {
-      await api.post('/code/send', { biz: 'register', phone })
+      await api.post('/users/login_sms/code/send', { phone })
       setCountdown(60)
       setError('')
     } catch {
@@ -29,20 +33,22 @@ export default function Register() {
     }
   }, [phone, countdown])
 
+  // Backend: POST /users/login_sms  body: { phone, code }
+  // Backend FindOrCreate will create the user if they don't exist
   const handleRegister = useCallback(async () => {
     if (!phone || !code) return
     setLoading(true)
     setError('')
     try {
-      await api.post('/users/register', { phone, code })
+      await login(phone, code)
       setSuccess(true)
-      setTimeout(() => navigate('/login', { replace: true }), 1500)
+      setTimeout(() => navigate('/', { replace: true }), 1500)
     } catch {
       setError('注册失败，请稍后重试')
     } finally {
       setLoading(false)
     }
-  }, [phone, code, navigate])
+  }, [phone, code, login, navigate])
 
   return (
     <div className="mx-auto max-w-[430px] min-h-screen bg-white flex flex-col">
@@ -91,7 +97,7 @@ export default function Register() {
           )}
 
           {success && (
-            <p className="text-green-500 text-sm text-center">注册成功，正在跳转登录...</p>
+            <p className="text-green-500 text-sm text-center">注册成功，正在跳转首页...</p>
           )}
 
           <Button

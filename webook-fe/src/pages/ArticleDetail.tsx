@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Avatar, Button, Chip, Spinner } from '@heroui/react'
+import { Avatar, Button, Spinner } from '@heroui/react'
 import {
   ArrowLeft,
   Heart,
@@ -11,9 +11,31 @@ import {
   Send,
 } from 'lucide-react'
 import { api } from '../services/api'
-import type { ArticleDetail as ArticleDetailType, Comment } from '../types'
+import type { ArticleDetail as ArticleDetailType, Comment, GetCommentResp } from '../types'
 
-function formatTime(timestamp: number): string {
+function parseDateTime(s: string): number {
+  if (!s) return 0
+  const d = new Date(s)
+  return isNaN(d.getTime()) ? 0 : d.getTime()
+}
+
+function formatTime(dateStr: string): string {
+  const ts = parseDateTime(dateStr)
+  if (!ts) return ''
+  const now = Date.now()
+  const diff = now - ts
+  const minutes = Math.floor(diff / 60000)
+  if (minutes < 1) return '刚刚'
+  if (minutes < 60) return `${minutes}分钟前`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}小时前`
+  const days = Math.floor(hours / 24)
+  if (days < 30) return `${days}天前`
+  const date = new Date(ts)
+  return `${date.getMonth() + 1}月${date.getDate()}日`
+}
+
+function formatTimestamp(timestamp: number): string {
   const now = Date.now()
   const ts = timestamp < 1e12 ? timestamp * 1000 : timestamp
   const diff = now - ts
@@ -34,61 +56,31 @@ function formatCount(count: number): string {
   return String(count)
 }
 
+// Backend Comment: { id, content, uid, user_name, user_avatar_url, parent_id, root_id, ctime }
 function CommentItem({ comment }: { comment: Comment }) {
-  const [showReplies, setShowReplies] = useState(false)
-
   return (
     <div className="px-4 py-3">
       <div className="flex gap-3">
         <Avatar size="sm" className="shrink-0">
+          {comment.user_avatar_url && (
+            <Avatar.Image src={comment.user_avatar_url} />
+          )}
           <Avatar.Fallback>
-            {(comment.user?.nickname || '用户').charAt(0)}
+            {(comment.user_name || '用户').charAt(0)}
           </Avatar.Fallback>
         </Avatar>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-sm font-medium text-gray-900">
-              {comment.user?.nickname || '匿名用户'}
+              {comment.user_name || '匿名用户'}
             </span>
             <span className="text-xs text-gray-400">
-              {formatTime(comment.ctime)}
+              {formatTimestamp(comment.ctime)}
             </span>
           </div>
           <p className="text-sm text-gray-700 leading-relaxed">
             {comment.content}
           </p>
-          {comment.replyCnt > 0 && (
-            <button
-              className="mt-2 text-xs text-blue-500 font-medium"
-              onClick={() => setShowReplies(!showReplies)}
-            >
-              {showReplies ? '收起回复' : `查看 ${comment.replyCnt} 条回复`}
-            </button>
-          )}
-          {showReplies && comment.replies && comment.replies.length > 0 && (
-            <div className="mt-2 pl-2 border-l-2 border-gray-100 space-y-3">
-              {comment.replies.map((reply) => (
-                <div key={reply.id} className="flex gap-2">
-                  <Avatar size="sm" className="shrink-0 w-6 h-6">
-                    <Avatar.Fallback>
-                      {(reply.user?.nickname || '用户').charAt(0)}
-                    </Avatar.Fallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-xs font-medium text-gray-900">
-                        {reply.user?.nickname || '匿名用户'}
-                      </span>
-                      <span className="text-xs text-gray-400">
-                        {formatTime(reply.ctime)}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-700">{reply.content}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </div>
@@ -102,7 +94,9 @@ export default function ArticleDetail() {
   const [commentText, setCommentText] = useState('')
   const [isCommentExpanded, setIsCommentExpanded] = useState(false)
 
-  // Fetch article detail
+  // Backend: GET /articles/pub/:id  returns flat ArticleVO
+  // Fields: id, title, content, author_id, author_name, author_avatar_url, author_followed,
+  //         read_cnt, like_cnt, collect_cnt, liked, collected, ctime, utime
   const {
     data: article,
     isLoading,
@@ -116,38 +110,25 @@ export default function ArticleDetail() {
     enabled: !!id,
   })
 
-  // Fetch follow status
-  const { data: followStatus } = useQuery({
-    queryKey: ['follow-check', article?.author?.id],
-    queryFn: async () => {
-      const res = await api.get<{ follow: boolean }>(
-        `/follow/check?uid=${article!.author.id}`
-      )
-      return res.data
-    },
-    enabled: !!article?.author?.id,
-  })
-
-  // Fetch comments
+  // Backend: GET /articles/pub/comment?id=X&min_id=0&limit=20
+  // Returns { Comments: Comment[] } where Comment has uid, user_name
   const { data: comments } = useQuery({
     queryKey: ['comments', id],
     queryFn: async () => {
-      const res = await api.get<Comment[]>(
-        `/articles/pub/comment?biz=article&biz_id=${id}&min_id=0&limit=20`
+      const res = await api.get<GetCommentResp>(
+        `/articles/pub/comment?id=${id}&min_id=0&limit=20`
       )
-      return res.data || []
+      return res.data?.Comments || []
     },
     enabled: !!id,
   })
 
-  // Like mutation
+  // Backend: POST /articles/pub/like  body: { id: articleId, like: bool }
   const likeMutation = useMutation({
     mutationFn: async () => {
       await api.post('/articles/pub/like', {
-        id: 0,
-        biz: 'article',
-        biz_id: Number(id),
-        like: !article?.interactive?.liked,
+        id: Number(id),
+        like: !article?.liked,
       })
     },
     onSuccess: () => {
@@ -155,14 +136,12 @@ export default function ArticleDetail() {
     },
   })
 
-  // Collect mutation
+  // Backend: POST /articles/pub/collect  body: { id: articleId, collect: bool }
   const collectMutation = useMutation({
     mutationFn: async () => {
       await api.post('/articles/pub/collect', {
-        id: 0,
-        biz: 'article',
-        biz_id: Number(id),
-        collect: !article?.interactive?.collected,
+        id: Number(id),
+        collect: !article?.collected,
       })
     },
     onSuccess: () => {
@@ -170,30 +149,29 @@ export default function ArticleDetail() {
     },
   })
 
-  // Follow mutation
+  // Backend: POST /follow/follow  body: { followee: userId }
+  // Backend: POST /follow/cancel  body: { followee: userId }
   const followMutation = useMutation({
     mutationFn: async () => {
-      const isFollowing = followStatus?.follow
-      if (isFollowing) {
-        await api.post('/follow/cancel', { followee: article!.author.id })
+      if (article?.author_followed) {
+        await api.post('/follow/cancel', { followee: article!.author_id })
       } else {
-        await api.post('/follow/follow', { followee: article!.author.id })
+        await api.post('/follow/follow', { followee: article!.author_id })
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['follow-check', article?.author?.id],
-      })
+      queryClient.invalidateQueries({ queryKey: ['article', id] })
     },
   })
 
-  // Comment mutation
+  // Backend: POST /articles/pub/comment  body: { id: bizId, content, parent_id, root_id }
   const commentMutation = useMutation({
     mutationFn: async (content: string) => {
       await api.post('/articles/pub/comment', {
-        biz: 'article',
-        biz_id: Number(id),
+        id: Number(id),
         content,
+        parent_id: 0,
+        root_id: 0,
       })
     },
     onSuccess: () => {
@@ -265,9 +243,6 @@ export default function ArticleDetail() {
     )
   }
 
-  const isFollowing = followStatus?.follow ?? false
-  const interactive = article.interactive
-
   return (
     <div className="flex flex-col min-h-screen pb-16">
       {/* Header */}
@@ -289,41 +264,41 @@ export default function ArticleDetail() {
 
       {/* Article Content */}
       <div className="flex-1">
-        {/* Author Row */}
+        {/* Author Row — flat fields: author_id, author_name, author_avatar_url, author_followed */}
         <div className="flex items-center gap-3 px-4 py-3">
           <div
             className="shrink-0 cursor-pointer"
-            onClick={() => navigate(`/user/${article.author?.id}`)}
+            onClick={() => navigate(`/user/${article.author_id}`)}
           >
             <Avatar size="md">
-              {article.author?.avatar && (
-                <Avatar.Image src={article.author.avatar} />
+              {article.author_avatar_url && (
+                <Avatar.Image src={article.author_avatar_url} />
               )}
               <Avatar.Fallback>
-                {(article.author?.nickname || '作者').charAt(0)}
+                {(article.author_name || '作者').charAt(0)}
               </Avatar.Fallback>
             </Avatar>
           </div>
           <div className="flex-1 min-w-0">
             <p
               className="text-sm font-medium text-gray-900 cursor-pointer"
-              onClick={() => navigate(`/user/${article.author?.id}`)}
+              onClick={() => navigate(`/user/${article.author_id}`)}
             >
-              {article.author?.nickname || '匿名作者'}
+              {article.author_name || '匿名作者'}
             </p>
             <p className="text-xs text-gray-400">
               {formatTime(article.ctime)}
-              {interactive && ` | 阅读 ${formatCount(interactive.readCnt)}`}
+              {` | 阅读 ${formatCount(article.read_cnt)}`}
             </p>
           </div>
           <Button
             size="sm"
-            variant={isFollowing ? 'outline' : 'primary'}
+            variant={article.author_followed ? 'outline' : 'primary'}
             onPress={() => followMutation.mutate()}
             isDisabled={followMutation.isPending}
             className="min-w-[64px]"
           >
-            {isFollowing ? '已关注' : '关注'}
+            {article.author_followed ? '已关注' : '关注'}
           </Button>
         </div>
 
@@ -333,17 +308,6 @@ export default function ArticleDetail() {
             {article.title}
           </h1>
         </div>
-
-        {/* Tags */}
-        {article.tags && article.tags.length > 0 && (
-          <div className="flex gap-2 px-4 pb-4 flex-wrap">
-            {article.tags.map((tag) => (
-              <Chip key={tag.id} size="sm" variant="soft" color="accent">
-                {tag.name}
-              </Chip>
-            ))}
-          </div>
-        )}
 
         {/* Content */}
         <div className="px-4 pb-6">
@@ -427,17 +391,17 @@ export default function ArticleDetail() {
               >
                 <Heart
                   className={`w-5 h-5 ${
-                    interactive?.liked
+                    article.liked
                       ? 'fill-red-500 text-red-500'
                       : 'text-gray-400'
                   }`}
                 />
                 <span
                   className={`text-xs ${
-                    interactive?.liked ? 'text-red-500' : 'text-gray-400'
+                    article.liked ? 'text-red-500' : 'text-gray-400'
                   }`}
                 >
-                  {interactive ? formatCount(interactive.likeCnt) : '0'}
+                  {formatCount(article.like_cnt)}
                 </span>
               </button>
               <button
@@ -446,17 +410,17 @@ export default function ArticleDetail() {
               >
                 <Bookmark
                   className={`w-5 h-5 ${
-                    interactive?.collected
+                    article.collected
                       ? 'fill-yellow-500 text-yellow-500'
                       : 'text-gray-400'
                   }`}
                 />
                 <span
                   className={`text-xs ${
-                    interactive?.collected ? 'text-yellow-500' : 'text-gray-400'
+                    article.collected ? 'text-yellow-500' : 'text-gray-400'
                   }`}
                 >
-                  {interactive ? formatCount(interactive.collectCnt) : '0'}
+                  {formatCount(article.collect_cnt)}
                 </span>
               </button>
               <button

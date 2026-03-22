@@ -12,14 +12,7 @@ import {
   Star,
 } from 'lucide-react'
 import { api } from '../services/api'
-
-interface CreditFlowItem {
-  id: number
-  amount: number
-  type: string
-  description: string
-  ctime: number
-}
+import type { CreditFlow, DailyStatus } from '../types'
 
 function formatTime(timestamp: number): string {
   const ts = timestamp < 1e12 ? timestamp * 1000 : timestamp
@@ -45,34 +38,43 @@ export default function CreditWallet() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
+  // Backend: GET /credit/balance  returns raw number in data (not { balance: N })
   const { data: balance, isLoading: balanceLoading } = useQuery({
     queryKey: ['credit-balance'],
     queryFn: async () => {
-      const res = await api.get<{ balance: number }>('/credit/balance')
-      return res.data?.balance ?? 0
+      const res = await api.get<number>('/credit/balance')
+      // Backend returns raw number: { data: 580 }
+      return res.data ?? 0
     },
   })
 
+  // Backend: POST /credit/flows  body: { offset, limit } (not page/page_size)
+  // Returns CreditFlowVO[]: id, biz, biz_id, change_amt, balance, description, ctime
   const { data: flows, isLoading: flowsLoading } = useQuery({
     queryKey: ['credit-flows'],
     queryFn: async () => {
-      const res = await api.post<CreditFlowItem[]>('/credit/flows', {
-        page: 1,
-        page_size: 50,
+      const res = await api.post<CreditFlow[]>('/credit/flows', {
+        offset: 0,
+        limit: 50,
       })
       return res.data || []
     },
   })
 
-  const { data: dailyStatus } = useQuery({
+  // Backend: GET /credit/daily-status  returns DailyStatusVO[]
+  // Each: biz, earned_count, earned_amt, daily_limit, remaining
+  const { data: dailyStatuses } = useQuery({
     queryKey: ['credit-daily-status'],
     queryFn: async () => {
-      const res = await api.get<{ signed_today: boolean }>(
-        '/credit/daily-status'
-      )
-      return res.data?.signed_today ?? false
+      const res = await api.get<DailyStatus[]>('/credit/daily-status')
+      return res.data || []
     },
   })
+
+  // Check if user has "signed in" today (check if there's a sign_in biz with earned_count > 0)
+  const hasSignedToday = dailyStatuses?.some(
+    (s) => s.biz === 'sign_in' && s.earned_count > 0
+  ) ?? false
 
   const signInMutation = useMutation({
     mutationFn: async () => {
@@ -116,7 +118,7 @@ export default function CreditWallet() {
             </div>
           ) : (
             <p className="text-4xl font-bold tracking-tight mb-1">
-              {balance?.toLocaleString() ?? 0}
+              {(typeof balance === 'number' ? balance : 0).toLocaleString()}
               <span className="text-base font-normal text-blue-200 ml-1">
                 积分
               </span>
@@ -135,16 +137,16 @@ export default function CreditWallet() {
             </button>
             <button
               className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-xl ${
-                dailyStatus
+                hasSignedToday
                   ? 'bg-white/10 opacity-60'
                   : 'bg-white/15 active:bg-white/25'
               }`}
-              onClick={() => !dailyStatus && signInMutation.mutate()}
-              disabled={dailyStatus || signInMutation.isPending}
+              onClick={() => !hasSignedToday && signInMutation.mutate()}
+              disabled={hasSignedToday || signInMutation.isPending}
             >
               <CalendarCheck className="w-5 h-5" />
               <span className="text-xs">
-                {dailyStatus ? '已签到' : '签到'}
+                {hasSignedToday ? '已签到' : '签到'}
               </span>
             </button>
           </div>
@@ -164,7 +166,8 @@ export default function CreditWallet() {
         ) : flows && flows.length > 0 ? (
           <div>
             {flows.map((flow) => {
-              const isEarn = flow.amount > 0
+              // Backend field: change_amt (not amount)
+              const isEarn = flow.change_amt > 0
               return (
                 <div
                   key={flow.id}
@@ -194,7 +197,7 @@ export default function CreditWallet() {
                       }`}
                     >
                       {isEarn ? '+' : ''}
-                      {flow.amount}
+                      {flow.change_amt}
                     </span>
                   </div>
                 </div>

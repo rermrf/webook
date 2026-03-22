@@ -18,7 +18,8 @@ export default function EditProfile() {
   const [saveMsg, setSaveMsg] = useState('')
   const [loaded, setLoaded] = useState(false)
 
-  // Load profile
+  // Backend: GET /users/profile  returns Profile struct
+  // Fields: id, email, phone, nickname, aboutMe, birthday, avatar_url, ctime
   const { isLoading } = useQuery({
     queryKey: ['profile', 'me'],
     queryFn: async () => {
@@ -27,7 +28,7 @@ export default function EditProfile() {
         setNickname(res.data.nickname || '')
         setAboutMe(res.data.aboutMe || '')
         setBirthday(res.data.birthday || '')
-        setAvatarUrl(res.data.avatar || '')
+        setAvatarUrl(res.data.avatar_url || '')
         setLoaded(true)
       }
       return res.data
@@ -42,7 +43,7 @@ export default function EditProfile() {
     },
   })
 
-  // Save mutation
+  // Backend: POST /users/edit  body: { nickname, aboutMe, birthday }
   const saveMutation = useMutation({
     mutationFn: async () => {
       await api.post('/users/edit', {
@@ -62,11 +63,12 @@ export default function EditProfile() {
     },
   })
 
-  // Avatar upload mutation
+  // Backend: POST /upload/avatar  form field name: "file" (NOT "avatar")
+  // Returns { code, msg, data: { url } }
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       const formData = new FormData()
-      formData.append('avatar', file)
+      formData.append('file', file)
       const res = await api.post<{ url: string }>('/upload/avatar', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })

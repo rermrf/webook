@@ -4,18 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Avatar, Button, Spinner } from '@heroui/react'
 import { ArrowLeft } from 'lucide-react'
 import { api } from '../services/api'
-
-interface FollowUserItem {
-  id: number
-  nickname: string
-  avatar?: string
-  aboutMe?: string
-}
-
-interface FollowStatsData {
-  followee_count: number
-  follower_count: number
-}
+import type { FollowUser, FollowStats } from '../types'
 
 type TabKey = 'followee' | 'follower'
 
@@ -25,14 +14,13 @@ function formatStatCount(count: number): string {
   return String(count)
 }
 
+// Backend FollowUserVO: id, nickname, about_me, followed
 function UserRow({
   user,
-  isFollowing,
   onToggleFollow,
   isPending,
 }: {
-  user: FollowUserItem
-  isFollowing: boolean
+  user: FollowUser
   onToggleFollow: () => void
   isPending: boolean
 }) {
@@ -45,7 +33,6 @@ function UserRow({
         onClick={() => navigate(`/user/${user.id}`)}
       >
         <Avatar size="md">
-          {user.avatar && <Avatar.Image src={user.avatar} />}
           <Avatar.Fallback>
             {(user.nickname || '用户').charAt(0)}
           </Avatar.Fallback>
@@ -58,20 +45,20 @@ function UserRow({
         <p className="text-sm font-medium text-gray-900 truncate">
           {user.nickname || '匿名用户'}
         </p>
-        {user.aboutMe && (
+        {user.about_me && (
           <p className="text-xs text-gray-500 truncate mt-0.5">
-            {user.aboutMe}
+            {user.about_me}
           </p>
         )}
       </div>
       <Button
         size="sm"
-        variant={isFollowing ? 'outline' : 'primary'}
+        variant={user.followed ? 'outline' : 'primary'}
         onPress={onToggleFollow}
         isDisabled={isPending}
         className="min-w-[64px] shrink-0"
       >
-        {isFollowing ? '已关注' : '关注'}
+        {user.followed ? '已关注' : '关注'}
       </Button>
     </div>
   )
@@ -82,42 +69,38 @@ export default function FollowList() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<TabKey>('followee')
-  const [followStateMap, setFollowStateMap] = useState<
-    Record<number, boolean>
-  >({})
 
   const uid = Number(userId) || 0
 
-  // Fetch follow stats
+  // Backend: GET /follow/static?followee=ID  returns { followees, followers }
   const { data: stats } = useQuery({
     queryKey: ['follow-stats', uid],
     queryFn: async () => {
-      const res = await api.post<FollowStatsData>('/follow/static', {
-        uid,
-      })
+      const res = await api.get<FollowStats>(`/follow/static?followee=${uid}`)
       return res.data
     },
     enabled: uid > 0,
   })
 
-  // Fetch followees
+  // Backend: GET /follow/followee?follower=ID  returns FollowUserVO[]
+  // FollowUserVO: id, nickname, about_me, followed
   const { data: followees, isLoading: followeesLoading } = useQuery({
     queryKey: ['followees', uid],
     queryFn: async () => {
-      const res = await api.get<FollowUserItem[]>(
-        `/follow/followee?uid=${uid}&offset=0&limit=50`
+      const res = await api.get<FollowUser[]>(
+        `/follow/followee?follower=${uid}`
       )
       return res.data || []
     },
     enabled: activeTab === 'followee' && uid > 0,
   })
 
-  // Fetch followers
+  // Backend: GET /follow/follower?follower=ID  returns FollowUserVO[]
   const { data: followers, isLoading: followersLoading } = useQuery({
     queryKey: ['followers', uid],
     queryFn: async () => {
-      const res = await api.get<FollowUserItem[]>(
-        `/follow/follower?uid=${uid}&offset=0&limit=50`
+      const res = await api.get<FollowUser[]>(
+        `/follow/follower?follower=${uid}`
       )
       return res.data || []
     },
@@ -125,6 +108,8 @@ export default function FollowList() {
   })
 
   // Toggle follow mutation
+  // Backend: POST /follow/follow  body: { followee }
+  // Backend: POST /follow/cancel  body: { followee }
   const toggleFollowMutation = useMutation({
     mutationFn: async ({
       targetUid,
@@ -138,13 +123,10 @@ export default function FollowList() {
       } else {
         await api.post('/follow/follow', { followee: targetUid })
       }
-      return { targetUid, newState: !isCurrentlyFollowing }
     },
-    onSuccess: ({ targetUid, newState }) => {
-      setFollowStateMap((prev) => ({
-        ...prev,
-        [targetUid]: newState,
-      }))
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['followees', uid] })
+      queryClient.invalidateQueries({ queryKey: ['followers', uid] })
       queryClient.invalidateQueries({ queryKey: ['follow-stats', uid] })
     },
   })
@@ -152,13 +134,6 @@ export default function FollowList() {
   const users = activeTab === 'followee' ? followees : followers
   const isLoading =
     activeTab === 'followee' ? followeesLoading : followersLoading
-
-  const getFollowState = (targetUid: number): boolean => {
-    if (targetUid in followStateMap) return followStateMap[targetUid]
-    // For the followee tab, we know we're following them
-    if (activeTab === 'followee') return true
-    return false
-  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -188,7 +163,7 @@ export default function FollowList() {
           >
             关注{' '}
             <span className="text-xs">
-              {formatStatCount(stats?.followee_count ?? 0)}
+              {formatStatCount(stats?.followees ?? 0)}
             </span>
             {activeTab === 'followee' && (
               <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-blue-500 rounded-full" />
@@ -202,7 +177,7 @@ export default function FollowList() {
           >
             粉丝{' '}
             <span className="text-xs">
-              {formatStatCount(stats?.follower_count ?? 0)}
+              {formatStatCount(stats?.followers ?? 0)}
             </span>
             {activeTab === 'follower' && (
               <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-blue-500 rounded-full" />
@@ -223,11 +198,10 @@ export default function FollowList() {
               <UserRow
                 key={user.id}
                 user={user}
-                isFollowing={getFollowState(user.id)}
                 onToggleFollow={() =>
                   toggleFollowMutation.mutate({
                     targetUid: user.id,
-                    isCurrentlyFollowing: getFollowState(user.id),
+                    isCurrentlyFollowing: user.followed,
                   })
                 }
                 isPending={toggleFollowMutation.isPending}
