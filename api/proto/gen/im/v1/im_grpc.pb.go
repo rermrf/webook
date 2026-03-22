@@ -26,6 +26,7 @@ const (
 	IMService_ListConversations_FullMethodName = "/im.v1.IMService/ListConversations"
 	IMService_GetConversation_FullMethodName   = "/im.v1.IMService/GetConversation"
 	IMService_GetUnreadCount_FullMethodName    = "/im.v1.IMService/GetUnreadCount"
+	IMService_IsOnline_FullMethodName          = "/im.v1.IMService/IsOnline"
 )
 
 // IMServiceClient is the client API for IMService service.
@@ -39,6 +40,7 @@ type IMServiceClient interface {
 	ListConversations(ctx context.Context, in *ListConversationsRequest, opts ...grpc.CallOption) (*ListConversationsResponse, error)
 	GetConversation(ctx context.Context, in *GetConversationRequest, opts ...grpc.CallOption) (*GetConversationResponse, error)
 	GetUnreadCount(ctx context.Context, in *GetUnreadCountRequest, opts ...grpc.CallOption) (*GetUnreadCountResponse, error)
+	IsOnline(ctx context.Context, in *IsOnlineRequest, opts ...grpc.CallOption) (*IsOnlineResponse, error)
 }
 
 type iMServiceClient struct {
@@ -119,6 +121,16 @@ func (c *iMServiceClient) GetUnreadCount(ctx context.Context, in *GetUnreadCount
 	return out, nil
 }
 
+func (c *iMServiceClient) IsOnline(ctx context.Context, in *IsOnlineRequest, opts ...grpc.CallOption) (*IsOnlineResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IsOnlineResponse)
+	err := c.cc.Invoke(ctx, IMService_IsOnline_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // IMServiceServer is the server API for IMService service.
 // All implementations must embed UnimplementedIMServiceServer
 // for forward compatibility.
@@ -130,6 +142,7 @@ type IMServiceServer interface {
 	ListConversations(context.Context, *ListConversationsRequest) (*ListConversationsResponse, error)
 	GetConversation(context.Context, *GetConversationRequest) (*GetConversationResponse, error)
 	GetUnreadCount(context.Context, *GetUnreadCountRequest) (*GetUnreadCountResponse, error)
+	IsOnline(context.Context, *IsOnlineRequest) (*IsOnlineResponse, error)
 	mustEmbedUnimplementedIMServiceServer()
 }
 
@@ -160,6 +173,9 @@ func (UnimplementedIMServiceServer) GetConversation(context.Context, *GetConvers
 }
 func (UnimplementedIMServiceServer) GetUnreadCount(context.Context, *GetUnreadCountRequest) (*GetUnreadCountResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUnreadCount not implemented")
+}
+func (UnimplementedIMServiceServer) IsOnline(context.Context, *IsOnlineRequest) (*IsOnlineResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method IsOnline not implemented")
 }
 func (UnimplementedIMServiceServer) mustEmbedUnimplementedIMServiceServer() {}
 func (UnimplementedIMServiceServer) testEmbeddedByValue()                   {}
@@ -308,6 +324,24 @@ func _IMService_GetUnreadCount_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IMService_IsOnline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IsOnlineRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IMServiceServer).IsOnline(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IMService_IsOnline_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IMServiceServer).IsOnline(ctx, req.(*IsOnlineRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // IMService_ServiceDesc is the grpc.ServiceDesc for IMService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -342,6 +376,10 @@ var IMService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUnreadCount",
 			Handler:    _IMService_GetUnreadCount_Handler,
+		},
+		{
+			MethodName: "IsOnline",
+			Handler:    _IMService_IsOnline_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

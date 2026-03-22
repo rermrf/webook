@@ -114,6 +114,14 @@ func (s *IMServiceServer) GetUnreadCount(ctx context.Context, req *imv1.GetUnrea
 	}, nil
 }
 
+func (s *IMServiceServer) IsOnline(ctx context.Context, req *imv1.IsOnlineRequest) (*imv1.IsOnlineResponse, error) {
+	online, err := s.convSvc.IsOnline(ctx, req.GetUserId())
+	if err != nil {
+		return &imv1.IsOnlineResponse{Online: false}, nil
+	}
+	return &imv1.IsOnlineResponse{Online: online}, nil
+}
+
 func toMessageItem(m domain.Message) *imv1.MessageItem {
 	return &imv1.MessageItem{
 		Id:             m.Id,

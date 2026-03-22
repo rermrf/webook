@@ -11,6 +11,7 @@ type ConversationService interface {
 	ListConversations(ctx context.Context, userId int64, cursor int64, limit int) ([]domain.Conversation, bool, error)
 	GetConversation(ctx context.Context, conversationId string) (domain.Conversation, error)
 	GetUnreadCount(ctx context.Context, userId int64) (int64, map[string]int64, error)
+	IsOnline(ctx context.Context, userId int64) (bool, error)
 }
 
 type conversationService struct {
@@ -49,4 +50,8 @@ func (s *conversationService) GetUnreadCount(ctx context.Context, userId int64) 
 		total += count
 	}
 	return total, byConversation, nil
+}
+
+func (s *conversationService) IsOnline(ctx context.Context, userId int64) (bool, error) {
+	return s.convRepo.IsOnline(ctx, userId)
 }

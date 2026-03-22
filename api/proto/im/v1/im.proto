@@ -11,6 +11,7 @@ service IMService {
   rpc ListConversations(ListConversationsRequest) returns (ListConversationsResponse);
   rpc GetConversation(GetConversationRequest) returns (GetConversationResponse);
   rpc GetUnreadCount(GetUnreadCountRequest) returns (GetUnreadCountResponse);
+  rpc IsOnline(IsOnlineRequest) returns (IsOnlineResponse);
 }
 
 message SendMessageRequest {
@@ -96,4 +97,12 @@ message ConversationItem {
   MessageItem last_msg = 3;
   int64 unread_count = 4;
   int64 utime = 5;
+}
+
+message IsOnlineRequest {
+  int64 user_id = 1;
+}
+
+message IsOnlineResponse {
+  bool online = 1;
 }

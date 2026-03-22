@@ -2,11 +2,13 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 
 	imv1 "webook/api/proto/gen/im/v1"
+	userv1 "webook/api/proto/gen/user/v1"
 	ijwt "webook/bff/handler/jwt"
 	"webook/bff/handler/ws"
 	"webook/pkg/ginx"
@@ -14,16 +16,18 @@ import (
 )
 
 type IMHandler struct {
-	svc imv1.IMServiceClient
-	hub *ws.IMHub
-	l   logger.LoggerV1
+	svc     imv1.IMServiceClient
+	userSvc userv1.UserServiceClient
+	hub     *ws.IMHub
+	l       logger.LoggerV1
 }
 
-func NewIMHandler(svc imv1.IMServiceClient, hub *ws.IMHub, l logger.LoggerV1) *IMHandler {
+func NewIMHandler(svc imv1.IMServiceClient, userSvc userv1.UserServiceClient, hub *ws.IMHub, l logger.LoggerV1) *IMHandler {
 	return &IMHandler{
-		svc: svc,
-		hub: hub,
-		l:   l,
+		svc:     svc,
+		userSvc: userSvc,
+		hub:     hub,
+		l:       l,
 	}
 }
 
@@ -34,6 +38,7 @@ func (h *IMHandler) RegisterRoutes(server *gin.Engine) {
 	g.GET("/conversations/:id/messages", ginx.WrapClaims(h.l, h.ListMessages))
 	g.POST("/conversations/:id/read", ginx.WrapClaims(h.l, h.MarkAsRead))
 	g.GET("/unread-count", ginx.WrapClaims(h.l, h.GetUnreadCount))
+	g.GET("/online/:userId", ginx.WrapClaims(h.l, h.GetOnlineStatus))
 }
 
 // WebSocket 处理 WebSocket 连接升级
@@ -60,10 +65,18 @@ func (h *IMHandler) WebSocket(c *gin.Context) {
 	go client.ReadPump()
 }
 
+// PeerUser 对端用户信息
+type PeerUser struct {
+	UserId   int64  `json:"user_id"`
+	Nickname string `json:"nickname"`
+	Avatar   string `json:"avatar"`
+}
+
 // ConversationVO 会话视图对象
 type ConversationVO struct {
 	ConversationID string     `json:"conversation_id"`
 	Members        []int64    `json:"members"`
+	PeerUser       *PeerUser  `json:"peer_user,omitempty"`
 	LastMsg        *MessageVO `json:"last_msg,omitempty"`
 	UnreadCount    int64      `json:"unread_count"`
 	Utime          int64      `json:"utime"`
@@ -105,6 +118,29 @@ func (h *IMHandler) ListConversations(c *gin.Context, uc ijwt.UserClaims) (ginx.
 		return ginx.Result{Code: 5, Msg: "系统错误"}, err
 	}
 
+	// Collect peer user IDs
+	peerIds := make([]int64, 0)
+	for _, conv := range resp.Conversations {
+		for _, memberId := range conv.Members {
+			if memberId != uc.UserId {
+				peerIds = append(peerIds, memberId)
+			}
+		}
+	}
+
+	// Batch fetch user profiles
+	peerMap := make(map[int64]*PeerUser)
+	for _, peerId := range peerIds {
+		profile, profileErr := h.userSvc.Profile(c.Request.Context(), &userv1.ProfileRequest{Id: peerId})
+		if profileErr == nil && profile.GetUser() != nil {
+			peerMap[peerId] = &PeerUser{
+				UserId:   peerId,
+				Nickname: profile.GetUser().GetNickName(),
+			}
+		}
+	}
+
+	// Build VOs with PeerUser
 	vos := make([]ConversationVO, 0, len(resp.Conversations))
 	for _, conv := range resp.Conversations {
 		vo := ConversationVO{
@@ -112,6 +148,12 @@ func (h *IMHandler) ListConversations(c *gin.Context, uc ijwt.UserClaims) (ginx.
 			Members:        conv.Members,
 			UnreadCount:    conv.UnreadCount,
 			Utime:          conv.Utime,
+		}
+		for _, memberId := range conv.Members {
+			if memberId != uc.UserId {
+				vo.PeerUser = peerMap[memberId]
+				break
+			}
 		}
 		if conv.LastMsg != nil {
 			vo.LastMsg = h.toMessageVO(conv.LastMsg)
@@ -193,4 +235,18 @@ func (h *IMHandler) toMessageVO(msg *imv1.MessageItem) *MessageVO {
 		Status:     msg.Status,
 		Ctime:      msg.Ctime,
 	}
+}
+
+// GetOnlineStatus 查询用户在线状态
+func (h *IMHandler) GetOnlineStatus(c *gin.Context, uc ijwt.UserClaims) (ginx.Result, error) {
+	userIdStr := c.Param("userId")
+	userId, err := strconv.ParseInt(userIdStr, 10, 64)
+	if err != nil {
+		return ginx.Result{Code: 4, Msg: "参数错误"}, nil
+	}
+	resp, err := h.svc.IsOnline(c.Request.Context(), &imv1.IsOnlineRequest{UserId: userId})
+	if err != nil {
+		return ginx.Result{Code: 5, Msg: "系统错误"}, err
+	}
+	return ginx.Result{Data: map[string]bool{"online": resp.Online}}, nil
 }

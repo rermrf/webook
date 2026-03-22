@@ -63,7 +63,7 @@ func InitApp() *App {
 	rankingHandler := handler.NewRankingHandler(rankingServiceClient, interactiveServiceClient, commentServiceClient, loggerV1)
 	imServiceClient := ioc.InitIMGRPCClient(client)
 	imHub := ioc.InitIMHub(cmdable, imServiceClient, loggerV1)
-	imHandler := handler.NewIMHandler(imServiceClient, imHub, loggerV1)
+	imHandler := handler.NewIMHandler(imServiceClient, userServiceClient, imHub, loggerV1)
 	historyHandler := handler.NewHistoryHandler(historyServiceClient, loggerV1)
 	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler, followHandler, searchHandler, notificationHandler, creditHandler, tagHandler, feedHandler, rankingHandler, imHandler, historyHandler)
 	db := ioc.InitDB(loggerV1)

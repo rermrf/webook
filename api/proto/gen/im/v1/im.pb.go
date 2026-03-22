@@ -909,6 +909,94 @@ func (x *ConversationItem) GetUtime() int64 {
 	return 0
 }
 
+type IsOnlineRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IsOnlineRequest) Reset() {
+	*x = IsOnlineRequest{}
+	mi := &file_im_v1_im_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IsOnlineRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IsOnlineRequest) ProtoMessage() {}
+
+func (x *IsOnlineRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_im_v1_im_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IsOnlineRequest.ProtoReflect.Descriptor instead.
+func (*IsOnlineRequest) Descriptor() ([]byte, []int) {
+	return file_im_v1_im_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *IsOnlineRequest) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+type IsOnlineResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Online        bool                   `protobuf:"varint,1,opt,name=online,proto3" json:"online,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IsOnlineResponse) Reset() {
+	*x = IsOnlineResponse{}
+	mi := &file_im_v1_im_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IsOnlineResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IsOnlineResponse) ProtoMessage() {}
+
+func (x *IsOnlineResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_im_v1_im_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IsOnlineResponse.ProtoReflect.Descriptor instead.
+func (*IsOnlineResponse) Descriptor() ([]byte, []int) {
+	return file_im_v1_im_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *IsOnlineResponse) GetOnline() bool {
+	if x != nil {
+		return x.Online
+	}
+	return false
+}
+
 var File_im_v1_im_proto protoreflect.FileDescriptor
 
 const file_im_v1_im_proto_rawDesc = "" +
@@ -975,7 +1063,11 @@ const file_im_v1_im_proto_rawDesc = "" +
 	"\amembers\x18\x02 \x03(\x03R\amembers\x12-\n" +
 	"\blast_msg\x18\x03 \x01(\v2\x12.im.v1.MessageItemR\alastMsg\x12!\n" +
 	"\funread_count\x18\x04 \x01(\x03R\vunreadCount\x12\x14\n" +
-	"\x05utime\x18\x05 \x01(\x03R\x05utime2\xa2\x04\n" +
+	"\x05utime\x18\x05 \x01(\x03R\x05utime\"*\n" +
+	"\x0fIsOnlineRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\"*\n" +
+	"\x10IsOnlineResponse\x12\x16\n" +
+	"\x06online\x18\x01 \x01(\bR\x06online2\xdf\x04\n" +
 	"\tIMService\x12D\n" +
 	"\vSendMessage\x12\x19.im.v1.SendMessageRequest\x1a\x1a.im.v1.SendMessageResponse\x12G\n" +
 	"\fListMessages\x12\x1a.im.v1.ListMessagesRequest\x1a\x1b.im.v1.ListMessagesResponse\x12A\n" +
@@ -984,7 +1076,8 @@ const file_im_v1_im_proto_rawDesc = "" +
 	"\rRecallMessage\x12\x1b.im.v1.RecallMessageRequest\x1a\x1c.im.v1.RecallMessageResponse\x12V\n" +
 	"\x11ListConversations\x12\x1f.im.v1.ListConversationsRequest\x1a .im.v1.ListConversationsResponse\x12P\n" +
 	"\x0fGetConversation\x12\x1d.im.v1.GetConversationRequest\x1a\x1e.im.v1.GetConversationResponse\x12M\n" +
-	"\x0eGetUnreadCount\x12\x1c.im.v1.GetUnreadCountRequest\x1a\x1d.im.v1.GetUnreadCountResponseBj\n" +
+	"\x0eGetUnreadCount\x12\x1c.im.v1.GetUnreadCountRequest\x1a\x1d.im.v1.GetUnreadCountResponse\x12;\n" +
+	"\bIsOnline\x12\x16.im.v1.IsOnlineRequest\x1a\x17.im.v1.IsOnlineResponseBj\n" +
 	"\tcom.im.v1B\aImProtoP\x01Z\x1fwebook/api/proto/gen/im/v1;imv1\xa2\x02\x03IXX\xaa\x02\x05Im.V1\xca\x02\x05Im\\V1\xe2\x02\x11Im\\V1\\GPBMetadata\xea\x02\x06Im::V1b\x06proto3"
 
 var (
@@ -999,7 +1092,7 @@ func file_im_v1_im_proto_rawDescGZIP() []byte {
 	return file_im_v1_im_proto_rawDescData
 }
 
-var file_im_v1_im_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_im_v1_im_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_im_v1_im_proto_goTypes = []any{
 	(*SendMessageRequest)(nil),        // 0: im.v1.SendMessageRequest
 	(*SendMessageResponse)(nil),       // 1: im.v1.SendMessageResponse
@@ -1017,13 +1110,15 @@ var file_im_v1_im_proto_goTypes = []any{
 	(*GetUnreadCountResponse)(nil),    // 13: im.v1.GetUnreadCountResponse
 	(*MessageItem)(nil),               // 14: im.v1.MessageItem
 	(*ConversationItem)(nil),          // 15: im.v1.ConversationItem
-	nil,                               // 16: im.v1.GetUnreadCountResponse.ByConversationEntry
+	(*IsOnlineRequest)(nil),           // 16: im.v1.IsOnlineRequest
+	(*IsOnlineResponse)(nil),          // 17: im.v1.IsOnlineResponse
+	nil,                               // 18: im.v1.GetUnreadCountResponse.ByConversationEntry
 }
 var file_im_v1_im_proto_depIdxs = []int32{
 	14, // 0: im.v1.ListMessagesResponse.messages:type_name -> im.v1.MessageItem
 	15, // 1: im.v1.ListConversationsResponse.conversations:type_name -> im.v1.ConversationItem
 	15, // 2: im.v1.GetConversationResponse.conversation:type_name -> im.v1.ConversationItem
-	16, // 3: im.v1.GetUnreadCountResponse.by_conversation:type_name -> im.v1.GetUnreadCountResponse.ByConversationEntry
+	18, // 3: im.v1.GetUnreadCountResponse.by_conversation:type_name -> im.v1.GetUnreadCountResponse.ByConversationEntry
 	14, // 4: im.v1.ConversationItem.last_msg:type_name -> im.v1.MessageItem
 	0,  // 5: im.v1.IMService.SendMessage:input_type -> im.v1.SendMessageRequest
 	2,  // 6: im.v1.IMService.ListMessages:input_type -> im.v1.ListMessagesRequest
@@ -1032,15 +1127,17 @@ var file_im_v1_im_proto_depIdxs = []int32{
 	8,  // 9: im.v1.IMService.ListConversations:input_type -> im.v1.ListConversationsRequest
 	10, // 10: im.v1.IMService.GetConversation:input_type -> im.v1.GetConversationRequest
 	12, // 11: im.v1.IMService.GetUnreadCount:input_type -> im.v1.GetUnreadCountRequest
-	1,  // 12: im.v1.IMService.SendMessage:output_type -> im.v1.SendMessageResponse
-	3,  // 13: im.v1.IMService.ListMessages:output_type -> im.v1.ListMessagesResponse
-	5,  // 14: im.v1.IMService.MarkAsRead:output_type -> im.v1.MarkAsReadResponse
-	7,  // 15: im.v1.IMService.RecallMessage:output_type -> im.v1.RecallMessageResponse
-	9,  // 16: im.v1.IMService.ListConversations:output_type -> im.v1.ListConversationsResponse
-	11, // 17: im.v1.IMService.GetConversation:output_type -> im.v1.GetConversationResponse
-	13, // 18: im.v1.IMService.GetUnreadCount:output_type -> im.v1.GetUnreadCountResponse
-	12, // [12:19] is the sub-list for method output_type
-	5,  // [5:12] is the sub-list for method input_type
+	16, // 12: im.v1.IMService.IsOnline:input_type -> im.v1.IsOnlineRequest
+	1,  // 13: im.v1.IMService.SendMessage:output_type -> im.v1.SendMessageResponse
+	3,  // 14: im.v1.IMService.ListMessages:output_type -> im.v1.ListMessagesResponse
+	5,  // 15: im.v1.IMService.MarkAsRead:output_type -> im.v1.MarkAsReadResponse
+	7,  // 16: im.v1.IMService.RecallMessage:output_type -> im.v1.RecallMessageResponse
+	9,  // 17: im.v1.IMService.ListConversations:output_type -> im.v1.ListConversationsResponse
+	11, // 18: im.v1.IMService.GetConversation:output_type -> im.v1.GetConversationResponse
+	13, // 19: im.v1.IMService.GetUnreadCount:output_type -> im.v1.GetUnreadCountResponse
+	17, // 20: im.v1.IMService.IsOnline:output_type -> im.v1.IsOnlineResponse
+	13, // [13:21] is the sub-list for method output_type
+	5,  // [5:13] is the sub-list for method input_type
 	5,  // [5:5] is the sub-list for extension type_name
 	5,  // [5:5] is the sub-list for extension extendee
 	0,  // [0:5] is the sub-list for field type_name
@@ -1057,7 +1154,7 @@ func file_im_v1_im_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_im_v1_im_proto_rawDesc), len(file_im_v1_im_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   17,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

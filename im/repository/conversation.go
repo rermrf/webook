@@ -18,6 +18,7 @@ type ConversationRepository interface {
 	IncrUnread(ctx context.Context, userId int64, conversationId string) error
 	ClearUnread(ctx context.Context, userId int64, conversationId string) error
 	UpdateConvScore(ctx context.Context, userId int64, conversationId string, score int64) error
+	IsOnline(ctx context.Context, userId int64) (bool, error)
 }
 
 type conversationRepository struct {
@@ -86,6 +87,10 @@ func (r *conversationRepository) ClearUnread(ctx context.Context, userId int64, 
 
 func (r *conversationRepository) UpdateConvScore(ctx context.Context, userId int64, conversationId string, score int64) error {
 	return r.cache.UpdateConvScore(ctx, userId, conversationId, score)
+}
+
+func (r *conversationRepository) IsOnline(ctx context.Context, userId int64) (bool, error) {
+	return r.cache.IsOnline(ctx, userId)
 }
 
 func (r *conversationRepository) toDomain(conv dao.Conversation) domain.Conversation {
