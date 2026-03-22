@@ -18,6 +18,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/article/:id" element={<ArticleDetail />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/user/:id" element={<Profile />} />
           <Route path="/messages" element={<Messages />} />
           <Route path="/search" element={<Search />} />
         </Route>
