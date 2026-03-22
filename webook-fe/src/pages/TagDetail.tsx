@@ -21,13 +21,8 @@ interface TagInfo {
   follower_count?: number
 }
 
-interface TagBizCount {
-  count: number
-}
-
-interface TagFollowStatus {
-  following: boolean
-}
+// Backend CountBizByTag returns raw number (resp.GetCount())
+// Backend CheckTagFollow returns raw boolean (resp.GetFollowed())
 
 export default function TagDetail() {
   const { id: tagId } = useParams()
@@ -50,24 +45,24 @@ export default function TagDetail() {
     enabled: numTagId > 0,
   })
 
-  // Fetch article count for tag
+  // Fetch article count for tag — backend returns raw number
   const { data: bizCount } = useQuery({
     queryKey: ['tag-biz-count', tagId],
     queryFn: async () => {
-      const res = await api.get<TagBizCount>(
+      const res = await api.get<number>(
         `/tags/biz_count?biz=article&tag_id=${tagId}`
       )
-      return res.data?.count ?? 0
+      return res.data ?? 0
     },
     enabled: numTagId > 0,
   })
 
-  // Fetch follow status
+  // Fetch follow status — backend returns raw boolean
   const { data: followStatus } = useQuery({
     queryKey: ['tag-follow-status', tagId],
     queryFn: async () => {
-      const res = await api.get<TagFollowStatus>(`/tags/${tagId}/follow`)
-      return res.data?.following ?? false
+      const res = await api.get<boolean>(`/tags/${tagId}/follow`)
+      return res.data ?? false
     },
     enabled: numTagId > 0,
   })
@@ -80,7 +75,7 @@ export default function TagDetail() {
     queryKey: ['tag-articles', tagId, activeSort],
     queryFn: async () => {
       const res = await api.get<number[]>(
-        `/tags/biz_ids?biz=article&tag_id=${tagId}&sort=${activeSort}&offset=0&limit=20`
+        `/tags/biz_ids?biz=article&tag_id=${tagId}&sort_by=${activeSort}&offset=0&limit=20`
       )
       return res.data || []
     },

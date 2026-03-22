@@ -5,18 +5,15 @@ import { Avatar, Button, Spinner } from '@heroui/react'
 import { ArrowLeft, Send } from 'lucide-react'
 import { api } from '../services/api'
 
+// Backend MessageVO: id(string), sender_id, receiver_id, msg_type, content, status, ctime
 interface MessageItem {
-  id: number
-  conversation_id: string
+  id: string
   sender_id: number
+  receiver_id: number
   content: string
   msg_type: number
+  status: number
   ctime: number
-}
-
-interface MessagesResponse {
-  messages: MessageItem[]
-  has_more: boolean
 }
 
 interface PeerUser {
@@ -105,23 +102,23 @@ export default function ChatDetail() {
     refetchInterval: 30000,
   })
 
-  // Fetch messages
+  // Fetch messages — backend returns flat MessageVO[] (not wrapped in {messages, has_more})
   const {
     data: messagesData,
     isLoading,
   } = useQuery({
     queryKey: ['messages', conversationId],
     queryFn: async () => {
-      const res = await api.get<MessagesResponse>(
+      const res = await api.get<MessageItem[]>(
         `/im/conversations/${conversationId}/messages?cursor=0&limit=50`
       )
-      return res.data
+      return res.data || []
     },
     enabled: !!conversationId,
     refetchInterval: 10000,
   })
 
-  const messages = messagesData?.messages || []
+  const messages = messagesData || []
 
   // Mark as read
   useEffect(() => {
@@ -137,12 +134,15 @@ export default function ChatDetail() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages.length])
 
-  // Send message mutation
+  // Send message mutation — uses POST /im/send REST endpoint
   const sendMutation = useMutation({
     mutationFn: async (content: string) => {
-      await api.post(`/im/conversations/${conversationId}/messages`, {
-        content,
+      const peerId = convInfo?.peer_user?.user_id
+      if (!peerId) throw new Error('No peer user')
+      await api.post('/im/send', {
+        receiver_id: peerId,
         msg_type: 1,
+        content,
       })
     },
     onSuccess: () => {

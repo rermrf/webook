@@ -10,20 +10,16 @@ import {
 import { api } from '../services/api'
 import { formatCount } from '../utils/formatTime'
 
+// Backend HotArticleVO: id, title, author_id, author_name, like_cnt, comment_cnt, read_cnt, ctime
 interface HotArticle {
   id: number
   title: string
-  abstract?: string
-  author_id?: number
-  author_name?: string
-  like_cnt?: number
-  read_cnt?: number
-  authorName?: string
-  interactive?: {
-    readCnt: number
-    likeCnt: number
-    collectCnt: number
-  }
+  author_id: number
+  author_name: string
+  like_cnt: number
+  comment_cnt: number
+  read_cnt: number
+  ctime: string
 }
 
 function getRankStyle(rank: number): {
@@ -99,16 +95,9 @@ export default function HotRanking() {
             {articles.map((article, index) => {
               const rank = index + 1
               const { numberClass, titleClass } = getRankStyle(rank)
-              const readCnt =
-                article.read_cnt ??
-                article.interactive?.readCnt ??
-                0
-              const likeCnt =
-                article.like_cnt ??
-                article.interactive?.likeCnt ??
-                0
-              const authorName =
-                article.author_name ?? article.authorName ?? ''
+              const readCnt = article.read_cnt ?? 0
+              const likeCnt = article.like_cnt ?? 0
+              const authorName = article.author_name ?? ''
 
               return (
                 <div
@@ -128,11 +117,6 @@ export default function HotRanking() {
                     <h3 className={`${titleClass} line-clamp-2 mb-1`}>
                       {article.title}
                     </h3>
-                    {article.abstract && (
-                      <p className="text-xs text-gray-500 line-clamp-2 mb-2">
-                        {article.abstract}
-                      </p>
-                    )}
                     <div className="flex items-center gap-3 text-xs text-gray-400">
                       {authorName && (
                         <span className="truncate max-w-[100px]">

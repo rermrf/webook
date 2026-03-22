@@ -21,37 +21,39 @@ export default function Reward() {
   const [isCustom, setIsCustom] = useState(false)
   const [success, setSuccess] = useState(false)
 
-  // Fetch balance
+  // Fetch balance — backend returns raw number (resp.Balance), not {balance: N}
   const { data: balance } = useQuery({
     queryKey: ['credit-balance'],
     queryFn: async () => {
-      const res = await api.get<{ balance: number }>('/credit/balance')
-      return res.data?.balance ?? 0
+      const res = await api.get<number>('/credit/balance')
+      return res.data ?? 0
     },
   })
 
-  // Fetch article info (for author display)
+  // Fetch article info (for author display) — backend ArticleVO has flat structure
   const { data: article } = useQuery({
     queryKey: ['article', articleId],
     queryFn: async () => {
       const res = await api.get<{
         id: number
         title: string
-        author: { id: number; nickname: string; avatar?: string }
+        author_id: number
+        author_name: string
+        author_avatar_url?: string
       }>(`/articles/pub/${articleId}`)
       return res.data
     },
     enabled: !!articleId,
   })
 
-  // Reward mutation
+  // Reward mutation — backend uses "amt" not "amount", and "target_uid" from flat author_id
   const rewardMutation = useMutation({
     mutationFn: async (amount: number) => {
       await api.post('/credit/reward', {
-        target_uid: article?.author?.id,
+        target_uid: article?.author_id,
         biz: 'article',
         biz_id: Number(articleId),
-        amount,
+        amt: amount,
       })
     },
     onSuccess: () => {
@@ -108,7 +110,7 @@ export default function Reward() {
             打赏成功
           </h2>
           <p className="text-sm text-gray-500 text-center mb-2">
-            已向 {article?.author?.nickname || '作者'} 打赏 {finalAmount} 积分
+            已向 {article?.author_name || '作者'} 打赏 {finalAmount} 积分
           </p>
           <p className="text-xs text-gray-400 mb-8">感谢你对创作者的支持！</p>
           <button
@@ -143,10 +145,10 @@ export default function Reward() {
         {/* Author card */}
         <div className="flex flex-col items-center mb-8">
           <div className="w-16 h-16 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl font-semibold mb-3">
-            {(article?.author?.nickname || '作者').charAt(0)}
+            {(article?.author_name || '作者').charAt(0)}
           </div>
           <h2 className="text-base font-semibold text-gray-900">
-            {article?.author?.nickname || '加载中...'}
+            {article?.author_name || '加载中...'}
           </h2>
           <p className="text-xs text-gray-400 mt-1 line-clamp-1 max-w-[240px] text-center">
             {article?.title}
