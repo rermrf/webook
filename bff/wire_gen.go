@@ -43,10 +43,11 @@ func InitApp() *App {
 	rewardServiceClient := ioc.InitRewardGRPCClient(client)
 	commentServiceClient := ioc.InitCommentGRPCClient(client)
 	tagServiceClient := ioc.InitTagGRPCClient(client)
+	historyServiceClient := ioc.InitHistoryGRPCClient(client)
 	saramaClient := ioc.InitKafka()
 	syncProducer := ioc.NewSyncProducer(saramaClient)
 	notificationProducer := events.NewSaramaNotificationProducer(syncProducer)
-	articleHandler := handler.NewArticleHandler(articleServiceClient, loggerV1, interactiveServiceClient, rewardServiceClient, commentServiceClient, userServiceClient, followServiceClient, tagServiceClient, notificationProducer)
+	articleHandler := handler.NewArticleHandler(articleServiceClient, loggerV1, interactiveServiceClient, rewardServiceClient, commentServiceClient, userServiceClient, followServiceClient, tagServiceClient, historyServiceClient, notificationProducer)
 	followHandler := handler.NewFollowHandler(followServiceClient, userServiceClient, notificationProducer, loggerV1)
 	searchServiceClient := ioc.InitSearchGRPCClient(client)
 	rankingServiceClient := ioc.InitRankingGRPCClient(client)
@@ -63,7 +64,8 @@ func InitApp() *App {
 	imServiceClient := ioc.InitIMGRPCClient(client)
 	imHub := ioc.InitIMHub(cmdable, imServiceClient, loggerV1)
 	imHandler := handler.NewIMHandler(imServiceClient, imHub, loggerV1)
-	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler, followHandler, searchHandler, notificationHandler, creditHandler, tagHandler, feedHandler, rankingHandler, imHandler)
+	historyHandler := handler.NewHistoryHandler(historyServiceClient, loggerV1)
+	engine := ioc.InitGin(v, userHandler, oAuth2WechatHandler, articleHandler, followHandler, searchHandler, notificationHandler, creditHandler, tagHandler, feedHandler, rankingHandler, imHandler, historyHandler)
 	db := ioc.InitDB(loggerV1)
 	interactiveDao := dao.NewGORMInteractiveDao(db)
 	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
@@ -123,3 +125,6 @@ var CreditSet = wire.NewSet(handler.NewCreditHandler)
 
 // IMSet IM 私信相关依赖
 var IMSet = wire.NewSet(handler.NewIMHandler, ioc.InitIMGRPCClient, ioc.InitIMHub)
+
+// HistorySet 浏览历史相关依赖
+var HistorySet = wire.NewSet(handler.NewHistoryHandler, ioc.InitHistoryGRPCClient)

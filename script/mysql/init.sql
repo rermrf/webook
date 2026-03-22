@@ -13,6 +13,7 @@ CREATE DATABASE IF NOT EXISTS webook_feed;
 CREATE DATABASE IF NOT EXISTS webook_notification;
 CREATE DATABASE IF NOT EXISTS webook_credit;
 CREATE DATABASE IF NOT EXISTS webook_openapi;
+CREATE DATABASE IF NOT EXISTS webook_history;
 
 -- 准备 canal 用户 (用于数据同步)
 CREATE USER IF NOT EXISTS 'canal'@'%' IDENTIFIED BY 'canal';
@@ -504,4 +505,23 @@ CREATE TABLE IF NOT EXISTS `api_call_logs` (
     `ctime` bigint DEFAULT NULL,
     PRIMARY KEY (`id`),
     KEY `idx_app_id_ctime` (`app_id`, `ctime`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- ============================================================
+-- webook_history 浏览历史库
+-- ============================================================
+USE webook_history;
+
+CREATE TABLE IF NOT EXISTS `browse_histories` (
+    `id` bigint NOT NULL AUTO_INCREMENT,
+    `user_id` bigint NOT NULL,
+    `biz` varchar(64) NOT NULL DEFAULT 'article',
+    `biz_id` bigint NOT NULL,
+    `biz_title` varchar(256) NOT NULL DEFAULT '',
+    `author_name` varchar(128) NOT NULL DEFAULT '',
+    `ctime` bigint NOT NULL DEFAULT 0,
+    `utime` bigint NOT NULL DEFAULT 0,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_user_biz` (`user_id`, `biz`, `biz_id`),
+    KEY `idx_user_utime` (`user_id`, `utime` DESC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

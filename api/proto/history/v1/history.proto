@@ -1,0 +1,43 @@
+syntax = "proto3";
+package history.v1;
+option go_package = "/history/v1;historyv1";
+
+service HistoryService {
+  rpc Record(RecordRequest) returns (RecordResponse);
+  rpc List(ListRequest) returns (ListResponse);
+  rpc Clear(ClearRequest) returns (ClearResponse);
+}
+
+message RecordRequest {
+  int64 user_id = 1;
+  string biz = 2;
+  int64 biz_id = 3;
+  string biz_title = 4;
+  string author_name = 5;
+}
+message RecordResponse {}
+
+message ListRequest {
+  int64 user_id = 1;
+  int64 cursor = 2;
+  int32 limit = 3;
+}
+message ListResponse {
+  repeated HistoryItem items = 1;
+  bool has_more = 2;
+}
+
+message ClearRequest {
+  int64 user_id = 1;
+}
+message ClearResponse {}
+
+message HistoryItem {
+  int64 id = 1;
+  string biz = 2;
+  int64 biz_id = 3;
+  string biz_title = 4;
+  string author_name = 5;
+  int64 ctime = 6;
+  int64 utime = 7;
+}

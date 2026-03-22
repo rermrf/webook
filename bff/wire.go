@@ -118,6 +118,12 @@ var IMSet = wire.NewSet(
 	ioc.InitIMHub,
 )
 
+// HistorySet 浏览历史相关依赖
+var HistorySet = wire.NewSet(
+	handler.NewHistoryHandler,
+	ioc.InitHistoryGRPCClient,
+)
+
 func InitApp() *App {
 	wire.Build(
 		// 中间件，路由等？
@@ -131,6 +137,7 @@ func InitApp() *App {
 		NotificationProducerSet,
 		CreditSet,
 		IMSet,
+		HistorySet,
 		TagSet,
 		FeedSet,
 		RankingSet,

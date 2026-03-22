@@ -1,22 +1,28 @@
 package handler
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"golang.org/x/sync/errgroup"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"strconv"
 	"time"
 	articlev1 "webook/api/proto/gen/article/v1"
 	commentv1 "webook/api/proto/gen/comment/v1"
+	followv1 "webook/api/proto/gen/follow/v1"
+	historyv1 "webook/api/proto/gen/history/v1"
 	intrv1 "webook/api/proto/gen/intr/v1"
 	rewardv1 "webook/api/proto/gen/reward/v1"
+	tagv1 "webook/api/proto/gen/tag/v1"
 	userv1 "webook/api/proto/gen/user/v1"
 	"webook/article/domain"
+	"webook/bff/events"
 	ijwt "webook/bff/handler/jwt"
 	"webook/pkg/ginx"
 	"webook/pkg/logger"
+
+	"github.com/gin-gonic/gin"
+	"golang.org/x/sync/errgroup"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 //type ArticleHandlerV2 struct {
@@ -42,24 +48,32 @@ import (
 //}
 
 type ArticleHandler struct {
-	svc        articlev1.ArticleServiceClient
-	intrSvc    intrv1.InteractiveServiceClient
-	reward     rewardv1.RewardServiceClient
-	commentSvc commentv1.CommentServiceClient
-	userSvc    userv1.UserServiceClient
-	l          logger.LoggerV1
-	biz        string
+	svc            articlev1.ArticleServiceClient
+	intrSvc        intrv1.InteractiveServiceClient
+	reward         rewardv1.RewardServiceClient
+	commentSvc     commentv1.CommentServiceClient
+	userSvc        userv1.UserServiceClient
+	followSvc      followv1.FollowServiceClient
+	tagSvc         tagv1.TagServiceClient
+	historySvc     historyv1.HistoryServiceClient
+	notifyProducer events.NotificationProducer
+	l              logger.LoggerV1
+	biz            string
 }
 
-func NewArticleHandler(svc articlev1.ArticleServiceClient, l logger.LoggerV1, intrSvc intrv1.InteractiveServiceClient, reward rewardv1.RewardServiceClient, commentSvc commentv1.CommentServiceClient, userSvc userv1.UserServiceClient) *ArticleHandler {
+func NewArticleHandler(svc articlev1.ArticleServiceClient, l logger.LoggerV1, intrSvc intrv1.InteractiveServiceClient, reward rewardv1.RewardServiceClient, commentSvc commentv1.CommentServiceClient, userSvc userv1.UserServiceClient, followSvc followv1.FollowServiceClient, tagSvc tagv1.TagServiceClient, historySvc historyv1.HistoryServiceClient, notifyProducer events.NotificationProducer) *ArticleHandler {
 	return &ArticleHandler{
-		svc:        svc,
-		intrSvc:    intrSvc,
-		commentSvc: commentSvc,
-		userSvc:    userSvc,
-		l:          l,
-		biz:        "article",
-		reward:     reward,
+		svc:            svc,
+		intrSvc:        intrSvc,
+		commentSvc:     commentSvc,
+		userSvc:        userSvc,
+		followSvc:      followSvc,
+		tagSvc:         tagSvc,
+		historySvc:     historySvc,
+		notifyProducer: notifyProducer,
+		l:              l,
+		biz:            "article",
+		reward:         reward,
 	}
 }
 
@@ -68,6 +82,7 @@ func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 	g.POST("/edit", ginx.WrapBodyAndToken(h.l, h.Edit))
 	g.POST("/publish", ginx.WrapBodyAndToken(h.l, h.Publish))
 	g.POST("/withdraw", ginx.WrapBodyAndToken(h.l, h.Withdraw))
+	g.DELETE("/:id", ginx.WrapClaims(h.l, h.Delete)) // 删除文章
 	// 创作者的查询接口
 	g.POST("/list", ginx.WrapBodyAndToken[ListReq, ijwt.UserClaims](h.l, h.List))
 	g.GET("/detail/:id", ginx.WrapClaims(h.l, h.Detail))
@@ -87,6 +102,8 @@ func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 	pub.GET("/comment_cnt", ginx.WrapBody(h.l, h.GetCommentCnt))
 	// 添加评论，传入父 parent 的id，那么就是代表回复了某个评论
 	pub.POST("/comment", ginx.WrapBodyAndToken(h.l, h.CreateComment))
+	pub.DELETE("/comment/:id", ginx.WrapClaims(h.l, h.DeleteComment))       // 删除评论
+	pub.GET("/comment/:id/replies", ginx.WrapBody(h.l, h.GetMoreReplies)) // 获取更多回复
 }
 
 //type ReaderHandler struct {
@@ -102,6 +119,43 @@ func (h *ArticleHandler) Like(ctx *gin.Context, req LikeReq, uc ijwt.UserClaims)
 			BizId: req.Id,
 			Uid:   uc.UserId,
 		})
+		if err == nil {
+			// 发送点赞通知（异步，不阻塞响应）
+			go func() {
+				// 使用新的 context，避免 HTTP 请求结束后 context 被取消
+				newCtx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+				defer cancel()
+				// 获取文章信息
+				artResp, er := h.svc.GetPublishedById(newCtx, &articlev1.GetPublishedByIdRequest{
+					Id: req.Id,
+				})
+				if er != nil {
+					h.l.Error("获取文章信息失败", logger.Error(er))
+					return
+				}
+				// 不通知自己
+				if artResp.GetArticle().GetAuthor().GetId() == uc.UserId {
+					return
+				}
+				// 获取点赞者名称
+				userResp, er := h.userSvc.Profile(newCtx, &userv1.ProfileRequest{Id: uc.UserId})
+				userName := "用户"
+				if er == nil {
+					userName = userResp.GetUser().GetNickName()
+				}
+				er = h.notifyProducer.ProduceLikeEvent(newCtx, events.LikeEvent{
+					Uid:        uc.UserId,
+					UserName:   userName,
+					Biz:        h.biz,
+					BizId:      req.Id,
+					BizTitle:   artResp.GetArticle().GetTitle(),
+					BizOwnerId: artResp.GetArticle().GetAuthor().GetId(),
+				})
+				if er != nil {
+					h.l.Error("发送点赞通知失败", logger.Error(er))
+				}
+			}()
+		}
 	} else {
 		_, err = h.intrSvc.CancelLike(ctx.Request.Context(), &intrv1.CancelLikeRequest{
 			Biz:   h.biz,
@@ -127,6 +181,41 @@ func (h *ArticleHandler) Collect(ctx *gin.Context, req CollectReq, uc ijwt.UserC
 			BizId: req.Id,
 			Uid:   uc.UserId,
 		})
+		if err == nil {
+			// 发送收藏通知（异步）
+			go func() {
+				// 使用新的 context，避免 HTTP 请求结束后 context 被取消
+				newCtx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+				defer cancel()
+				artResp, er := h.svc.GetPublishedById(newCtx, &articlev1.GetPublishedByIdRequest{
+					Id: req.Id,
+				})
+				if er != nil {
+					h.l.Error("获取文章信息失败", logger.Error(er))
+					return
+				}
+				// 不通知自己
+				if artResp.GetArticle().GetAuthor().GetId() == uc.UserId {
+					return
+				}
+				userResp, er := h.userSvc.Profile(newCtx, &userv1.ProfileRequest{Id: uc.UserId})
+				userName := "用户"
+				if er == nil {
+					userName = userResp.GetUser().GetNickName()
+				}
+				er = h.notifyProducer.ProduceCollectEvent(newCtx, events.CollectEvent{
+					Uid:        uc.UserId,
+					UserName:   userName,
+					Biz:        h.biz,
+					BizId:      req.Id,
+					BizTitle:   artResp.GetArticle().GetTitle(),
+					BizOwnerId: artResp.GetArticle().GetAuthor().GetId(),
+				})
+				if er != nil {
+					h.l.Error("发送收藏通知失败", logger.Error(er))
+				}
+			}()
+		}
 	} else {
 		_, err = h.intrSvc.CancelCollect(ctx.Request.Context(), &intrv1.CancelCollectRequest{
 			Biz:   h.biz,
@@ -214,15 +303,38 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context, uc ijwt.UserClaims) (ginx.R
 
 	intr := getResp.Intr
 	// 读取作者信息
+	var authorName string
 	userResp, err := h.userSvc.Profile(ctx.Request.Context(), &userv1.ProfileRequest{
 		Id: art.Author.Id,
 	})
 	if err != nil {
-		if err != nil {
-			// 记录日志
-			h.l.Error("查询文章作者相关数据失败", logger.Error(err))
-		}
+		h.l.Error("查询文章作者相关数据失败", logger.Error(err))
+	} else if userResp != nil && userResp.GetUser() != nil {
+		authorName = userResp.GetUser().NickName
 	}
+
+	// 检查当前用户是否关注了作者
+	var authorFollowed bool
+	followResp, er := h.followSvc.FollowInfo(ctx.Request.Context(), &followv1.FollowInfoRequest{
+		Follower: uc.UserId,
+		Followee: art.Author.Id,
+	})
+	if er == nil && followResp.GetFollowRelation() != nil && followResp.GetFollowRelation().GetId() > 0 {
+		authorFollowed = true
+	}
+
+	// 异步记录浏览历史
+	go func() {
+		ctx2, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		_, _ = h.historySvc.Record(ctx2, &historyv1.RecordRequest{
+			UserId:     uc.UserId,
+			Biz:        "article",
+			BizId:      art.Id,
+			BizTitle:   art.Title,
+			AuthorName: authorName,
+		})
+	}()
 
 	// 这个功能是不是可以让前端，主动发一个 HTTP 请求，来增加一个计数？
 	return ginx.Result{
@@ -232,15 +344,16 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context, uc ijwt.UserClaims) (ginx.R
 			Status:  art.Status.ToUint8(),
 			Content: art.Content,
 			// 要把作者信息带出去
-			AuthorId:   art.Author.Id,
-			AuthorName: userResp.GetUser().NickName,
-			Ctime:      art.Ctime.Format(time.DateTime),
-			Utime:      art.Utime.Format(time.DateTime),
-			Liked:      intr.Liked,
-			Collected:  intr.Collected,
-			ReadCnt:    intr.ReadCnt,
-			LikeCnt:    intr.LikeCnt,
-			CollectCnt: intr.CollectCnt,
+			AuthorId:       art.Author.Id,
+			AuthorName:     authorName,
+			AuthorFollowed: authorFollowed,
+			Ctime:          art.Ctime.Format(time.DateTime),
+			Utime:          art.Utime.Format(time.DateTime),
+			Liked:          intr.Liked,
+			Collected:      intr.Collected,
+			ReadCnt:        intr.ReadCnt,
+			LikeCnt:        intr.LikeCnt,
+			CollectCnt:     intr.CollectCnt,
 		},
 	}, nil
 }
@@ -324,6 +437,19 @@ func (h *ArticleHandler) Publish(ctx *gin.Context, req ArticleReq, uc ijwt.UserC
 		return ginx.Result{Code: 5, Msg: "系统错误"}, fmt.Errorf("发表帖子失败 %w", err)
 	}
 	id := resp.GetId()
+
+	// 发布成功后，如果携带了标签，则绑定标签
+	if len(req.Tags) > 0 {
+		_, er := h.tagSvc.AttachTags(ctx.Request.Context(), &tagv1.AttachTagsRequest{
+			Tids:  req.Tags,
+			Biz:   h.biz,
+			BizId: id,
+		})
+		if er != nil {
+			h.l.Error("绑定文章标签失败", logger.Int64("artId", id), logger.Error(er))
+		}
+	}
+
 	return ginx.Result{Msg: "OK", Data: id}, nil
 }
 
@@ -483,6 +609,20 @@ func (h *ArticleHandler) GetComment(ctx *gin.Context, req GetCommentReq) (ginx.R
 			Msg:  "系统错误",
 		}, nil
 	}
+
+	// 收集所有 uid 并批量查询用户名
+	uidSet := make(map[int64]struct{})
+	for _, c := range resp.GetComments() {
+		uidSet[c.Uid] = struct{}{}
+	}
+	userNameMap := make(map[int64]string)
+	for uid := range uidSet {
+		userResp, er := h.userSvc.Profile(ctx.Request.Context(), &userv1.ProfileRequest{Id: uid})
+		if er == nil && userResp.GetUser() != nil {
+			userNameMap[uid] = userResp.GetUser().GetNickName()
+		}
+	}
+
 	res := GetCommentResp{
 		Comments: make([]Comment, len(resp.GetComments())),
 	}
@@ -496,10 +636,10 @@ func (h *ArticleHandler) GetComment(ctx *gin.Context, req GetCommentReq) (ginx.R
 			rid = c.RootComment.Id
 		}
 		res.Comments[i] = Comment{
-			Id: c.Id,
-			//BizId:	c.Bizid,
+			Id:       c.Id,
 			Content:  c.Content,
 			Uid:      c.Uid,
+			UserName: userNameMap[c.Uid],
 			ParentId: pid,
 			RootId:   rid,
 			Ctime:    c.Ctime.AsTime().UnixMilli(),
@@ -561,6 +701,69 @@ func (h *ArticleHandler) CreateComment(ctx *gin.Context, req CreateCommentReq, u
 			Msg:  "系统错误",
 		}, nil
 	}
+
+	// 发送评论通知（异步）
+	go func() {
+		// 使用新的 context，避免 HTTP 请求结束后 context 被取消
+		newCtx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
+		// 获取文章信息
+		artResp, er := h.svc.GetPublishedById(newCtx, &articlev1.GetPublishedByIdRequest{
+			Id: req.Id,
+		})
+		if er != nil {
+			h.l.Error("获取文章信息失败", logger.Error(er))
+			return
+		}
+		// 获取评论者名称
+		userResp, er := h.userSvc.Profile(newCtx, &userv1.ProfileRequest{Id: uc.UserId})
+		userName := "用户"
+		if er == nil {
+			userName = userResp.GetUser().GetNickName()
+		}
+
+		// 截取评论内容摘要
+		content := req.Content
+		if len(content) > 50 {
+			content = content[:50] + "..."
+		}
+
+		// 如果是回复评论，尝试获取被回复人的信息
+		var parentUserId int64
+		if req.ParentId != 0 {
+			// 获取父评论信息
+			commentResp, er := h.commentSvc.GetCommentList(newCtx, &commentv1.GetCommentListRequest{
+				Biz:   h.biz,
+				Bizid: req.Id,
+				Limit: 100,
+			})
+			if er == nil {
+				// 在评论列表中查找父评论
+				for _, c := range commentResp.GetComments() {
+					if c.GetId() == req.ParentId {
+						parentUserId = c.GetUid()
+						break
+					}
+				}
+			}
+		}
+
+		er = h.notifyProducer.ProduceCommentEvent(newCtx, events.CommentEvent{
+			Uid:             uc.UserId,
+			UserName:        userName,
+			Biz:             h.biz,
+			BizId:           req.Id,
+			BizTitle:        artResp.GetArticle().GetTitle(),
+			BizOwnerId:      artResp.GetArticle().GetAuthor().GetId(),
+			Content:         content,
+			ParentCommentId: req.ParentId,
+			ParentUserId:    parentUserId,
+		})
+		if er != nil {
+			h.l.Error("发送评论通知失败", logger.Error(er))
+		}
+	}()
+
 	return ginx.Result{
 		Code: 2,
 		Msg:  "ok",
@@ -586,12 +789,14 @@ func (h *ArticleHandler) PubList(ctx *gin.Context, req GetPubListReq, uc ijwt.Us
 	var res []ArticleVO
 	for _, art := range resp.GetArticles() {
 		// 读取作者信息
+		var authorName string
 		userResp, err := h.userSvc.Profile(ctx.Request.Context(), &userv1.ProfileRequest{
 			Id: art.Author.Id,
 		})
 		if err != nil {
-			// 记录日志
 			h.l.Error("查询文章作者相关数据失败", logger.Error(err))
+		} else if userResp != nil && userResp.GetUser() != nil {
+			authorName = userResp.GetUser().NickName
 		}
 
 		intrResp, err := h.intrSvc.Get(ctx.Request.Context(), &intrv1.GetRequest{
@@ -607,7 +812,7 @@ func (h *ArticleHandler) PubList(ctx *gin.Context, req GetPubListReq, uc ijwt.Us
 			Title:      art.Title,
 			Content:    art.Content,
 			AuthorId:   art.Author.Id,
-			AuthorName: userResp.GetUser().NickName,
+			AuthorName: authorName,
 			ReadCnt:    intrResp.GetIntr().GetReadCnt(),
 			LikeCnt:    intrResp.GetIntr().GetLikeCnt(),
 			CollectCnt: intrResp.GetIntr().GetCollectCnt(),
@@ -651,4 +856,122 @@ func (r ArticleReq) toDomain(req ArticleReq, claims *ijwt.UserClaims) domain.Art
 		Content: req.Content,
 		Author:  domain.Author{Id: claims.UserId},
 	}
+}
+
+// Delete 删除文章（仅作者可操作）
+func (h *ArticleHandler) Delete(ctx *gin.Context, uc ijwt.UserClaims) (ginx.Result, error) {
+	idStr := ctx.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return ginx.Result{Code: 4, Msg: "参数错误"}, err
+	}
+
+	// 先获取文章，校验是否为作者
+	artResp, err := h.svc.GetById(ctx.Request.Context(), &articlev1.GetByIdRequest{Id: id})
+	if err != nil {
+		return ginx.Result{Code: 5, Msg: "系统错误"}, err
+	}
+	if artResp.GetArticle().GetAuthor().GetId() != uc.UserId {
+		return ginx.Result{Code: 4, Msg: "无权限删除此文章"}, nil
+	}
+
+	// 调用撤回接口（将文章状态设为隐藏/删除状态）
+	_, err = h.svc.WithDraw(ctx.Request.Context(), &articlev1.WithDrawRequest{
+		Article: &articlev1.Article{
+			Id: id,
+			Author: &articlev1.Author{
+				Id: uc.UserId,
+			},
+		},
+	})
+	if err != nil {
+		return ginx.Result{Code: 5, Msg: "删除失败"}, err
+	}
+	return ginx.Result{Msg: "删除成功"}, nil
+}
+
+// DeleteComment 删除评论（仅评论作者可操作）
+func (h *ArticleHandler) DeleteComment(ctx *gin.Context, uc ijwt.UserClaims) (ginx.Result, error) {
+	idStr := ctx.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return ginx.Result{Code: 4, Msg: "参数错误"}, err
+	}
+
+	// 调用 comment 服务删除评论
+	// 注意：comment 服务的 DeleteComment 应该内部校验评论所有者
+	_, err = h.commentSvc.DeleteComment(ctx.Request.Context(), &commentv1.DeleteCommentRequest{
+		Id: id,
+	})
+	if err != nil {
+		return ginx.Result{Code: 5, Msg: "删除评论失败"}, err
+	}
+	return ginx.Result{Msg: "删除成功"}, nil
+}
+
+// GetMoreReplies 获取某条评论的更多回复
+func (h *ArticleHandler) GetMoreReplies(ctx *gin.Context, req GetMoreRepliesReq) (ginx.Result, error) {
+	ridStr := ctx.Param("id")
+	rid, err := strconv.ParseInt(ridStr, 10, 64)
+	if err != nil {
+		return ginx.Result{Code: 4, Msg: "参数错误"}, err
+	}
+
+	var minId int64 = 0
+	var limit int64 = 20
+	if req.MinId > 0 {
+		minId = req.MinId
+	}
+	if req.Limit > 0 && req.Limit <= 100 {
+		limit = req.Limit
+	}
+
+	resp, err := h.commentSvc.GetMoreReplies(ctx.Request.Context(), &commentv1.GetMoreRepliesRequest{
+		Rid:   rid,
+		MinId: minId,
+		Limit: limit,
+	})
+	if err != nil {
+		return ginx.Result{Code: 5, Msg: "系统错误"}, err
+	}
+
+	// 收集所有 uid 并批量查询用户名
+	uidSet := make(map[int64]struct{})
+	for _, r := range resp.GetReplies() {
+		uidSet[r.Uid] = struct{}{}
+	}
+	userNameMap := make(map[int64]string)
+	for uid := range uidSet {
+		userResp, er := h.userSvc.Profile(ctx.Request.Context(), &userv1.ProfileRequest{Id: uid})
+		if er == nil && userResp.GetUser() != nil {
+			userNameMap[uid] = userResp.GetUser().GetNickName()
+		}
+	}
+
+	replies := make([]Comment, 0, len(resp.GetReplies()))
+	for _, r := range resp.GetReplies() {
+		var pid int64 = 0
+		var rootId int64 = 0
+		if r.ParentComment != nil {
+			pid = r.ParentComment.Id
+		}
+		if r.RootComment != nil {
+			rootId = r.RootComment.Id
+		}
+		replies = append(replies, Comment{
+			Id:       r.Id,
+			Content:  r.Content,
+			Uid:      r.Uid,
+			UserName: userNameMap[r.Uid],
+			ParentId: pid,
+			RootId:   rootId,
+			Ctime:    r.Ctime.AsTime().UnixMilli(),
+		})
+	}
+
+	return ginx.Result{
+		Code: 2,
+		Msg:  "ok",
+		Data: replies,
+	}, nil
 }

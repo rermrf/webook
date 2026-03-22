@@ -19,7 +19,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
 
-func InitGin(mdls []gin.HandlerFunc, hdl *handler.UserHandler, oauth2WechatHdl *handler.OAuth2WechatHandler, articleHdl *handler.ArticleHandler, followHdl *handler.FollowHandler, searchHdl *handler.SearchHandler, notificationHdl *handler.NotificationHandler, creditHdl *handler.CreditHandler, tagHdl *handler.TagHandler, feedHdl *handler.FeedHandler, rankingHdl *handler.RankingHandler, imHdl *handler.IMHandler) *gin.Engine {
+func InitGin(mdls []gin.HandlerFunc, hdl *handler.UserHandler, oauth2WechatHdl *handler.OAuth2WechatHandler, articleHdl *handler.ArticleHandler, followHdl *handler.FollowHandler, searchHdl *handler.SearchHandler, notificationHdl *handler.NotificationHandler, creditHdl *handler.CreditHandler, tagHdl *handler.TagHandler, feedHdl *handler.FeedHandler, rankingHdl *handler.RankingHandler, imHdl *handler.IMHandler, historyHdl *handler.HistoryHandler) *gin.Engine {
 	server := gin.Default()
 	server.Use(mdls...)
 	hdl.RegisterRoutes(server)
@@ -33,6 +33,7 @@ func InitGin(mdls []gin.HandlerFunc, hdl *handler.UserHandler, oauth2WechatHdl *
 	feedHdl.RegisterRoutes(server)
 	rankingHdl.RegisterRoutes(server)
 	imHdl.RegisterRoutes(server)
+	historyHdl.RegisterRoutes(server)
 	(&handler.ObservabilityHandler{}).RegisterRoutes(server)
 	return server
 }
