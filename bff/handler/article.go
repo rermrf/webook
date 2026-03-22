@@ -308,6 +308,7 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context, uc ijwt.UserClaims) (ginx.R
 	intr := getResp.Intr
 	// 读取作者信息
 	var authorName string
+	var authorAvatarUrl string
 	userResp, err := h.userSvc.Profile(ctx.Request.Context(), &userv1.ProfileRequest{
 		Id: art.Author.Id,
 	})
@@ -315,6 +316,7 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context, uc ijwt.UserClaims) (ginx.R
 		h.l.Error("查询文章作者相关数据失败", logger.Error(err))
 	} else if userResp != nil && userResp.GetUser() != nil {
 		authorName = userResp.GetUser().NickName
+		authorAvatarUrl = userResp.GetUser().GetAvatarUrl()
 	}
 
 	// 检查当前用户是否关注了作者
@@ -348,9 +350,10 @@ func (h *ArticleHandler) PubDetail(ctx *gin.Context, uc ijwt.UserClaims) (ginx.R
 			Status:  art.Status.ToUint8(),
 			Content: art.Content,
 			// 要把作者信息带出去
-			AuthorId:       art.Author.Id,
-			AuthorName:     authorName,
-			AuthorFollowed: authorFollowed,
+			AuthorId:        art.Author.Id,
+			AuthorName:      authorName,
+			AuthorAvatarUrl: authorAvatarUrl,
+			AuthorFollowed:  authorFollowed,
 			Ctime:          art.Ctime.Format(time.DateTime),
 			Utime:          art.Utime.Format(time.DateTime),
 			Liked:          intr.Liked,
@@ -620,10 +623,12 @@ func (h *ArticleHandler) GetComment(ctx *gin.Context, req GetCommentReq) (ginx.R
 		uidSet[c.Uid] = struct{}{}
 	}
 	userNameMap := make(map[int64]string)
+	userAvatarMap := make(map[int64]string)
 	for uid := range uidSet {
 		userResp, er := h.userSvc.Profile(ctx.Request.Context(), &userv1.ProfileRequest{Id: uid})
 		if er == nil && userResp.GetUser() != nil {
 			userNameMap[uid] = userResp.GetUser().GetNickName()
+			userAvatarMap[uid] = userResp.GetUser().GetAvatarUrl()
 		}
 	}
 
@@ -640,13 +645,14 @@ func (h *ArticleHandler) GetComment(ctx *gin.Context, req GetCommentReq) (ginx.R
 			rid = c.RootComment.Id
 		}
 		res.Comments[i] = Comment{
-			Id:       c.Id,
-			Content:  c.Content,
-			Uid:      c.Uid,
-			UserName: userNameMap[c.Uid],
-			ParentId: pid,
-			RootId:   rid,
-			Ctime:    c.Ctime.AsTime().UnixMilli(),
+			Id:            c.Id,
+			Content:       c.Content,
+			Uid:           c.Uid,
+			UserName:      userNameMap[c.Uid],
+			UserAvatarUrl: userAvatarMap[c.Uid],
+			ParentId:      pid,
+			RootId:        rid,
+			Ctime:         c.Ctime.AsTime().UnixMilli(),
 		}
 	}
 	return ginx.Result{
@@ -794,6 +800,7 @@ func (h *ArticleHandler) PubList(ctx *gin.Context, req GetPubListReq, uc ijwt.Us
 	for _, art := range resp.GetArticles() {
 		// 读取作者信息
 		var authorName string
+		var authorAvatarUrl string
 		userResp, err := h.userSvc.Profile(ctx.Request.Context(), &userv1.ProfileRequest{
 			Id: art.Author.Id,
 		})
@@ -801,6 +808,7 @@ func (h *ArticleHandler) PubList(ctx *gin.Context, req GetPubListReq, uc ijwt.Us
 			h.l.Error("查询文章作者相关数据失败", logger.Error(err))
 		} else if userResp != nil && userResp.GetUser() != nil {
 			authorName = userResp.GetUser().NickName
+			authorAvatarUrl = userResp.GetUser().GetAvatarUrl()
 		}
 
 		intrResp, err := h.intrSvc.Get(ctx.Request.Context(), &intrv1.GetRequest{
@@ -812,11 +820,12 @@ func (h *ArticleHandler) PubList(ctx *gin.Context, req GetPubListReq, uc ijwt.Us
 			// 可能没有数据
 		}
 		res = append(res, ArticleVO{
-			Id:         art.Id,
-			Title:      art.Title,
-			Content:    art.Content,
-			AuthorId:   art.Author.Id,
-			AuthorName: authorName,
+			Id:              art.Id,
+			Title:           art.Title,
+			Content:         art.Content,
+			AuthorId:        art.Author.Id,
+			AuthorName:      authorName,
+			AuthorAvatarUrl: authorAvatarUrl,
 			ReadCnt:    intrResp.GetIntr().GetReadCnt(),
 			LikeCnt:    intrResp.GetIntr().GetLikeCnt(),
 			CollectCnt: intrResp.GetIntr().GetCollectCnt(),
@@ -945,10 +954,12 @@ func (h *ArticleHandler) GetMoreReplies(ctx *gin.Context, req GetMoreRepliesReq)
 		uidSet[r.Uid] = struct{}{}
 	}
 	userNameMap := make(map[int64]string)
+	userAvatarMap := make(map[int64]string)
 	for uid := range uidSet {
 		userResp, er := h.userSvc.Profile(ctx.Request.Context(), &userv1.ProfileRequest{Id: uid})
 		if er == nil && userResp.GetUser() != nil {
 			userNameMap[uid] = userResp.GetUser().GetNickName()
+			userAvatarMap[uid] = userResp.GetUser().GetAvatarUrl()
 		}
 	}
 
@@ -963,13 +974,14 @@ func (h *ArticleHandler) GetMoreReplies(ctx *gin.Context, req GetMoreRepliesReq)
 			rootId = r.RootComment.Id
 		}
 		replies = append(replies, Comment{
-			Id:       r.Id,
-			Content:  r.Content,
-			Uid:      r.Uid,
-			UserName: userNameMap[r.Uid],
-			ParentId: pid,
-			RootId:   rootId,
-			Ctime:    r.Ctime.AsTime().UnixMilli(),
+			Id:            r.Id,
+			Content:       r.Content,
+			Uid:           r.Uid,
+			UserName:      userNameMap[r.Uid],
+			UserAvatarUrl: userAvatarMap[r.Uid],
+			ParentId:      pid,
+			RootId:        rootId,
+			Ctime:         r.Ctime.AsTime().UnixMilli(),
 		})
 	}
 

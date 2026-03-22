@@ -253,8 +253,9 @@ func (h *NotificationHandler) toVOs(notifications []*notificationv2.Notification
 			TargetId:    n.TargetId,
 			TargetType:  n.TargetType,
 			TargetTitle: n.TargetTitle,
-			Content:     n.Content,
-			IsRead:      n.IsRead,
+			Content:         n.Content,
+			SourceAvatarUrl: n.GetSourceAvatarUrl(),
+			IsRead:          n.IsRead,
 			Ctime:       n.Ctime,
 		})
 	}
@@ -275,8 +276,9 @@ type NotificationVO struct {
 	TargetId    int64  `json:"target_id"`
 	TargetType  string `json:"target_type"`
 	TargetTitle string `json:"target_title"`
-	Content     string `json:"content"`
-	IsRead      bool   `json:"is_read"`
+	Content         string `json:"content"`
+	SourceAvatarUrl string `json:"source_avatar_url,omitempty"`
+	IsRead          bool   `json:"is_read"`
 	Ctime       int64  `json:"ctime"`
 }
 

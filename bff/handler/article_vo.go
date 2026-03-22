@@ -9,7 +9,9 @@ type ArticleVO struct {
 	Content  string `json:"content"`
 	// Author 要从用户来
 	AuthorId   int64  `json:"author_id"`
-	AuthorName string `json:"author_name"`
+	AuthorName      string `json:"author_name"`
+	CoverUrl        string `json:"cover_url,omitempty"`
+	AuthorAvatarUrl string `json:"author_avatar_url,omitempty"`
 	// 状态可以是前端来处理，也可以是后端来处理
 	// 0 -> unknown -> 未知状态
 	// 1 -> unpublish -> 未发表状态
@@ -98,7 +100,8 @@ type Comment struct {
 	//BizId   int64  `json:"biz_id"`
 	Content  string `json:"content"`
 	Uid      int64  `json:"uid"`
-	UserName string `json:"user_name"`
+	UserName      string `json:"user_name"`
+	UserAvatarUrl string `json:"user_avatar_url,omitempty"`
 	ParentId int64  `json:"parent_id"`
 	RootId   int64  `json:"root_id"`
 	Ctime    int64  `json:"ctime"`

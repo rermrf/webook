@@ -10,8 +10,11 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"net/http"
+	"strconv"
 	"time"
+	articlev1 "webook/api/proto/gen/article/v1"
 	codev1 "webook/api/proto/gen/code/v1"
+	followv1 "webook/api/proto/gen/follow/v1"
 	userv1 "webook/api/proto/gen/user/v1"
 	"webook/bff/errs"
 	ijwt "webook/bff/handler/jwt"
@@ -24,6 +27,8 @@ const biz = "login"
 type UserHandler struct {
 	svc         userv1.UserServiceClient
 	codeSvc     codev1.CodeServiceClient
+	followSvc   followv1.FollowServiceClient
+	articleSvc  articlev1.ArticleServiceClient
 	emailExp    *regexp.Regexp
 	passwordExp *regexp.Regexp
 	phoneExp    *regexp.Regexp
@@ -32,7 +37,7 @@ type UserHandler struct {
 	l   logger.LoggerV1
 }
 
-func NewUserHandler(svc userv1.UserServiceClient, codeSvc codev1.CodeServiceClient, cmd redis.Cmdable, handler ijwt.Handler, l logger.LoggerV1) *UserHandler {
+func NewUserHandler(svc userv1.UserServiceClient, codeSvc codev1.CodeServiceClient, followSvc followv1.FollowServiceClient, articleSvc articlev1.ArticleServiceClient, cmd redis.Cmdable, handler ijwt.Handler, l logger.LoggerV1) *UserHandler {
 	const (
 		emailRegexPattern    = `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
 		passwordRegexPattern = `^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&.])[A-Za-z\d@$!%*?&.]{8,72}$`
@@ -41,6 +46,8 @@ func NewUserHandler(svc userv1.UserServiceClient, codeSvc codev1.CodeServiceClie
 	return &UserHandler{
 		svc:         svc,
 		codeSvc:     codeSvc,
+		followSvc:   followSvc,
+		articleSvc:  articleSvc,
 		emailExp:    regexp.MustCompile(emailRegexPattern, regexp.None),
 		passwordExp: regexp.MustCompile(passwordRegexPattern, regexp.None),
 		phoneExp:    regexp.MustCompile(phoneRegexPattern, regexp.None),
@@ -56,10 +63,12 @@ func (h *UserHandler) RegisterRoutes(server *gin.Engine) {
 	ug.POST("/login", ginx.WrapBody(h.l, h.LoginJWT))
 	ug.POST("/edit", ginx.WrapBody(h.l, h.Edit))
 	ug.GET("/profile", ginx.WrapClaims(h.l, h.Profile))
+	ug.GET("/profile/:id", h.ProfileById) // 获取他人资料
 	ug.POST("/login_sms/code/send", ginx.WrapBody(h.l, h.SendLoginSMSCode))
 	ug.POST("/login_sms", ginx.WrapBody(h.l, h.LoginSMS))
 	ug.POST("/logout", h.LogoutJWT)
 	ug.POST("/refresh_token", h.RefreshToken)
+	ug.GET("/recommend", ginx.WrapClaims(h.l, h.Recommend))
 }
 
 func (h *UserHandler) LogoutJWT(ctx *gin.Context) {
@@ -201,6 +210,7 @@ type SignUpRequest struct {
 	Email           string `json:"email"`
 	Password        string `json:"password"`
 	ConfirmPassword string `json:"confirmPassword"`
+	Nickname        string `json:"nickname"`
 }
 
 func (h *UserHandler) SignUp(ctx *gin.Context, req SignUpRequest) (ginx.Result, error) {
@@ -234,7 +244,7 @@ func (h *UserHandler) SignUp(ctx *gin.Context, req SignUpRequest) (ginx.Result, 
 	// 调用一下 svc 的方法
 	// 直接传入 ctx 在 opentelemetry 中无效，需要传入ctx.Request.Context()
 	_, err = h.svc.Signup(ctx.Request.Context(), &userv1.SignUpRequest{
-		User: &userv1.User{Email: req.Email, Password: req.Password},
+		User: &userv1.User{Email: req.Email, Password: req.Password, NickName: req.Nickname},
 	})
 	//if errors.Is(err, service2.ErrUserDuplicate) {
 	//	// 复用
@@ -337,7 +347,8 @@ type Profile struct {
 	Nickname string `json:"nickname"`
 	AboutMe  string `json:"aboutMe"`
 	Birthday string `json:"birthday"`
-	Ctime    string `json:"ctime"`
+	AvatarUrl string `json:"avatar_url"`
+	Ctime     string `json:"ctime"`
 }
 
 func (h *UserHandler) Profile(ctx *gin.Context, uc ijwt.UserClaims) (ginx.Result, error) {
@@ -347,12 +358,158 @@ func (h *UserHandler) Profile(ctx *gin.Context, uc ijwt.UserClaims) (ginx.Result
 	}
 	user := resp.GetUser()
 	profile := Profile{
+		Id:       user.GetId(),
 		Email:    user.GetEmail(),
 		Phone:    user.GetPhone(),
 		Nickname: user.GetNickName(),
 		AboutMe:  user.GetAboutMe(),
 		Birthday: user.GetBirthday().AsTime().Format(time.DateOnly),
-		Ctime:    user.GetCtime().AsTime().Format(time.DateOnly),
+		AvatarUrl: user.GetAvatarUrl(),
+		Ctime:     user.GetCtime().AsTime().Format(time.DateOnly),
 	}
 	return ginx.Result{Data: profile}, nil
+}
+
+// ProfileById 获取他人资料（公开信息）
+func (h *UserHandler) ProfileById(ctx *gin.Context) {
+	idStr := ctx.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusOK, ginx.Result{Code: 4, Msg: "参数错误"})
+		return
+	}
+
+	resp, err := h.svc.Profile(ctx, &userv1.ProfileRequest{Id: id})
+	if err != nil {
+		ctx.JSON(http.StatusOK, ginx.Result{Code: 5, Msg: "系统错误"})
+		return
+	}
+	user := resp.GetUser()
+	// 公开资料，不返回敏感信息（邮箱、手机号）
+	profile := PublicProfile{
+		Id:       user.GetId(),
+		Nickname: user.GetNickName(),
+		AboutMe:  user.GetAboutMe(),
+		AvatarUrl: user.GetAvatarUrl(),
+		Ctime:     user.GetCtime().AsTime().Format(time.DateOnly),
+	}
+
+	// 获取关注/粉丝统计
+	staticResp, er := h.followSvc.GetFollowStatic(ctx.Request.Context(), &followv1.GetFollowStaticRequest{
+		Followee: id,
+	})
+	if er == nil {
+		profile.FollowerCount = staticResp.GetFollowStatic().GetFollowers()
+		profile.FollowingCount = staticResp.GetFollowStatic().GetFollowees()
+	}
+
+	// 获取文章数
+	artResp, er := h.articleSvc.List(ctx.Request.Context(), &articlev1.ListRequest{
+		Uid:    id,
+		Offset: 0,
+		Limit:  1000,
+	})
+	if er == nil {
+		profile.ArticleCount = int64(len(artResp.GetArticles()))
+	}
+
+	ctx.JSON(http.StatusOK, ginx.Result{Data: profile})
+}
+
+// PublicProfile 公开资料，不包含敏感信息
+type PublicProfile struct {
+	Id             int64  `json:"id"`
+	Nickname       string `json:"nickname"`
+	AboutMe        string `json:"aboutMe"`
+	FollowerCount  int64  `json:"follower_count"`
+	FollowingCount int64  `json:"following_count"`
+	ArticleCount   int64  `json:"article_count"`
+	AvatarUrl      string `json:"avatar_url"`
+	Ctime          string `json:"ctime"`
+}
+
+// RecommendUserVO 推荐用户
+type RecommendUserVO struct {
+	Id            int64  `json:"id"`
+	Nickname      string `json:"nickname"`
+	AboutMe       string `json:"about_me"`
+	ArticleCount  int64  `json:"article_count"`
+	FollowerCount int64  `json:"follower_count"`
+	AvatarUrl     string `json:"avatar_url"`
+	Followed      bool   `json:"followed"`
+}
+
+// Recommend 推荐用户列表（基于最近发文的活跃用户）
+func (h *UserHandler) Recommend(ctx *gin.Context, uc ijwt.UserClaims) (ginx.Result, error) {
+	// 获取最近发表的文章，从中提取活跃作者
+	artResp, err := h.articleSvc.ListPub(ctx.Request.Context(), &articlev1.ListPubRequest{
+		Limit:     50,
+		Offset:    0,
+		StartTime: timestamppb.New(time.Now().AddDate(0, -1, 0)),
+	})
+	if err != nil {
+		return ginx.Result{Code: 5, Msg: "系统错误"}, err
+	}
+
+	// 收集作者 ID 并去重（排除自己）
+	seen := make(map[int64]struct{})
+	var authorIds []int64
+	articleCountMap := make(map[int64]int64)
+	for _, art := range artResp.GetArticles() {
+		authorId := art.GetAuthor().GetId()
+		if authorId == uc.UserId {
+			continue
+		}
+		articleCountMap[authorId]++
+		if _, ok := seen[authorId]; !ok {
+			seen[authorId] = struct{}{}
+			authorIds = append(authorIds, authorId)
+		}
+	}
+
+	// 最多返回 10 个推荐用户
+	if len(authorIds) > 10 {
+		authorIds = authorIds[:10]
+	}
+
+	users := make([]RecommendUserVO, 0, len(authorIds))
+	for _, uid := range authorIds {
+		vo := RecommendUserVO{
+			Id:           uid,
+			ArticleCount: articleCountMap[uid],
+		}
+
+		// 获取用户信息
+		profileResp, er := h.svc.Profile(ctx.Request.Context(), &userv1.ProfileRequest{Id: uid})
+		if er == nil && profileResp.GetUser() != nil {
+			vo.Nickname = profileResp.GetUser().GetNickName()
+			vo.AboutMe = profileResp.GetUser().GetAboutMe()
+			vo.AvatarUrl = profileResp.GetUser().GetAvatarUrl()
+		}
+
+		// 获取粉丝数
+		staticResp, er := h.followSvc.GetFollowStatic(ctx.Request.Context(), &followv1.GetFollowStaticRequest{
+			Followee: uid,
+		})
+		if er == nil {
+			vo.FollowerCount = staticResp.GetFollowStatic().GetFollowers()
+		}
+
+		// 检查是否已关注
+		infoResp, er := h.followSvc.FollowInfo(ctx.Request.Context(), &followv1.FollowInfoRequest{
+			Follower: uc.UserId,
+			Followee: uid,
+		})
+		if er == nil && infoResp.GetFollowRelation() != nil && infoResp.GetFollowRelation().GetId() > 0 {
+			vo.Followed = true
+		}
+
+		users = append(users, vo)
+	}
+
+	return ginx.Result{
+		Code: 2,
+		Msg:  "OK",
+		Data: users,
+	}, nil
 }
