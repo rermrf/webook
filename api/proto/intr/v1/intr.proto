@@ -11,6 +11,8 @@ service InteractiveService {
   rpc CancelCollect(CancelCollectRequest) returns (CancelCollectResponse);
   rpc  Get(GetRequest) returns (GetResponse);
   rpc GetByIds(GetByIdsRequest) returns (GetByIdsResponse);
+  rpc ListUserLiked(ListUserLikedRequest) returns (ListUserLikedResponse);
+  rpc ListUserCollected(ListUserCollectedRequest) returns (ListUserCollectedResponse);
 }
 
 message IncrReadCntRequest {
@@ -92,4 +94,26 @@ message GetByIdsRequest {
 
 message GetByIdsResponse {
   map<int64, Interactive> intrs = 1;
+}
+
+message ListUserLikedRequest {
+  int64 user_id = 1;
+  string biz = 2;
+  int64 offset = 3;
+  int64 limit = 4;
+}
+
+message ListUserLikedResponse {
+  repeated int64 biz_ids = 1;
+}
+
+message ListUserCollectedRequest {
+  int64 user_id = 1;
+  string biz = 2;
+  int64 offset = 3;
+  int64 limit = 4;
+}
+
+message ListUserCollectedResponse {
+  repeated int64 biz_ids = 1;
 }

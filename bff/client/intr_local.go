@@ -63,6 +63,26 @@ func (i *InteractiveServiceAdapter) GetByIds(ctx context.Context, in *intrv1.Get
 	}, nil
 }
 
+func (i *InteractiveServiceAdapter) ListUserLiked(ctx context.Context, in *intrv1.ListUserLikedRequest, opts ...grpc.CallOption) (*intrv1.ListUserLikedResponse, error) {
+	bizIds, err := i.svc.ListUserLiked(ctx, in.GetUserId(), in.GetBiz(), int(in.GetOffset()), int(in.GetLimit()))
+	if err != nil {
+		return &intrv1.ListUserLikedResponse{}, err
+	}
+	return &intrv1.ListUserLikedResponse{
+		BizIds: bizIds,
+	}, nil
+}
+
+func (i *InteractiveServiceAdapter) ListUserCollected(ctx context.Context, in *intrv1.ListUserCollectedRequest, opts ...grpc.CallOption) (*intrv1.ListUserCollectedResponse, error) {
+	bizIds, err := i.svc.ListUserCollected(ctx, in.GetUserId(), in.GetBiz(), int(in.GetOffset()), int(in.GetLimit()))
+	if err != nil {
+		return &intrv1.ListUserCollectedResponse{}, err
+	}
+	return &intrv1.ListUserCollectedResponse{
+		BizIds: bizIds,
+	}, nil
+}
+
 func (i *InteractiveServiceAdapter) toDTO(intr domain.Interactive) *intrv1.Interactive {
 	return &intrv1.Interactive{
 		Biz:        intr.Biz,

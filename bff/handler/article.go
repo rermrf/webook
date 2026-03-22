@@ -104,6 +104,10 @@ func (h *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 	pub.POST("/comment", ginx.WrapBodyAndToken(h.l, h.CreateComment))
 	pub.DELETE("/comment/:id", ginx.WrapClaims(h.l, h.DeleteComment))       // 删除评论
 	pub.GET("/comment/:id/replies", ginx.WrapBody(h.l, h.GetMoreReplies)) // 获取更多回复
+
+	// 用户点赞/收藏列表
+	pub.GET("/liked", ginx.WrapClaims(h.l, h.ListLiked))
+	pub.GET("/collected", ginx.WrapClaims(h.l, h.ListCollected))
 }
 
 //type ReaderHandler struct {
@@ -973,5 +977,65 @@ func (h *ArticleHandler) GetMoreReplies(ctx *gin.Context, req GetMoreRepliesReq)
 		Code: 2,
 		Msg:  "ok",
 		Data: replies,
+	}, nil
+}
+
+// ListLiked 查询用户点赞过的文章列表
+func (h *ArticleHandler) ListLiked(ctx *gin.Context, uc ijwt.UserClaims) (ginx.Result, error) {
+	var req ListLikedReq
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		return ginx.Result{Code: 4, Msg: "参数错误"}, err
+	}
+	biz := req.Biz
+	if biz == "" {
+		biz = h.biz
+	}
+	limit := req.Limit
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	resp, err := h.intrSvc.ListUserLiked(ctx.Request.Context(), &intrv1.ListUserLikedRequest{
+		UserId: uc.UserId,
+		Biz:    biz,
+		Offset: req.Offset,
+		Limit:  limit,
+	})
+	if err != nil {
+		return ginx.Result{Code: 5, Msg: "系统错误"}, err
+	}
+	return ginx.Result{
+		Code: 2,
+		Msg:  "ok",
+		Data: resp.GetBizIds(),
+	}, nil
+}
+
+// ListCollected 查询用户收藏过的文章列表
+func (h *ArticleHandler) ListCollected(ctx *gin.Context, uc ijwt.UserClaims) (ginx.Result, error) {
+	var req ListCollectedReq
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		return ginx.Result{Code: 4, Msg: "参数错误"}, err
+	}
+	biz := req.Biz
+	if biz == "" {
+		biz = h.biz
+	}
+	limit := req.Limit
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	resp, err := h.intrSvc.ListUserCollected(ctx.Request.Context(), &intrv1.ListUserCollectedRequest{
+		UserId: uc.UserId,
+		Biz:    biz,
+		Offset: req.Offset,
+		Limit:  limit,
+	})
+	if err != nil {
+		return ginx.Result{Code: 5, Msg: "系统错误"}, err
+	}
+	return ginx.Result{
+		Code: 2,
+		Msg:  "ok",
+		Data: resp.GetBizIds(),
 	}, nil
 }

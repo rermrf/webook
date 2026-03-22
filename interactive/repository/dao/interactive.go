@@ -22,6 +22,8 @@ type InteractiveDao interface {
 	Get(ctx context.Context, biz string, bizId int64) (Interactive, error)
 	BatchIncrReadCnt(ctx context.Context, bizs []string, ids []int64) error
 	GetByIds(ctx context.Context, biz string, ids []int64) ([]Interactive, error)
+	ListUserLiked(ctx context.Context, uid int64, biz string, offset, limit int) ([]int64, error)
+	ListUserCollected(ctx context.Context, uid int64, biz string, offset, limit int) ([]int64, error)
 
 	//GetItems() ([]ColletctionItem, error)
 }
@@ -220,6 +222,32 @@ func (dao *GORMInteractiveDao) GetByIds(ctx context.Context, biz string, ids []i
 	var res []Interactive
 	err := dao.db.WithContext(ctx).Where("biz = > AND biz_id IN ?", biz, ids).Find(&res).Error
 	return res, err
+}
+
+func (dao *GORMInteractiveDao) ListUserLiked(ctx context.Context, uid int64, biz string, offset, limit int) ([]int64, error) {
+	var bizIds []int64
+	err := dao.db.WithContext(ctx).
+		Model(&UserLikeBiz{}).
+		Select("biz_id").
+		Where("uid = ? AND biz = ? AND status = ?", uid, biz, 1).
+		Order("utime DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&bizIds).Error
+	return bizIds, err
+}
+
+func (dao *GORMInteractiveDao) ListUserCollected(ctx context.Context, uid int64, biz string, offset, limit int) ([]int64, error) {
+	var bizIds []int64
+	err := dao.db.WithContext(ctx).
+		Model(&UserCollectionBiz{}).
+		Select("biz_id").
+		Where("uid = ? AND biz = ? AND status = ?", uid, biz, 1).
+		Order("utime DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&bizIds).Error
+	return bizIds, err
 }
 
 // Interactive 假如我要查找点赞数量前 100 的：

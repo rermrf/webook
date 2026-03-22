@@ -54,6 +54,14 @@ func (g *GreyScaleInteractiveServiceClient) GetByIds(ctx context.Context, in *in
 	return g.client().GetByIds(ctx, in, opts...)
 }
 
+func (g *GreyScaleInteractiveServiceClient) ListUserLiked(ctx context.Context, in *intrv1.ListUserLikedRequest, opts ...grpc.CallOption) (*intrv1.ListUserLikedResponse, error) {
+	return g.client().ListUserLiked(ctx, in, opts...)
+}
+
+func (g *GreyScaleInteractiveServiceClient) ListUserCollected(ctx context.Context, in *intrv1.ListUserCollectedRequest, opts ...grpc.CallOption) (*intrv1.ListUserCollectedResponse, error) {
+	return g.client().ListUserCollected(ctx, in, opts...)
+}
+
 func (g *GreyScaleInteractiveServiceClient) UpdateThreshold(newThreshold int32) {
 	g.threshold.Store(newThreshold)
 }

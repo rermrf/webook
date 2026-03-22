@@ -81,6 +81,26 @@ func (i *InteractiveServiceServer) GetByIds(ctx context.Context, request *intrv1
 	}, err
 }
 
+func (i *InteractiveServiceServer) ListUserLiked(ctx context.Context, request *intrv1.ListUserLikedRequest) (*intrv1.ListUserLikedResponse, error) {
+	bizIds, err := i.svc.ListUserLiked(ctx, request.GetUserId(), request.GetBiz(), int(request.GetOffset()), int(request.GetLimit()))
+	if err != nil {
+		return nil, err
+	}
+	return &intrv1.ListUserLikedResponse{
+		BizIds: bizIds,
+	}, nil
+}
+
+func (i *InteractiveServiceServer) ListUserCollected(ctx context.Context, request *intrv1.ListUserCollectedRequest) (*intrv1.ListUserCollectedResponse, error) {
+	bizIds, err := i.svc.ListUserCollected(ctx, request.GetUserId(), request.GetBiz(), int(request.GetOffset()), int(request.GetLimit()))
+	if err != nil {
+		return nil, err
+	}
+	return &intrv1.ListUserCollectedResponse{
+		BizIds: bizIds,
+	}, nil
+}
+
 // DTO data transfer object
 func (i *InteractiveServiceServer) toDTO(intr domain.Interactive) *intrv1.Interactive {
 	return &intrv1.Interactive{

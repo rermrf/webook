@@ -18,6 +18,8 @@ type InteractiveService interface {
 	CancelCollect(ctx context.Context, biz string, bizId int64, uid int64) error
 	Get(ctx context.Context, biz string, bizId int64, uid int64) (domain.Interactive, error)
 	GetByIds(ctx context.Context, biz string, bizIds []int64) (map[int64]domain.Interactive, error)
+	ListUserLiked(ctx context.Context, uid int64, biz string, offset, limit int) ([]int64, error)
+	ListUserCollected(ctx context.Context, uid int64, biz string, offset, limit int) ([]int64, error)
 }
 
 type interactiveService struct {
@@ -91,4 +93,12 @@ func (i *interactiveService) Get(ctx context.Context, biz string, bizId int64, u
 	intr.Liked = liked
 	intr.Collected = collected
 	return intr, nil
+}
+
+func (i *interactiveService) ListUserLiked(ctx context.Context, uid int64, biz string, offset, limit int) ([]int64, error) {
+	return i.repo.ListUserLiked(ctx, uid, biz, offset, limit)
+}
+
+func (i *interactiveService) ListUserCollected(ctx context.Context, uid int64, biz string, offset, limit int) ([]int64, error) {
+	return i.repo.ListUserCollected(ctx, uid, biz, offset, limit)
 }

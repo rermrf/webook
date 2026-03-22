@@ -25,14 +25,18 @@ type ArticleVO struct {
 	Liked     bool `json:"liked"`
 	Collected bool `json:"collected"`
 
+	// 是否关注了作者
+	AuthorFollowed bool `json:"author_followed"`
+
 	Ctime string `json:"ctime"`
 	Utime string `json:"utime"`
 }
 
 type ArticleReq struct {
-	Id      int64  `json:"id"`
-	Title   string `json:"title"`
-	Content string `json:"content"`
+	Id      int64   `json:"id"`
+	Title   string  `json:"title"`
+	Content string  `json:"content"`
+	Tags    []int64 `json:"tags"`
 }
 
 type ListReq struct {
@@ -94,6 +98,7 @@ type Comment struct {
 	//BizId   int64  `json:"biz_id"`
 	Content  string `json:"content"`
 	Uid      int64  `json:"uid"`
+	UserName string `json:"user_name"`
 	ParentId int64  `json:"parent_id"`
 	RootId   int64  `json:"root_id"`
 	Ctime    int64  `json:"ctime"`
@@ -114,4 +119,25 @@ type GetPubListReq struct {
 	Offset int32 `form:"offset"`
 	Limit  int32 `form:"limit"`
 	//startTime int64 `form:"start_time"`
+}
+
+type DeleteReq struct {
+	Id int64 `json:"id"`
+}
+
+type GetMoreRepliesReq struct {
+	MinId int64 `form:"min_id"`
+	Limit int64 `form:"limit"`
+}
+
+type ListLikedReq struct {
+	Biz    string `form:"biz"`
+	Offset int64  `form:"offset"`
+	Limit  int64  `form:"limit"`
+}
+
+type ListCollectedReq struct {
+	Biz    string `form:"biz"`
+	Offset int64  `form:"offset"`
+	Limit  int64  `form:"limit"`
 }

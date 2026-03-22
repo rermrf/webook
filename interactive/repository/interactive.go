@@ -19,6 +19,8 @@ type InteractiveRepository interface {
 	Liked(ctx context.Context, biz string, bizId int64, uid int64) (bool, error)
 	Collected(ctx context.Context, biz string, bizId int64, uid int64) (bool, error)
 	GetByIds(ctx context.Context, biz string, ids []int64) ([]domain.Interactive, error)
+	ListUserLiked(ctx context.Context, uid int64, biz string, offset, limit int) ([]int64, error)
+	ListUserCollected(ctx context.Context, uid int64, biz string, offset, limit int) ([]int64, error)
 	//AddRecord(ctx context.Context, biz string, aid int64) error
 }
 
@@ -161,6 +163,14 @@ func (c *CachedInteractiveRepository) GetByIds(ctx context.Context, biz string, 
 		return nil, err
 	}
 	return c.toDomains(intrs), nil
+}
+
+func (c *CachedInteractiveRepository) ListUserLiked(ctx context.Context, uid int64, biz string, offset, limit int) ([]int64, error) {
+	return c.dao.ListUserLiked(ctx, uid, biz, offset, limit)
+}
+
+func (c *CachedInteractiveRepository) ListUserCollected(ctx context.Context, uid int64, biz string, offset, limit int) ([]int64, error) {
+	return c.dao.ListUserCollected(ctx, uid, biz, offset, limit)
 }
 
 //func (c *CachedInteractiveRepository) GetCollection() (domain.Collection, error) {
