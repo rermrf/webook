@@ -37,8 +37,8 @@ CREATE TABLE IF NOT EXISTS `users` (
     `wechat_union_id` varchar(191) DEFAULT NULL,
     `ctime` bigint DEFAULT NULL,
     `utime` bigint DEFAULT NULL,
+    `avatar_url` varchar(512) DEFAULT '',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uni_users_email` (`email`),
     UNIQUE KEY `uni_users_phone` (`phone`),
     UNIQUE KEY `uni_users_wechat_open_id` (`wechat_open_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS `articles` (
     `id` bigint NOT NULL AUTO_INCREMENT,
     `title` varchar(1024) DEFAULT NULL,
     `content` mediumblob,
+    `cover_url` varchar(512) DEFAULT '',
     `author_id` bigint DEFAULT NULL,
     `status` tinyint unsigned DEFAULT NULL,
     `ctime` bigint DEFAULT NULL,
@@ -59,6 +60,7 @@ CREATE TABLE IF NOT EXISTS `published_articles` (
     `id` bigint NOT NULL AUTO_INCREMENT,
     `title` varchar(1024) DEFAULT NULL,
     `content` mediumblob,
+    `cover_url` varchar(512) DEFAULT '',
     `author_id` bigint DEFAULT NULL,
     `status` tinyint unsigned DEFAULT NULL,
     `ctime` bigint DEFAULT NULL,
