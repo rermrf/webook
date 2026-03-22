@@ -135,6 +135,7 @@ export default function BrowseHistory() {
                         <h3 className="text-sm font-medium text-gray-900 line-clamp-2 mb-1">
                           {item.biz_title || `文章 #${item.biz_id}`}
                         </h3>
+                        {/* TODO: API doesn't return tags for history items */}
                         <div className="flex items-center gap-2 text-xs text-gray-400">
                           {item.author_name && (
                             <span className="truncate max-w-[120px]">

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft,
@@ -22,9 +22,11 @@ interface ReplyTarget {
 function CommentItem({
   comment,
   onReply,
+  authorId,
 }: {
   comment: Comment
   onReply: (target: ReplyTarget) => void
+  authorId?: string | null
 }) {
   const [liked, setLiked] = useState(false)
 
@@ -41,6 +43,9 @@ function CommentItem({
             <span className="text-sm font-medium text-gray-900">
               {comment.user_name || '匿名用户'}
             </span>
+            {comment.uid === Number(authorId) && (
+              <span className="text-xs text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded ml-1">(作者)</span>
+            )}
             <span className="text-xs text-gray-400">
               {formatTime(comment.ctime)}
             </span>
@@ -87,10 +92,12 @@ function CommentItem({
 export default function CommentDetail() {
   const { bizType, bizId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const queryClient = useQueryClient()
   const [commentText, setCommentText] = useState('')
   const [replyTarget, setReplyTarget] = useState<ReplyTarget | null>(null)
   const [sortBy, setSortBy] = useState<'newest' | 'hottest'>('newest')
+  const authorId = new URLSearchParams(location.search).get('author_id')
 
   // Backend: GET /articles/pub/comment?id=X&min_id=0&limit=20
   // Returns { Comments: Comment[] } where Comment has uid, user_name
@@ -149,6 +156,17 @@ export default function CommentDetail() {
       : [...comments]
     : []
 
+  // Group comments: root comments and their replies
+  const rootComments = sortedComments.filter((c) => !c.parent_id || c.parent_id === 0)
+  const replyMap = new Map<number, Comment[]>()
+  for (const c of sortedComments) {
+    if (c.parent_id && c.parent_id > 0) {
+      const rootId = c.root_id || c.parent_id
+      if (!replyMap.has(rootId)) replyMap.set(rootId, [])
+      replyMap.get(rootId)!.push(c)
+    }
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-white">
       {/* Header */}
@@ -183,12 +201,24 @@ export default function CommentDetail() {
           </div>
         ) : sortedComments.length > 0 ? (
           <div className="divide-y divide-gray-50">
-            {sortedComments.map((comment) => (
-              <CommentItem
-                key={comment.id}
-                comment={comment}
-                onReply={handleReply}
-              />
+            {rootComments.map((comment) => (
+              <div key={comment.id}>
+                <CommentItem
+                  comment={comment}
+                  onReply={handleReply}
+                  authorId={authorId}
+                />
+                {/* Nested replies */}
+                {replyMap.get(comment.id)?.map((reply) => (
+                  <div key={reply.id} className="ml-10 border-l-2 border-gray-100 pl-3">
+                    <CommentItem
+                      comment={reply}
+                      onReply={handleReply}
+                      authorId={authorId}
+                    />
+                  </div>
+                ))}
+              </div>
             ))}
           </div>
         ) : (

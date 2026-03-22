@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { TextField, Input, Button, Label, Link } from '@heroui/react'
 import { useNavigate } from 'react-router-dom'
+import { Smartphone, Lock } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { api } from '../services/api'
 
@@ -63,24 +64,32 @@ export default function Register() {
         <div className="space-y-4">
           <TextField fullWidth>
             <Label>手机号</Label>
-            <Input
-              placeholder="请输入手机号"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              type="tel"
-              maxLength={11}
-            />
+            <div className="relative">
+              <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                placeholder="请输入手机号"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                type="tel"
+                maxLength={11}
+                className="pl-10"
+              />
+            </div>
           </TextField>
 
           <div className="flex gap-3 items-end">
             <TextField fullWidth className="flex-1">
               <Label>验证码</Label>
-              <Input
-                placeholder="请输入验证码"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                maxLength={6}
-              />
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  placeholder="请输入验证码"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  maxLength={6}
+                  className="pl-10"
+                />
+              </div>
             </TextField>
             <Button
               variant="secondary"

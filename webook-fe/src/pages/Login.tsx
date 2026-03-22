@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { TextField, Input, Button, Label, Link } from '@heroui/react'
 import { useNavigate } from 'react-router-dom'
-import { Mail, MessageSquare } from 'lucide-react'
+import { Mail, MessageSquare, Smartphone, Lock } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { api } from '../services/api'
 
@@ -58,32 +58,43 @@ export default function Login() {
       <div className="flex-1 px-8 pt-20 pb-8 flex flex-col">
         {/* Logo */}
         <div className="text-center mb-12">
+          <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-3">
+            <span className="text-white text-2xl font-bold">W</span>
+          </div>
           <h1 className="text-3xl font-bold text-blue-500">WeBook</h1>
-          <p className="text-gray-400 text-sm mt-2">阅读 . 分享 . 成长</p>
+          <p className="text-gray-400 text-sm mt-2">发现好内容，分享你的故事</p>
         </div>
 
         {/* Form */}
         <div className="space-y-4">
           <TextField fullWidth>
             <Label>手机号</Label>
-            <Input
-              placeholder="请输入手机号"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              type="tel"
-              maxLength={11}
-            />
+            <div className="relative">
+              <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                placeholder="请输入手机号"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                type="tel"
+                maxLength={11}
+                className="pl-10"
+              />
+            </div>
           </TextField>
 
           <div className="flex gap-3 items-end">
             <TextField fullWidth className="flex-1">
               <Label>验证码</Label>
-              <Input
-                placeholder="请输入验证码"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                maxLength={6}
-              />
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  placeholder="请输入验证码"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  maxLength={6}
+                  className="pl-10"
+                />
+              </div>
             </TextField>
             <Button
               variant="secondary"
@@ -136,6 +147,9 @@ export default function Login() {
             立即注册
           </Link>
         </div>
+
+        {/* Agreement footer */}
+        <p className="text-xs text-gray-400 text-center mt-4">登录即表示同意<span className="text-blue-500">《用户协议》</span>和<span className="text-blue-500">《隐私政策》</span></p>
       </div>
     </div>
   )

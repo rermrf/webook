@@ -9,6 +9,7 @@ import {
   Share2,
   MessageCircle,
   Send,
+  MoreHorizontal,
 } from 'lucide-react'
 import { api } from '../services/api'
 import type { ArticleDetail as ArticleDetailType, Comment, GetCommentResp } from '../types'
@@ -256,9 +257,16 @@ export default function ArticleDetail() {
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="flex-1 text-center text-base font-medium text-gray-900 pr-10">
+          <h1 className="flex-1 text-center text-base font-medium text-gray-900">
             文章详情
           </h1>
+          <Button
+            isIconOnly
+            variant="ghost"
+            size="sm"
+          >
+            <MoreHorizontal className="w-5 h-5" />
+          </Button>
         </div>
       </header>
 
@@ -307,6 +315,10 @@ export default function ArticleDetail() {
           <h1 className="text-xl font-bold text-gray-900 leading-tight">
             {article.title}
           </h1>
+          {/* Tag chips */}
+          {(article as ArticleDetailType & { tags?: { id: number; name: string }[] }).tags?.map((t) => (
+            <span key={t.id} className="inline-block text-sm text-blue-500 bg-blue-50 px-3 py-1 rounded-full mr-2 mb-2">#{t.name}</span>
+          ))}
         </div>
 
         {/* Content */}

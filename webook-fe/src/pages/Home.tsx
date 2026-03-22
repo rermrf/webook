@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { Spinner } from '@heroui/react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { Bell, Search, Heart, MessageCircle } from 'lucide-react'
+import { Bell, User, Heart, MessageCircle } from 'lucide-react'
 import { api } from '../services/api'
-import type { Article, FeedEvent } from '../types'
+import type { Article, FeedEvent, Tag } from '../types'
 
 type TabKey = 'following' | 'recommended'
 
@@ -57,6 +57,15 @@ function ArticleCard({ article }: { article: Article }) {
         {article.title}
       </h3>
 
+      {/* Tags */}
+      {(article as Article & { tags?: Tag[] }).tags && (article as Article & { tags?: Tag[] }).tags!.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-2">
+          {(article as Article & { tags?: Tag[] }).tags!.map((t) => (
+            <span key={t.id} className="text-xs text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">#{t.name}</span>
+          ))}
+        </div>
+      )}
+
       {/* Abstract */}
       {article.abstract && (
         <p className="text-sm text-gray-500 line-clamp-2 mb-2">
@@ -104,6 +113,14 @@ function FeedArticleCard({ event }: { event: FeedEvent }) {
       <h3 className="text-base font-semibold text-gray-900 mb-1 line-clamp-2">
         {article.title}
       </h3>
+      {/* Tags */}
+      {article.tags && article.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-2">
+          {article.tags.map((tag, idx) => (
+            <span key={idx} className="text-xs text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full">#{tag}</span>
+          ))}
+        </div>
+      )}
       {article.abstract && (
         <p className="text-sm text-gray-500 line-clamp-2 mb-2">
           {article.abstract}
@@ -163,10 +180,10 @@ export default function Home() {
               <Bell className="w-5 h-5" />
             </button>
             <button
-              onClick={() => navigate('/search')}
+              onClick={() => navigate('/profile')}
               className="p-1.5 text-gray-500"
             >
-              <Search className="w-5 h-5" />
+              <User className="w-5 h-5" />
             </button>
           </div>
         </div>

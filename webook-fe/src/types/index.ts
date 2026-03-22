@@ -31,6 +31,7 @@ export interface Article {
   author_avatar_url?: string;
   cover_url?: string;
   status: number;
+  tags?: Tag[];
   ctime: string;
   utime: string;
 }

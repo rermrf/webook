@@ -73,7 +73,7 @@ function ConversationItem({
           </Avatar.Fallback>
         </Avatar>
         {conversation.unread_count > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center">
             {conversation.unread_count > 99
               ? '99+'
               : conversation.unread_count}
@@ -119,7 +119,7 @@ function NotificationRow({ item }: { item: NotificationItem }) {
         <p className="text-xs text-gray-600 line-clamp-2">{item.content}</p>
       </div>
       {!item.is_read && (
-        <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 mt-2" />
+        <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-2" />
       )}
     </div>
   )
@@ -194,7 +194,7 @@ export default function Messages() {
             <span className="relative">
               聊天
               {(imUnread ?? 0) > 0 && (
-                <span className="absolute -top-2 -right-5 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                <span className="absolute -top-2 -right-5 min-w-[16px] h-[16px] px-1 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center">
                   {imUnread}
                 </span>
               )}
@@ -212,7 +212,7 @@ export default function Messages() {
             <span className="relative">
               通知
               {(notifyUnread ?? 0) > 0 && (
-                <span className="absolute -top-2 -right-5 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                <span className="absolute -top-2 -right-5 min-w-[16px] h-[16px] px-1 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center">
                   {notifyUnread}
                 </span>
               )}

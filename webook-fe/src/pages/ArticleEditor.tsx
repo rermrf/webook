@@ -186,6 +186,7 @@ export default function ArticleEditor() {
           placeholder="开始写作..."
           className="w-full flex-1 min-h-[400px] text-sm text-gray-700 placeholder-gray-300 outline-none border-none resize-none leading-relaxed"
         />
+        <p className="text-sm text-gray-300 px-4">支持 Markdown 语法，可以使用 **加粗**、*斜体*、# 标题等格式。</p>
       </div>
 
       {/* Bottom Toolbar */}

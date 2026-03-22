@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Avatar, Button, Spinner } from '@heroui/react'
-import { ArrowLeft, Send } from 'lucide-react'
+import { ArrowLeft, Send, MoreHorizontal, Smile, Plus } from 'lucide-react'
 import { api } from '../services/api'
 
 // Backend MessageVO: id(string), sender_id, receiver_id, msg_type, content, status, ctime
@@ -188,6 +188,13 @@ export default function ChatDetail() {
               </p>
             )}
           </div>
+          <Button
+            isIconOnly
+            variant="ghost"
+            size="sm"
+          >
+            <MoreHorizontal className="w-5 h-5" />
+          </Button>
         </div>
       </header>
 
@@ -251,6 +258,9 @@ export default function ChatDetail() {
       {/* Input Bar */}
       <div className="shrink-0 bg-white border-t border-gray-100">
         <div className="flex items-center gap-2 px-4 py-2 pb-[max(8px,env(safe-area-inset-bottom))]">
+          <button className="shrink-0 p-1.5 text-gray-400">
+            <Smile className="w-5 h-5" />
+          </button>
           <input
             type="text"
             value={inputText}
@@ -264,6 +274,9 @@ export default function ChatDetail() {
               }
             }}
           />
+          <button className="shrink-0 p-1.5 text-gray-400">
+            <Plus className="w-5 h-5" />
+          </button>
           <Button
             isIconOnly
             size="sm"
