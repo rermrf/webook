@@ -13,6 +13,11 @@ import ArticleEditor from './pages/ArticleEditor'
 import Drafts from './pages/Drafts'
 import EditProfile from './pages/EditProfile'
 import FollowList from './pages/FollowList'
+import CommentDetail from './pages/CommentDetail'
+import Reward from './pages/Reward'
+import HotRanking from './pages/HotRanking'
+import BrowseHistory from './pages/BrowseHistory'
+import TagDetail from './pages/TagDetail'
 
 export default function App() {
   return (
@@ -34,6 +39,11 @@ export default function App() {
           <Route path="/drafts" element={<Drafts />} />
           <Route path="/edit-profile" element={<EditProfile />} />
           <Route path="/follow/:id" element={<FollowList />} />
+          <Route path="/comments/:bizType/:bizId" element={<CommentDetail />} />
+          <Route path="/reward/:articleId" element={<Reward />} />
+          <Route path="/ranking" element={<HotRanking />} />
+          <Route path="/history" element={<BrowseHistory />} />
+          <Route path="/tag/:id" element={<TagDetail />} />
         </Route>
       </Routes>
     </BrowserRouter>
