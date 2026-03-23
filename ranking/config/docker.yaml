@@ -1,0 +1,9 @@
+# Ranking 服务 Docker 配置
+redis:
+  addr: "redis:6379"
+
+grpc:
+  server:
+    port: 8095
+    etcdAddrs:
+      - "etcd:2379"

@@ -1,0 +1,6 @@
+# SMS 服务 Docker 配置
+grpc:
+  server:
+    port: 8093
+    etcdAddrs:
+      - "etcd:2379"

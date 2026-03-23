@@ -1,0 +1,14 @@
+# Search 服务 Docker 配置
+elasticsearch:
+  addrs:
+    - "http://elasticsearch:9200"
+
+kafka:
+  addrs:
+    - "kafka:9092"
+
+grpc:
+  server:
+    port: 8099
+    etcdAddrs:
+      - "etcd:2379"

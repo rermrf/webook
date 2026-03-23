@@ -1,0 +1,10 @@
+# Account 服务 Docker 配置
+db:
+  mysql:
+    dsn: "root:root@tcp(mysql:3306)/webook_account?charset=utf8mb4&parseTime=True&loc=Local"
+
+grpc:
+  server:
+    port: 8106
+    etcdAddrs:
+      - "etcd:2379"

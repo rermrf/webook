@@ -1,0 +1,21 @@
+# 基础构建镜像 - 用于编译所有 Go 服务
+FROM golang:1.23-alpine AS builder
+
+# 安装必要的构建工具
+RUN apk add --no-cache git make
+
+# 设置 Go 环境变量
+ENV GO111MODULE=on \
+    GOPROXY=https://goproxy.cn,direct \
+    CGO_ENABLED=0 \
+    GOOS=linux \
+    GOARCH=amd64
+
+WORKDIR /app
+
+# 复制 go.mod 和 go.sum 并下载依赖
+COPY go.mod go.sum ./
+RUN go mod download
+
+# 复制源代码
+COPY . .

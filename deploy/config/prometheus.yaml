@@ -1,0 +1,26 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'webook-bff'
+    static_configs:
+      - targets: ['bff:8082']
+
+  - job_name: 'webook-services'
+    static_configs:
+      - targets:
+          - 'user:8091'
+          - 'article:8092'
+          - 'interactive:8090'
+          - 'comment:8097'
+          - 'follow:8098'
+          - 'search:8099'
+          - 'notification:8100'
+          - 'credit:8101'
+          - 'tag:8102'
+          - 'feed:8103'

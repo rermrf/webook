@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(cd /d/wen/demo/go/project/webook && go build ./bff/... 2>&1)",
+      "Bash(cd:*)"
+    ]
+  }
+}

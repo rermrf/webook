@@ -1,0 +1,560 @@
+version: '3.8'
+
+# ============================================================
+# WeBook 社区项目 - Docker Compose 部署配置
+# ============================================================
+# 包含: 基础设施 + 所有微服务
+# 启动命令: docker-compose -f docker-compose.full.yaml up -d
+# ============================================================
+
+networks:
+  webook-net:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  redis-data:
+  etcd-data:
+  mongo-data:
+  kafka-data:
+  es-data:
+
+# ============================================================
+# 基础设施服务
+# ============================================================
+services:
+  # MySQL 数据库
+  mysql:
+    image: mysql:8.4.2
+    container_name: webook-mysql
+    restart: always
+    command:
+      - --binlog-format=ROW
+      - --server-id=1
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      TZ: Asia/Shanghai
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./script/mysql/:/docker-entrypoint-initdb.d/
+    ports:
+      - "13306:3306"
+    networks:
+      - webook-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis 缓存
+  redis:
+    image: redis:7.4.0-alpine
+    container_name: webook-redis
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - webook-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Etcd 服务注册与发现
+  etcd:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/bitnami/etcd:3.5
+    container_name: webook-etcd
+    restart: always
+    environment:
+      - ALLOW_NONE_AUTHENTICATION=yes
+      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:2379
+      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+    volumes:
+      - etcd-data:/bitnami/etcd
+    ports:
+      - "12379:2379"
+    networks:
+      - webook-net
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MongoDB (可选，用于历史记录等)
+  mongo:
+    image: mongo:7.0
+    container_name: webook-mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - webook-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Kafka 消息队列
+  kafka:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/bitnami/kafka:3.6
+    container_name: webook-kafka
+    restart: always
+    environment:
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://0.0.0.0:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_CREATE_TOPICS=webook_binlog:3:1,like_events:3:1,collect_events:3:1,comment_events:3:1,follow_events:3:1,notification_events:3:1,credit_events:3:1
+    volumes:
+      - kafka-data:/bitnami/kafka
+    ports:
+      - "9092:9092"
+      - "9094:9094"
+    networks:
+      - webook-net
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions.sh --bootstrap-server localhost:9092"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # Elasticsearch 搜索引擎
+  elasticsearch:
+    image: elasticsearch:8.15.5
+    container_name: webook-es
+    restart: always
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - webook-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # ============================================================
+  # 监控服务 (可选)
+  # ============================================================
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: webook-prometheus
+    restart: always
+    volumes:
+      - ./deploy/config/prometheus.yaml:/etc/prometheus/prometheus.yml
+    command:
+      - "--web.enable-remote-write-receiver"
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    ports:
+      - "9091:9090"
+    networks:
+      - webook-net
+    profiles:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: webook-grafana
+    restart: always
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - "3000:3000"
+    networks:
+      - webook-net
+    profiles:
+      - monitoring
+
+  zipkin:
+    image: openzipkin/zipkin-slim:3.4
+    container_name: webook-zipkin
+    restart: always
+    ports:
+      - "9411:9411"
+    networks:
+      - webook-net
+    profiles:
+      - monitoring
+
+  # ============================================================
+  # 微服务
+  # ============================================================
+
+  # BFF 网关服务
+  bff:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.service
+      args:
+        SERVICE_NAME: bff
+    container_name: webook-bff
+    restart: always
+    environment:
+      - CONFIG_FILE=/app/config/docker.yaml
+    ports:
+      - "8081:8081"
+      - "8082:8082"
+    networks:
+      - webook-net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  # 用户服务
+  user:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.service
+      args:
+        SERVICE_NAME: user
+    container_name: webook-user
+    restart: always
+    networks:
+      - webook-net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+
+  # 文章服务
+  article:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.service
+      args:
+        SERVICE_NAME: article
+    container_name: webook-article
+    restart: always
+    networks:
+      - webook-net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  # 验证码服务
+  code:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.service
+      args:
+        SERVICE_NAME: code
+    container_name: webook-code
+    restart: always
+    networks:
+      - webook-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+
+  # 评论服务
+  comment:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.service
+      args:
+        SERVICE_NAME: comment
+    container_name: webook-comment
+    restart: always
+    networks:
+      - webook-net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+
+  # 关注服务
+  follow:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.service
+      args:
+        SERVICE_NAME: follow
+    container_name: webook-follow
+    restart: always
+    networks:
+      - webook-net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+
+  # 互动服务
+  interactive:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.service
+      args:
+        SERVICE_NAME: interactive
+    container_name: webook-interactive
+    restart: always
+    networks:
+      - webook-net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  # 积分服务
+  credit:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.service
+      args:
+        SERVICE_NAME: credit
+    container_name: webook-credit
+    restart: always
+    networks:
+      - webook-net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  # 通知服务
+  notification:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.service
+      args:
+        SERVICE_NAME: notification
+    container_name: webook-notification
+    restart: always
+    networks:
+      - webook-net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  # 搜索服务
+  search:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.service
+      args:
+        SERVICE_NAME: search
+    container_name: webook-search
+    restart: always
+    networks:
+      - webook-net
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  # 标签服务
+  tag:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.service
+      args:
+        SERVICE_NAME: tag
+    container_name: webook-tag
+    restart: always
+    networks:
+      - webook-net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+
+  # Feed 服务
+  feed:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.service
+      args:
+        SERVICE_NAME: feed
+    container_name: webook-feed
+    restart: always
+    networks:
+      - webook-net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+
+  # 排行榜服务
+  ranking:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.service
+      args:
+        SERVICE_NAME: ranking
+    container_name: webook-ranking
+    restart: always
+    networks:
+      - webook-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+
+  # 打赏服务
+  reward:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.service
+      args:
+        SERVICE_NAME: reward
+    container_name: webook-reward
+    restart: always
+    networks:
+      - webook-net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+
+  # 支付服务
+  payment:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.service
+      args:
+        SERVICE_NAME: payment
+    container_name: webook-payment
+    restart: always
+    environment:
+      - WEPAY_APP_ID=wx_test_app_id
+      - WEPAY_MCH_ID=test_mch_id
+      - WEPAY_MCH_KEY=test_mch_key_32_bytes_long_xxx
+      - WEPAY_MCH_SERIAL_NUM=test_serial_num
+    networks:
+      - webook-net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+
+  # OAuth2 服务
+  oauth2:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.service
+      args:
+        SERVICE_NAME: oauth2
+    container_name: webook-oauth2
+    restart: always
+    networks:
+      - webook-net
+    depends_on:
+      etcd:
+        condition: service_healthy
+
+  # 短信服务
+  sms:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.service
+      args:
+        SERVICE_NAME: sms
+    container_name: webook-sms
+    restart: always
+    networks:
+      - webook-net
+    depends_on:
+      etcd:
+        condition: service_healthy
+
+  # 账户服务
+  account:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.service
+      args:
+        SERVICE_NAME: account
+    container_name: webook-account
+    restart: always
+    networks:
+      - webook-net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+
+  # 定时任务服务
+  cronjob:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.service
+      args:
+        SERVICE_NAME: cronjob
+    container_name: webook-cronjob
+    restart: always
+    networks:
+      - webook-net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy

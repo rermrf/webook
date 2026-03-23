@@ -1,0 +1,55 @@
+# BFF 服务 Docker 配置
+db:
+  mysql:
+    dsn: "root:root@tcp(mysql:3306)/webook?charset=utf8mb4&parseTime=True&loc=Local"
+  mongo:
+    url: "mongodb://root:example@mongo:27017/"
+
+redis:
+  addr: "redis:6379"
+
+web:
+  logreq: false
+
+kafka:
+  addrs:
+    - "kafka:9092"
+
+etcd:
+  addr: "etcd:2379"
+
+grpc:
+  client:
+    intr:
+      secure: false
+    user:
+      secure: false
+    article:
+      secure: false
+    sms:
+      secure: false
+    code:
+      secure: false
+    ranking:
+      secure: false
+    oauth2:
+      secure: false
+    reward:
+      secure: false
+    follow:
+      secure: false
+    search:
+      secure: false
+    comment:
+      secure: false
+    notification:
+      secure: false
+    credit:
+      secure: false
+    tag:
+      secure: false
+    feed:
+      secure: false
+
+otel:
+  endpoint: "zipkin:9411"

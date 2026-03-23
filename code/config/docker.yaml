@@ -1,0 +1,12 @@
+# Code 服务 Docker 配置
+redis:
+  addr: "redis:6379"
+
+grpc:
+  server:
+    port: 8094
+    etcdAddrs:
+      - "etcd:2379"
+
+etcd:
+  addr: "etcd:2379"

@@ -1,0 +1,48 @@
+# 通用服务 Dockerfile
+# 使用 ARG 指定要构建的服务
+ARG SERVICE_NAME
+
+# 构建阶段
+FROM golang:1.23-alpine AS builder
+
+ARG SERVICE_NAME
+
+RUN apk add --no-cache git
+
+ENV GO111MODULE=on \
+    GOPROXY=https://goproxy.cn,direct \
+    CGO_ENABLED=0 \
+    GOOS=linux \
+    GOARCH=amd64
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+# 编译指定服务
+RUN go build -ldflags="-s -w" -o /app/service ./${SERVICE_NAME}
+
+# 运行阶段 - 使用轻量级镜像
+FROM alpine:3.19
+
+ARG SERVICE_NAME
+
+RUN apk --no-cache add ca-certificates tzdata && \
+    cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo "Asia/Shanghai" > /etc/timezone
+
+WORKDIR /app
+
+# 从构建阶段复制二进制文件
+COPY --from=builder /app/service /app/service
+
+# 复制配置文件
+COPY --from=builder /app/${SERVICE_NAME}/config /app/config
+
+EXPOSE 8080
+
+ENTRYPOINT ["/app/service"]
+CMD ["--config", "/app/config/docker.yaml"]

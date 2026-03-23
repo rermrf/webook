@@ -1,0 +1,20 @@
+# Interactive 服务 Docker 配置
+db:
+  mysql:
+    src:
+      dsn: "root:root@tcp(mysql:3306)/webook_intr?charset=utf8mb4&parseTime=True&loc=Local"
+    dst:
+      dsn: "root:root@tcp(mysql:3306)/webook_intr?charset=utf8mb4&parseTime=True&loc=Local"
+
+redis:
+  addr: "redis:6379"
+
+kafka:
+  addrs:
+    - "kafka:9092"
+
+grpc:
+  server:
+    port: 8090
+    etcdAddrs:
+      - "etcd:2379"
