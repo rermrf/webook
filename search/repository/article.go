@@ -24,8 +24,8 @@ func (a *articleRepository) InputArticle(ctx context.Context, msg domain.Article
 	})
 }
 
-func (a *articleRepository) SearchArticle(ctx context.Context, uid int64, keywords []string) ([]domain.Article, error) {
-	ids, err := a.tags.Search(ctx, uid, "article", keywords)
+func (a *articleRepository) SearchArticle(ctx context.Context, keywords []string) ([]domain.Article, error) {
+	ids, err := a.tags.Search(ctx, "article", keywords)
 	if err != nil {
 		return nil, err
 	}
@@ -44,5 +44,4 @@ func (a *articleRepository) SearchArticle(ctx context.Context, uid int64, keywor
 		})
 	}
 	return res, nil
-
 }

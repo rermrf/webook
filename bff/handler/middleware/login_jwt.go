@@ -54,26 +54,26 @@ func (l *LoginJWTMiddlewareBuilder) Build() gin.HandlerFunc {
 			return
 		}
 
-		// 校验 UserAgent
-		if claims.UserAgent != ctx.Request.UserAgent() {
-			// 严重的安全问题
-			// 理论上要加监控
-			ctx.AbortWithStatus(http.StatusUnauthorized)
-			return
-		}
-
-		// 一种降级策略
-		//if redis 崩了 {
+		//// 校验 UserAgent
+		//if claims.UserAgent != ctx.Request.UserAgent() {
+		//	// 严重的安全问题
+		//	// 理论上要加监控
+		//	ctx.AbortWithStatus(http.StatusUnauthorized)
 		//	return
 		//}
-
-		// 验证 ssid
-		err = l.CheckSession(ctx, claims.Ssid)
-		if err != nil {
-			// 要么 redis 有问题，要么已经退出登录
-			ctx.AbortWithStatus(http.StatusUnauthorized)
-			return
-		}
+		//
+		//// 一种降级策略
+		////if redis 崩了 {
+		////	return
+		////}
+		//
+		//// 验证 ssid
+		//err = l.CheckSession(ctx, claims.Ssid)
+		//if err != nil {
+		//	// 要么 redis 有问题，要么已经退出登录
+		//	ctx.AbortWithStatus(http.StatusUnauthorized)
+		//	return
+		//}
 
 		ctx.Set("claims", claims)
 		ctx.Set("userId", claims.UserId)

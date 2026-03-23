@@ -25,7 +25,7 @@ type FollowRelation struct {
 	// 如果你认为查询一个人有哪些粉丝，是主要查询场景
 	// <followee, follower>
 	Follower int64 `gorm:"uniqueIndex:follower_followee"`
-	Followee int64 `gorm:"uniqueIndex:follower_follower"`
+	Followee int64 `gorm:"uniqueIndex:follower_followee"`
 
 	// 对于关注来说，就是插入或者将这个状态更新为可用状态
 	// 对于取消关注来说，将这个状态更新为不可用状态

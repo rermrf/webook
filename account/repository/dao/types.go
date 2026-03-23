@@ -25,7 +25,7 @@ type Account struct {
 	// 有些一个账号，但是支持多种货币，那么就需要关联另外一张表
 	// 记录每一个币种的的余额
 	Balance  int64
-	Currency string
+	Currency string `gorm:"type:varchar(16)"`
 
 	Ctime int64
 	Utime int64

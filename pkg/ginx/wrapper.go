@@ -1,12 +1,13 @@
 package ginx
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus"
 	"net/http"
 	"strconv"
 	ijwt "webook/bff/handler/jwt"
 	"webook/pkg/logger"
+
+	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // L 使用包变量
@@ -33,15 +34,20 @@ func WrapBodyAndToken[T any, C ijwt.UserClaims](l logger.LoggerV1, fn func(ctx *
 			return
 		}
 
-		c, ok := val.(*C)
+		c, ok := val.(C)
 		if !ok {
-			ctx.AbortWithStatus(http.StatusUnauthorized)
-			return
+			// 尝试指针类型
+			cp, ok := val.(*C)
+			if !ok {
+				ctx.AbortWithStatus(http.StatusUnauthorized)
+				return
+			}
+			c = *cp
 		}
 
 		// 下半段业务逻辑
 		// 业务逻辑也可能使用 ctx
-		res, err := fn(ctx, req, *c)
+		res, err := fn(ctx, req, c)
 		if err != nil {
 			// 开始处理 error，记录日志
 			l.Error("处理业务逻辑出现错误",
@@ -95,12 +101,17 @@ func WrapClaims[C ijwt.UserClaims](l logger.LoggerV1, fn func(ctx *gin.Context, 
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
-		uc, ok := val.(*C)
+		uc, ok := val.(C)
 		if !ok {
-			ctx.AbortWithStatus(http.StatusUnauthorized)
-			return
+			// 尝试指针类型
+			ucp, ok := val.(*C)
+			if !ok {
+				ctx.AbortWithStatus(http.StatusUnauthorized)
+				return
+			}
+			uc = *ucp
 		}
-		res, err := fn(ctx, *uc)
+		res, err := fn(ctx, uc)
 		if err != nil {
 			l.Error("执行业务逻辑失败", logger.Error(err))
 		}

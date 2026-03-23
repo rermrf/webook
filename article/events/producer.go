@@ -64,8 +64,9 @@ type ReadEventV1 struct {
 }
 
 type SyncArticleEvent struct {
-	Id      int64  `json:"id"`
-	Title   string `json:"title"`
-	Status  int32  `json:"status"`
-	Content string `json:"content"`
+	Id      int64    `json:"id"`
+	Title   string   `json:"title"`
+	Status  int32    `json:"status"`
+	Content string   `json:"content"`
+	Tags    []string `json:"tags,omitempty"`
 }

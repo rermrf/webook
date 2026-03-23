@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/redis/go-redis/v9"
-	"strconv"
 	"time"
 	"webook/tag/domain"
 )
@@ -16,51 +15,60 @@ type RedisTagCache struct {
 }
 
 func NewRedisTagCache(client redis.Cmdable) TagCache {
-	return &RedisTagCache{client: client}
+	return &RedisTagCache{
+		client:     client,
+		expiration: time.Hour * 24,
+	}
 }
 
-func (r *RedisTagCache) GetTags(ctx context.Context, uid int64) ([]domain.Tag, error) {
-	data, err := r.client.HGetAll(ctx, r.userTagsKey(uid)).Result()
+func (r *RedisTagCache) GetAllTags(ctx context.Context) ([]domain.Tag, error) {
+	data, err := r.client.Get(ctx, r.allTagsKey()).Bytes()
 	if err != nil {
 		return nil, err
 	}
-	if len(data) == 0 {
-		return nil, ErrKeyNotExist
-	}
-	res := make([]domain.Tag, 0, len(data))
-	for _, v := range data {
-		var t domain.Tag
-		err = json.Unmarshal([]byte(v), &t)
-		if err != nil {
-			return nil, err
-		}
-		res = append(res, t)
-	}
-	return res, nil
+	var res []domain.Tag
+	err = json.Unmarshal(data, &res)
+	return res, err
 }
 
-func (r *RedisTagCache) Append(ctx context.Context, uid int64, tags ...domain.Tag) error {
-	// 要放我的标签
-	// list, hash, set, sorted set
-	key := r.userTagsKey(uid)
-	pip := r.client.Pipeline()
-	for _, t := range tags {
-		val, err := json.Marshal(t)
-		if err != nil {
-			return err
-		}
-		pip.HMSet(ctx, key, strconv.FormatInt(t.Id, 10), val)
+func (r *RedisTagCache) SetAllTags(ctx context.Context, tags []domain.Tag) error {
+	data, err := json.Marshal(tags)
+	if err != nil {
+		return err
 	}
-	// 也可以考虑永不过期
-	pip.Expire(ctx, key, r.expiration)
-	_, err := pip.Exec(ctx)
-	return err
+	return r.client.Set(ctx, r.allTagsKey(), data, r.expiration).Err()
 }
 
-func (r *RedisTagCache) DelTags(ctx context.Context, uid int64) error {
-	return r.client.Del(ctx, r.userTagsKey(uid)).Err()
+func (r *RedisTagCache) DelAllTags(ctx context.Context) error {
+	return r.client.Del(ctx, r.allTagsKey()).Err()
 }
 
-func (r *RedisTagCache) userTagsKey(uid int64) string {
-	return fmt.Sprintf("tag:user_tags:%d", uid)
+func (r *RedisTagCache) GetBizTags(ctx context.Context, biz string, bizId int64) ([]domain.Tag, error) {
+	data, err := r.client.Get(ctx, r.bizTagsKey(biz, bizId)).Bytes()
+	if err != nil {
+		return nil, err
+	}
+	var res []domain.Tag
+	err = json.Unmarshal(data, &res)
+	return res, err
+}
+
+func (r *RedisTagCache) SetBizTags(ctx context.Context, biz string, bizId int64, tags []domain.Tag) error {
+	data, err := json.Marshal(tags)
+	if err != nil {
+		return err
+	}
+	return r.client.Set(ctx, r.bizTagsKey(biz, bizId), data, r.expiration).Err()
+}
+
+func (r *RedisTagCache) DelBizTags(ctx context.Context, biz string, bizId int64) error {
+	return r.client.Del(ctx, r.bizTagsKey(biz, bizId)).Err()
+}
+
+func (r *RedisTagCache) allTagsKey() string {
+	return "tag:all_tags"
+}
+
+func (r *RedisTagCache) bizTagsKey(biz string, bizId int64) string {
+	return fmt.Sprintf("tag:biz_tags:%s:%d", biz, bizId)
 }

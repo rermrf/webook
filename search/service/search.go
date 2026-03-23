@@ -32,7 +32,7 @@ func (s *searchService) Search(ctx context.Context, uid int64, expression string
 		return err
 	})
 	eg.Go(func() error {
-		arts, err := s.articleRepo.SearchArticle(ctx, uid, keywords)
+		arts, err := s.articleRepo.SearchArticle(ctx, keywords)
 		res.Articles = arts
 		return err
 	})

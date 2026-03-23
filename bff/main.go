@@ -4,16 +4,17 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net/http"
+	"time"
+	"webook/bff/ioc"
+	"webook/config"
+
 	"github.com/fsnotify/fsnotify"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
 	"go.uber.org/zap"
-	"net/http"
-	"time"
-	"webook/bff/ioc"
-	"webook/config"
 )
 
 func main() {

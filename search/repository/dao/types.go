@@ -28,14 +28,13 @@ type ArticleDao interface {
 }
 
 type BizTags struct {
-	Uid   int64    `json:"uid"`
 	Biz   string   `json:"biz"`
-	BizId string   `json:"biz_id"`
+	BizId int64    `json:"biz_id"`
 	Tags  []string `json:"tags"`
 }
 
 type TagDao interface {
-	Search(ctx context.Context, uid int64, biz string, keywords []string) ([]int64, error)
+	Search(ctx context.Context, biz string, keywords []string) ([]int64, error)
 }
 
 type AnyDao interface {
