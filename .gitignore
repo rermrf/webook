@@ -31,3 +31,4 @@ go.work.sum
 webook.zip
 cmd
 nul
+.worktrees/
